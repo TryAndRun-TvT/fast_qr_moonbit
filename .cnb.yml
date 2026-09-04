@@ -1,5 +1,10 @@
 # fast_qr_moonbit 云原生构建配置
 # 说明：CPU 设置为 2，未启用 docker 服务
+#
+# 配置结构:
+#   vscode — 云原生开发环境启动时初始化 MoonBit 工具链
+#   push   — 每次推送代码时执行 MoonBit 安装+构建+测试 CI
+
 $:
   vscode:
     - runner:
@@ -7,5 +12,31 @@ $:
       services:
         - vscode
       stages:
-        - name: hello world
-          script: echo "Hello World from MoonBit!"
+        - name: setup-moonbit-toolchain
+          script: |
+            echo "Setting up MoonBit toolchain in cloud dev environment..."
+            # 安装 MoonBit CLI 工具链
+            curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
+            export PATH="$HOME/.moon/bin:$PATH"
+            # 验证 moon 可用
+            moon version
+
+  push:
+    - name: moonbit-ci
+      runner:
+        cpus: 2
+      stages:
+        - name: setup-moonbit
+          script: |
+            echo "=== Installing MoonBit toolchain ==="
+            curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
+            export PATH="$HOME/.moon/bin:$PATH"
+            moon version
+        - name: check
+          script: |
+            export PATH="$HOME/.moon/bin:$PATH"
+            moon check
+        - name: test
+          script: |
+            export PATH="$HOME/.moon/bin:$PATH"
+            moon test

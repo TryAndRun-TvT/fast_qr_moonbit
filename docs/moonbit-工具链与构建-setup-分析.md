@@ -123,30 +123,60 @@ moon build            # 构建当前包（可 --target、--release）
   `info`(生成 .mbti) `bench` `add` `remove` `install` `tree` `update`
   `coverage` `upgrade` `shell-completion` `version` 等。
 
-## 三、本仓库 (fast_qr_moonbit) 构建集成落地建议
+## 三、实际 Setup 验证
 
-当前 `.cnb.yml` 为最小「hello world」占位（`runner.cpus: 2`、未启用 docker），
-尚**未安装 MoonBit 工具链**。若要落地二维码项目的 CI 构建，可按下述在
-`.cnb.yml` 的 `stages` 中插入 **MoonBit setup + 校验** 步骤（示例，需按实际路径/镜像调整）：
+在 Linux x86_64 环境执行官方安装脚本 `unix.sh`，实测结果：
 
-```yaml
-stages:
-  - name: setup-moonbit-toolchain
-    script: |
-      # 1) 固定版本安装 MoonBit CLI 工具链
-      export MOONBIT_INSTALL_VERSION=latest
-      curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
-      export PATH="$HOME/.moon/bin:$PATH"
-      # 2) 安装依赖 + 校验
-      moon install
-      moon check
-      moon test
+| 项目 | 结果 |
+|------|------|
+| 平台识别 | `Linux x86_64` → `linux-x86_64`，匹配成功 |
+| 工具链版本 | `moon 0.1.20260827 (d0aaa07 2026-08-27)` |
+| 安装目录 | `~/.moon`（默认） |
+| core bundle | 成功，`ran 324 tasks`，含 wasm / wasm-gc 等产物 |
+| PATH 写入 | bash 类型自动追加 `~/.moon/bin` 至 `~/.bashrc` |
+| 无 TTY 支持 | 自动去色，可非交互执行，适合 CI |
+
+**验证通过**。MoonBit 工具链可在 Linux x86_64 上正常安装并运行
+`moon version`、`moon run`、`moon check`、`moon test` 等命令。
+
+## 四、本仓库构建集成落地
+
+已完成以下落地工作：
+
+### 1. MoonBit 项目骨架初始化
+
+仓库根目录新增 MoonBit 项目结构：
+
+```
+├── moon.mod                      # 模块配置
+├── moon.pkg                      # 根包描述
+├── fast_qr_moonbit.mbt           # 库代码（骨架）
+├── fast_qr_moonbit_test.mbt      # 库测试
+├── cmd/main/                     # CLI 可执行入口
+│   ├── main.mbt
+│   └── moon.pkg
+└── README.mbt.md                 # MoonBit README（含 mbt check 代码块）
 ```
 
-> 约定提醒：依据仓库 `agents.md` 与 `docs/文档管理规则.md`，本分析仅作为
-> **文档汇总**入库；对 `.cnb.yml` 的**实际改动**（非纯个人配置）应单独评估后再提交。
+关键配置：`preferred_target = "wasm"`（默认后端）。未设 `supported_targets`，默认支持所有后端。
+根包测试已含 `assert_true(true)` 冒烟用例验证模块可编译运行。
 
-## 四、官方链接
+### 2. `.cnb.yml` CI 流水线集成
+
+在 `$` 分支下配置了两类事件：
+
+- **`vscode`（云原生开发）**：初始化时安装 MoonBit 工具链，开发者可直接使用 `moon` 命令。
+- **`push`（代码推送 CI）**：执行 MoonBit 工具链 setup → `moon check` → `moon test` 完整校验。
+
+CI 无 TTY 环境下 setup 脚本自动去色，可非交互执行。每次推送自动验证
+MoonBit 项目可编译、测试通过。
+
+### 3. 其它
+
+- `.gitignore` 新增 `/_build/` 忽略 MoonBit 构建产物。
+- `LICENSE` 采用 Apache-2.0（与 `moon.mod` 中 license 字段一致）。
+
+## 五、官方链接
 
 - MoonBit 下载 / 校验：https://www.moonbitlang.cn/download/
 - MoonBit 构建系统教程：https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/tutorial.html
