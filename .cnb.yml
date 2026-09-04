@@ -32,11 +32,29 @@ $:
             curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
             export PATH="$HOME/.moon/bin:$PATH"
             moon version
+        # 先校验格式：moon fmt 会格式化 moon.mod / moon.pkg / 所有 .mbt，
+        # 提前拦截配置与代码格式腐化。
+        - name: fmt-check
+          script: |
+            export PATH="$HOME/.moon/bin:$PATH"
+            moon fmt --check
         - name: check
           script: |
             export PATH="$HOME/.moon/bin:$PATH"
-            moon check
+            # --deny-warn：把告警（如 unused_package）升级为失败
+            moon check --deny-warn
         - name: test
           script: |
             export PATH="$HOME/.moon/bin:$PATH"
             moon test
+        # 多后端回归：默认后端 wasm-gc + 兼容后端 wasm(WASI) + js
+        # 注意：不要加 native 阶段 —— 需系统 C 编译器，本镜像未安装。
+        - name: build-and-run
+          script: |
+            export PATH="$HOME/.moon/bin:$PATH"
+            for t in wasm-gc wasm js; do
+              echo "=== target: $t ==="
+              moon build --target $t --release
+              moon run cmd/main --target $t
+              moon test --target $t
+            done

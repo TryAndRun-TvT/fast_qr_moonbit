@@ -1,1 +1,11 @@
+// CLI 可执行入口
+//
+// 待 CLI 真正调用库 API 时，在此声明对根包的依赖：
+//
+//   import {
+//     "tryandrun/fast_qr_moonbit" @lib,
+//   }
+//
+// 注意：声明后若未实际使用 `@lib`，会触发 unused_package 告警，
+// 因此骨架阶段（库尚无公共 API）暂不声明。
 pkgtype(kind: "executable")

@@ -29,7 +29,8 @@
 |------|------|
 | `moon.mod` | 标识目录为 MoonBit **模块**，含名称、版本、readme、license、`preferred_target`/`supported_targets` 等元数据 |
 | `moon.pkg` | 标识目录为一个**包**的包描述符（新版 TOML 格式；旧项目为遗留 `moon.pkg.json`） |
-| `*_test.mbt` | 包内黑盒测试文件，以 `_test.mbt` 结尾时构建系统自动为其新建测试包 |
+| `*_test.mbt` | 包**外**黑盒测试文件，构建系统自动为其新建测试包；只能访问 `pub` 公共定义 |
+| `*_wbtest.mbt` | 包**内**白盒测试文件，可直接访问私有定义（本表初版漏记，实测确认） |
 | `README.mbt.md` | README 文件，其中 `mbt check` 代码块会被 `moon check`/`moon test` 校验执行 |
 
 `moon.pkg` 关键指令（新版格式）示例：
@@ -145,6 +146,8 @@ moon build            # 构建当前包（可 --target、--release）
 
 ### 1. MoonBit 项目骨架初始化
 
+> 下面是**初始化当时**落地的结构；后续演进见下方「当前状态」。
+
 仓库根目录新增 MoonBit 项目结构：
 
 ```
@@ -158,22 +161,45 @@ moon build            # 构建当前包（可 --target、--release）
 └── README.mbt.md                 # MoonBit README（含 mbt check 代码块）
 ```
 
-关键配置：`preferred_target = "wasm"`（默认后端）。未设 `supported_targets`，默认支持所有后端。
-根包测试已含 `assert_true(true)` 冒烟用例验证模块可编译运行。
+初始化时的配置：`preferred_target = "wasm"`，未设 `supported_targets`（默认支持所有后端）；
+根包测试含 `assert_true(true)` 冒烟用例。
+
+**当前状态（后续演进后）**：
+
+- `preferred_target` 已改为 **`wasm-gc`**（依据见
+  [wasm-编译与运行-结果分析.md](./wasm-编译与运行-结果分析.md)）。
+- 已补 `supported_targets = "+wasm+wasm-gc+js"`。
+- 已补 `fast_qr_moonbit_wbtest.mbt`（白盒测试，上表 §一.2 初版漏记）。
+- 已补 `docs/`、`AGENTS.md`（原 `agents.md`，已对齐官方命名并保留符号链接）、
+  `.githooks/`、`README.md -> README.mbt.md` 符号链接。
+- 布局检查与整改过程见 [代码布局检查与整理.md](./代码布局检查与整理.md)。
 
 ### 2. `.cnb.yml` CI 流水线集成
 
 在 `$` 分支下配置了两类事件：
 
 - **`vscode`（云原生开发）**：初始化时安装 MoonBit 工具链，开发者可直接使用 `moon` 命令。
-- **`push`（代码推送 CI）**：执行 MoonBit 工具链 setup → `moon check` → `moon test` 完整校验。
+- **`push`（代码推送 CI）**：工具链 setup → `moon fmt --check` → `moon check --deny-warn`
+  → `moon test` → 多后端 `build-and-run` 回归。
 
-CI 无 TTY 环境下 setup 脚本自动去色，可非交互执行。每次推送自动验证
-MoonBit 项目可编译、测试通过。
+各阶段说明：
+
+| 阶段 | 命令 | 作用 |
+|------|------|------|
+| `fmt-check` | `moon fmt --check` | 格式门禁（`moon fmt` 会格式化 `moon.mod` / `moon.pkg` / 所有 `.mbt`） |
+| `check` | `moon check --deny-warn` | 把告警（如 `unused_package`）升级为失败 |
+| `test` | `moon test` | 全项目测试 |
+| `build-and-run` | 遍历 `wasm-gc` / `wasm` / `js` 做 `--release` 构建、运行、测试 | 多后端回归 |
+
+> **不要加 `native` 阶段**：需系统 C 编译器，本镜像未安装，加入必然失败
+> （见 [wasm-编译与运行-结果分析.md](./wasm-编译与运行-结果分析.md) §6.1）。
+
+CI 无 TTY 环境下 setup 脚本自动去色，可非交互执行。
 
 ### 3. 其它
 
-- `.gitignore` 新增 `/_build/` 忽略 MoonBit 构建产物。
+- `.gitignore` 忽略 MoonBit 构建产物：`/_build/`、`/*.wasm`、`/*.js`、`*.mbti`，
+  以及工具产生的 `.Trash-*/`（避免被 `git add -A` 误提交）。
 - `LICENSE` 采用 Apache-2.0（与 `moon.mod` 中 license 字段一致）。
 
 ## 五、官方链接
