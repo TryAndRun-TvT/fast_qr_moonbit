@@ -1,0 +1,11 @@
+# fast_qr_moonbit 云原生构建配置
+# 说明：CPU 设置为 2，未启用 docker 服务
+$:
+  vscode:
+    - runner:
+        cpus: 2
+      services:
+        - vscode
+      stages:
+        - name: hello world
+          script: echo "Hello World from MoonBit!"
