@@ -18,7 +18,7 @@
 | 语料核对 | 既有 [移植参考语料](./移植参考/fast-qr-索引.md) 中的行号/规模/常量论断与源码**全部吻合，无需更正**（§1.2） |
 | 重写策略 | 机械翻译 + 黄金数据/矩阵快照双层验证（详见语料与框架文档） |
 | 本环境前提 | 有 `moon`（0.1.20260827），**无 cargo/rustc** → 快照/黄金数据生成需一次具备 Rust 的环境（§4.1） |
-| 预估节奏 | 单包起步 → 全功能对齐 → 性能/分发；关键里程碑 M1=Byte 首码对齐、M2=全版本×ECL 快照对齐（§4.3） |
+| 预估节奏 | 单包起步 → 全功能对齐 → 性能/分发；关键里程碑 M1=Byte 首码对齐、M2=全版本×ECL 快照对齐（§4.4） |
 
 ---
 
@@ -146,7 +146,41 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | S8 | 拆 `internal/` 子包（触发信号：文件过多/分层/私有类型需进 `.mbti` 之外） | 见框架文档 §三.2 | `.mbti` 对照 |
 | S9 | 性能：移植三基准点 V03H/V10H/V40H（输入 `https://example.com/`） | `benches/qr.rs` | 透明对比（无硬门槛） |
 
-### 4.3 里程碑
+### 4.3 代码迁移路线图（文件级）
+
+把 §4.2 的步骤落到**逐个 Rust 文件**的迁移上。顺序 = 源码依赖方向；每一层完成即可独立验证，
+保持 `moon fmt/check/test` 常绿：
+
+```
+[数据/常量层]  ecl → version → hardcode → polynomials(LOG/ANTILOG/除法/交织)
+                     ↓
+[结构层]      module → compact → qr(QRCode/错误/QRBuilder 骨架)
+                     ↓
+[算法层]      encode → default(图案) → placement(放置) → datamasking → score
+                     ↓
+[组装/输出层]  lib 导出面 → helpers(to_str) → convert/svg（按需）
+```
+
+| 迁移批次 | 源文件（/fast_qr → 目标 .mbt） | 关键交付 | 自检（本批即绿） |
+|---------|------------------------------|---------|-----------------|
+| B1 | `ecl.rs` → `ecl.mbt` | ECL 枚举与判别 | 白盒断言判别值 |
+| B2 | `version.rs` → `version.mbt` | 容量/元数据表（**脚本从源码提取**，禁止手抄） | 抄自 `tests/version.rs` 的黄金单测 |
+| B3 | `hardcode.rs` → `hardcode.mbt` | 分组（u32 打包）/格式信息/生成多项式表 | 表值抽测 |
+| B4 | `polynomials.rs` → `reedsolomon.mbt` | LOG/ANTILOG + `division` + `structure` | `tests/polynomials.rs` + `tests/structure.rs` 全绿 |
+| B5 | `module.rs` → `module.mbt` | Module 位打包 + 类型/明暗读写 | 位级断言（含「只动 Data」） |
+| B6 | `compact.rs` → `bitbuffer.mbt` | CompactQR（大端序、KEEP_LAST、fill） | `tests/compact.rs` 全绿 |
+| B7 | `encode.rs` → `encode.mbt`（先 Byte） | 三模式编码（先 Byte）+ 容量选择 | `tests/encode.rs` |
+| B8 | `qr.rs` → 根包入口 | QRCode 组装 + 公共 API/错误面 | 黑盒行为用例 |
+| B9 | `default.rs` / `placement.rs` → 放置层 | 图案绘制 + 之字形放置（跳第 6 列） | 固定 mask 首码与快照一致（M1） |
+| B10 | `datamasking.rs` / `score.rs` → 择优层 | 8 掩码 + 4 评分 + 择优主循环 | 全量快照对齐（M2） |
+| B11 | `helpers.rs` / `convert/svg.rs` → 输出层 | `to_str` / SVG（按需） | `tests/svg.rs` 风格快照 |
+
+**提交切分建议**：每个批次一个提交，消息形如 `feat(qr): 迁移 <模块>（参照 <Rust 文件>）`；
+表数据/黄金数据用「生成脚本」产出、结果入库，脚本本身不入库（或放独立 `tools/`，避免进入产物）。
+迁移原则：**先数据表、后算法、最后组装**；任何批次不允许把未迁移文件里的符号提前声明
+（`unused_package`/`missing_doc` 会挡门禁）。
+
+### 4.4 里程碑
 
 | 里程碑 | 含义 | 验收 |
 |--------|------|------|
@@ -155,7 +189,7 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | M2 | **功能对齐** | 60 快照 100% 逐位一致；API 面与 `lib.rs` 导出对齐 |
 | M3 | 性能与分发基线 | 三基准点可跑并给出对比数字；后端/产物分发结论记录在案 |
 
-### 4.4 收尾门禁（沿用 AGENTS.md）
+### 4.5 收尾门禁（沿用 AGENTS.md）
 
 ```bash
 moon fmt && moon info && moon check --deny-warn && moon test
