@@ -239,7 +239,7 @@ moon fmt && moon info && moon check && moon test
 |------|------|------|
 | 新增 `README.md -> README.mbt.md` 符号链接（后已撤销，见 §3.3） | 官方布局含此链接 | 让 GitHub/GitLab 正常渲染首页；git 以 `mode 120000` 跟踪 |
 | `preferred_target` 改为 `wasm-gc` | 实测：release 产物 440 B vs wasm 的 2598 B（-83%）；微基准 45 ms vs 60 ms（快 33%）；宿主仅需 1 个 `spectest.print_char` 回调 | 让 `moon check/build/run/test` 与 IDE 默认走最优后端；兼容产物仍可用 `--target wasm` 单独产出 |
-| `agents.md` → `AGENTS.md` | 官方 `moon new` 输出 `AGENTS.md` | `git mv` 保留历史；建 `agents.md -> AGENTS.md` 符号链接，兼容读小写名的工具，保持单一事实源 |
+| `agents.md` → `AGENTS.md` | 官方 `moon new` 输出 `AGENTS.md` | `git mv` 保留历史；曾建 `agents.md -> AGENTS.md` 兼容链接（后已撤销，见 §3.3） |
 | 新增 `.githooks/pre-commit` + `README.md` | 官方布局含此目录 | 执行 `moon fmt --check` + `moon check`（比官方仅 `moon check` 更严）；未装 `moon` 时自动跳过；启用由开发者自设 `core.hooksPath`，仓库不代设 |
 | CI 补 `fmt-check` 与 `build-and-run` 阶段 | 防止格式与多后端回归腐化 | `check`/`test` 加 `--deny-warn`；`build-and-run` 遍历 `wasm-gc`/`wasm`/`js` 做 release 构建+运行+测试；**不含 native**（镜像缺 C 编译器） |
 
@@ -249,15 +249,14 @@ moon fmt && moon info && moon check && moon test
 
 | 项 | 官方 | 本仓库 | 说明 |
 |----|------|--------|------|
-| 代理指南文件名 | `AGENTS.md` | `AGENTS.md` | **已对齐**：原小写 `agents.md` 于 2026-09-05 重命名；保留 `agents.md` 符号链接兼容读小写名的工具 |
+| 代理指南文件名 | `AGENTS.md` | `AGENTS.md` | **已对齐**：原小写 `agents.md` 于 2026-09-05 重命名为 `AGENTS.md`；曾建 `agents.md` 兼容符号链接（后撤销，仓库现不再保留该链接） |
 | README 入口 | `README.mbt.md` + `README.md -> README.mbt.md` 符号链接（官方 `moon new` 布局） | `README.md`（单一真实文件） | **有意偏离**：撤销官方双文件+符号链接布局，避免两份内容需手动同步（符号链接在 Windows 开发环境还需管理员/开发者模式）；Git/平台渲染首页一致；`moon.mod` 的 `readme` 指向 `README.md` |
 | `.githooks/` | 有（含 `pre-commit`） | 有 | **已补齐**：`pre-commit` 执行 `moon fmt --check` + `moon check`（比官方的仅 `moon check` 更严）；启用需开发者自行执行 `git config core.hooksPath .githooks`（本仓库不代设本地配置） |
 | `.github/workflows/` | 有（copilot-setup-steps） | 无 | 本仓库 CI 在 `.cnb.yml`，无需 GitHub Actions |
 
-> 关于符号链接：本仓库仍保留 `agents.md -> AGENTS.md` 一个符号链接。
-> 教程注明「在 Windows 系统上，你需要管理员权限或启用开发者模式才能创建符号链接」；
-> 若协作方在 Windows 上开发，无法创建该链接时可把 `agents.md` 复制为真实文件
-> （代价是两份内容需手动同步）。README 不再使用符号链接（见 §3.3 已知差异）。
+> 关于符号链接：本仓库目前已**无符号链接** —— README 与 `agents.md` 的官方符号链接
+> 布局均已撤销，相关文件均为单一真实文件（见上表 README 入口与代理指南文件名两行）。
+> 若未来在 Windows 开发环境重建符号链接，教程注明需管理员权限或启用开发者模式。
 
 ---
 

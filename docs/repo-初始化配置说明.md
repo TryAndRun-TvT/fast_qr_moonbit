@@ -24,7 +24,7 @@ https://cnb.cool/tryandrun/web_dev/chat_hub/chathub-server
   - `.codebuddy/commands/commit.md` — 提交辅助命令
   - `.codebuddy/commands/doc-refine.md` — 文档优化辅助命令
 - **`AGENTS.md`** — AI 编码代理仓库指南（Git 安全、项目约定等硬性约束）
-  （原为小写 `agents.md`，已于 2026-09-05 重命名为官方命名，并保留 `agents.md` 符号链接兼容）
+  （原为小写 `agents.md`，已于 2026-09-05 重命名为官方命名；曾建的 `agents.md` 兼容符号链接已撤销）
 
 ### 3. 配置 `.cnb.yml`
 

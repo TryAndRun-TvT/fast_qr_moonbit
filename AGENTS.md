@@ -1,7 +1,6 @@
 # AGENTS.md — AI 协作代理仓库指南
 
-> 文件名对齐 MoonBit 官方 `moon new` 生成的 `AGENTS.md`。
-> 仓库内另有 `agents.md -> AGENTS.md` 符号链接，供读取小写名的工具使用（单一事实源）。
+> 文件名对齐 MoonBit 官方 `moon new` 生成的 `AGENTS.md`（单一事实源，仓库不再提供小写名符号链接）。
 
 > 本文件为在本仓库（MoonBit 项目 `fast_qr_moonbit`）工作的 AI 编码代理提供硬性约定。
 > 请优先遵守；违反可能导致密钥泄露或构建破坏。

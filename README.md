@@ -126,8 +126,7 @@ moon run cmd/main --target js
 │   ├── main.mbt
 │   └── moon.pkg
 ├── docs/                       # 项目文档（工程/布局 + 移植参考/fast_qr 语料）
-├── AGENTS.md                   # AI 协作代理指南（对齐官方命名）
-├── agents.md -> AGENTS.md      # 符号链接，兼容读取小写名的工具
+├── AGENTS.md                   # AI 协作代理指南（单一真实文件）
 ├── .githooks/                  # 可选 Git 钩子（需自行启用，见其 README）
 ├── .cnb.yml                    # 云原生构建配置
 ├── .codebuddy/                 # CodeBuddy 自定义命令

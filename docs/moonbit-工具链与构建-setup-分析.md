@@ -170,7 +170,7 @@ moon build            # 构建当前包（可 --target、--release）
   [wasm-编译与运行-结果分析.md](./wasm-编译与运行-结果分析.md)）。
 - 已补 `supported_targets = "+wasm+wasm-gc+js"`。
 - 已补 `fast_qr_moonbit_wbtest.mbt`（白盒测试，上表 §一.2 初版漏记）。
-- 已补 `docs/`、`AGENTS.md`（原 `agents.md`，已对齐官方命名并保留符号链接）、`.githooks/`。
+- 已补 `docs/`、`AGENTS.md`（由小写 `agents.md` 重命名对齐官方命名，无兼容符号链接）、`.githooks/`。
 - README 入口已改为单一真实 `README.md`（撤销官方 `README.mbt.md` + `README.md`
   符号链接布局；`moon.mod` 的 `readme` 指向 `README.md`，见 README「项目结构」）。
 - 布局检查与整改过程见 [代码布局检查与整理.md](./代码布局检查与整理.md)。
