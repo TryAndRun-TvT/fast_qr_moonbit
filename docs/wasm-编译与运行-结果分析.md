@@ -62,6 +62,10 @@ Total tests: 1, passed: 1, failed: 0.
 
 `moon run` 使用官方 `moonrun` 运行时执行 `_start`，`--release` 模式输出一致。
 
+> 注：§3.2/§3.3 的测试数为**当时骨架**的记录（仅 1 个黑盒冒烟）。补齐白盒测试文件
+> `fast_qr_moonbit_wbtest.mbt` 后，`moon test` 现为 2 个冒烟测试
+> （见 [代码布局检查与整理.md](./代码布局检查与整理.md) §四）。
+
 ### 3.3 各后端校验结果
 
 | 后端 | `moon check` | `moon run` | `moon test` |

@@ -75,6 +75,21 @@ moon run cmd/main --target js
 | [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成 |
 | [repo-初始化配置说明.md](./docs/repo-初始化配置说明.md) | 仓库初始化与云原生构建配置 |
 | [core-仓库布局参考与目标架构.md](./docs/core-仓库布局参考与目标架构.md) | 参考 `moonbitlang/core` 布局得出的目标包架构与分阶段落地路线 |
+| [项目基础框架-详细分析.md](./docs/项目基础框架-详细分析.md) | **项目基础框架**：资产盘点、参考模块→MoonBit 映射、移植语义、验证策略与 P0-P2 路线（实现 QR 前先读） |
+
+### 移植参考：fast_qr（Rust v0.14.0）分析
+
+本仓库以 Rust 库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr) 为参考实现。
+以下文档是对该参考库源码的深度分析（分析时检出于环境 `/fast_qr`，不在本仓库内），
+作为移植输入与设计依据：
+
+| 文档 | 说明 |
+|------|------|
+| [fast-qr-索引.md](docs/移植参考/fast-qr-索引.md) | 参考库文档集入口：架构 / 接口 / 开发者指南 / 核心概念 / 模块 / 跨语言重写评估 |
+| [fast-qr-架构.md](docs/移植参考/fast-qr-架构.md) | 六大子系统、数据流与 7 条核心性能设计决策 |
+| [fast-qr-接口.md](docs/移植参考/fast-qr-接口.md) | Rust 与 JS/WASM 公开 API、示例与性能契约数据 |
+| [fast-qr-开发者指南.md](docs/移植参考/fast-qr-开发者指南.md) | 参考库环境、feature 矩阵、CI 与已知注意事项 |
+| [跨语言重写评估.md](docs/移植参考/专有概念/跨语言重写评估.md) | 重写价值判定、候选语言对比与机械翻译+黄金测试路线图 |
 
 ## 代码放置约定
 
@@ -110,13 +125,13 @@ moon run cmd/main --target js
 ├── cmd/main/                   # CLI 可执行入口
 │   ├── main.mbt
 │   └── moon.pkg
-├── docs/                       # 项目文档
+├── docs/                       # 项目文档（工程/布局 + 移植参考/fast_qr 语料）
 ├── AGENTS.md                   # AI 协作代理指南（对齐官方命名）
 ├── agents.md -> AGENTS.md      # 符号链接，兼容读取小写名的工具
 ├── .githooks/                  # 可选 Git 钩子（需自行启用，见其 README）
 ├── .cnb.yml                    # 云原生构建配置
 ├── .codebuddy/                 # CodeBuddy 自定义命令
-├── README.mbt.md               # 本文件（含 mbt check 代码块）
+├── README.mbt.md               # 本文件（项目说明）
 ├── README.md -> README.mbt.md  # 符号链接（官方布局）
 └── LICENSE                     # Apache-2.0
 ```
