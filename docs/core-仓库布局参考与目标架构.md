@@ -110,12 +110,17 @@ core 布局是「数十个互相依赖的功能包子包」+「跨包基准/性�
 
 ## 四、目标包架构（借鉴 core，逐步落地）
 
-实现 QR 功能时，建议在既有根包（公共 API 层）之下按 core 的 `internal/` 模式
-补充实现子包。以「公开编码入口（`encode`/QR 数据结构）在顶层公共包，
-编码细节下沉 `internal/`」为骨架：
+> 落地更新（2026-09-05，方案 3）：本仓库已进一步采用 core 的「模块根不建包」形态——
+> 库包收口在 `lib/`（公共 API），实现子包在 `lib/internal/`；本节目标树中「根公共包/
+> 模块根包」即 `lib/` 包。权威落地版见
+> [moonbit-实现布局与文件职责.md](./moonbit-实现布局与文件职责.md)。
+
+实现 QR 功能时，建议在 `lib/` 公共包之下按 core 的 `internal/` 模式
+补充实现子包。以「公开编码入口（`encode`/QR 数据结构）在公共包，
+编码细节下沉 `lib/internal/`」为骨架：
 
 ```
-fast_qr_moonbit.mbt              # 根公共包：对外 API（QrCode / encode 等）
+lib/fast_qr_moonbit.mbt            # 公共包：对外 API（QrCode / encode 等）
 ├── version.mbt                  #   版本/纠错等级/掩码等公共枚举与常量
 ├── encode.mbt                   #   公共编码入口：bytes/str → 码矩阵
 ├── *_test.mbt / *_wbtest.mbt    #   黑盒/白盒测试（公共行为）
@@ -153,7 +158,7 @@ fast_qr_moonbit.mbt              # 根公共包：对外 API（QrCode / encode �
 
 - [ ] P0 先在根包实现最小可用 QR 编码（单包、多 `.mbt`），补真实测试替换
       `assert_true(true)`。
-- [ ] P0 让 `cmd/main` 声明 `import { "tryandrun/fast_qr_moonbit" @lib }`
+- [ ] P0 让 `cmd/main` 声明 `import { "tryandrun/fast_qr_moonbit/lib" @lib }`
       并真正调用库 API（首次实际调用时才加，勿提前）。
 - [ ] P1 当出现 §四「何时才拆包」任一信号时，按 §四 目标树拆 `internal/` 子包，
       每个目录带 `moon.pkg` 与 `README.mbt.md`。

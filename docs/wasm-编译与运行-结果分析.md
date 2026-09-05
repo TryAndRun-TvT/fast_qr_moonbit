@@ -186,13 +186,13 @@ tcc: error: undefined symbol 'putchar' 'malloc' 'memcpy' ...
 > 已修正（见 `docs/代码布局检查与整理.md`）：注释改为准确的黑盒/白盒说明，
 > 并补齐缺失的 `fast_qr_moonbit_wbtest.mbt`。
 
-### 6.3 `cmd/main/moon.pkg` 尚未建立对根包的依赖
+### 6.3 `cmd/main/moon.pkg` 尚未建立对库包 `lib/` 的依赖
 
 当前 `main` 未调用库函数，故可编译。一旦 CLI 开始调用库 API，需补：
 
 ```toml
 import {
-  "tryandrun/fast_qr_moonbit" @lib,
+  "tryandrun/fast_qr_moonbit/lib" @lib,
 }
 pkgtype(kind: "executable")
 ```

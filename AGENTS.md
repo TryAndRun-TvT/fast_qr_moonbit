@@ -26,27 +26,31 @@
 
 ## 二、MoonBit 项目约定
 
-### 1. 包与文件放置
+### 1. 包与文件放置（方案 3 布局，对齐 core）
 
-- 包按目录组织，每个目录一个 `moon.pkg`；模块根有 `moon.mod`。
-- 库主文件放**根目录**、与模块名末段同名：`fast_qr_moonbit.mbt`。
-- 测试文件分两类，**不可混用**：
+- **模块根只放元数据**（`moon.mod` / `README.md` / `docs/` 等），**模块根不是包**
+  （无根 `moon.pkg`）；库包统一放 `lib/`，实现细节藏 `lib/internal/`。
+- 包按目录组织，每个目录一个 `moon.pkg`。
+- 库入口文件放 `lib/`：`lib/fast_qr_moonbit.mbt`（文件名可任取，沿用模块名便于识别）；
+  公共枚举/类型文件（ecl/version/mode/mask/qr/helpers 等）与入口同放 `lib/`。
+- 测试文件放**所属包目录内**，分两类，**不可混用**：
 
   | 文件 | 运行位置 | 可访问范围 |
   |------|---------|-----------|
-  | `*_test.mbt` | 包**外**（黑盒） | 仅 `pub` 导出的公共 API；用 `@fast_qr_moonbit` 别名引用本包 |
+  | `*_test.mbt` | 包**外**（黑盒） | 仅 `pub` 导出的公共 API；用 `@lib` 别名引用本包（别名 = 目录名 `lib`，自动可用） |
   | `*_wbtest.mbt` | 包**内**（白盒） | 私有函数与内部实现，无需 `pub` 导出 |
 
 - CLI 可执行包固定为 `cmd/main/`，其 `moon.pkg` 需写 `pkgtype(kind: "executable")`。
 - 弃用代码统一放各目录的 `deprecated.mbt`。
+- 依赖方向无环：`lib` 可 import `lib/internal/*`，internal 永不反向 import `lib`（MoonBit 禁止 import 环）。
 
 ### 2. 依赖声明
 
-- 跨包依赖在**使用方**的 `moon.pkg` 中声明：
+- 跨包依赖在**使用方**的 `moon.pkg` 中声明（库包路径为 `.../lib`）：
 
   ```toml
   import {
-    "tryandrun/fast_qr_moonbit" @lib,
+    "tryandrun/fast_qr_moonbit/lib" @lib,
   }
   ```
 
@@ -58,7 +62,8 @@
 - 模块声明 `supported_targets = "+wasm+wasm-gc+js"`，默认 `preferred_target = "wasm-gc"`。
 - 主推 **`wasm-gc`**（实测体积比 `wasm` 小 83%、计算微基准快约 33%、宿主接入成本最低）；
   `wasm` 作 WASI 兼容兜底，`js` 用于 npm / 浏览器。
-- 需要兼容产物时显式指定：`moon build --target wasm --release`（默认命令走 `wasm-gc`）。
+- 需要兼容产物时显式指定包与后端：`moon build cmd/main --target wasm --release`
+  （默认命令走 `wasm-gc`；模块根无包，构建需显式给包名）。
 - **`native` 后端需系统 C 编译器**（`cc` / `gcc` / `clang`）。当前环境缺失，
   在修复前**不得**把 native 阶段写进 CI 必选流程。
 - 代码块以 `///|` 分隔块风格组织，块间顺序无关。
@@ -70,8 +75,8 @@
 ```bash
 export PATH="$HOME/.moon/bin:$PATH"
 moon fmt && moon info && moon check --deny-warn && moon test
-# 多后端回归（release）
-for t in wasm-gc wasm js; do moon build --target $t --release; moon test --target $t; done
+# 多后端回归（release，显式构建 lib 与 cmd/main）
+for t in wasm-gc wasm js; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done
 ```
 
 > CI 会执行 `moon fmt --check`、`moon check --deny-warn` 与三后端 release 回归，

@@ -19,8 +19,11 @@ export PATH="$HOME/.moon/bin:$PATH"
 
 ### 构建
 
+模块根不设包（core 式布局）：库包在 `lib/`，CLI 在 `cmd/main/`，构建需显式给包名。
+
 ```bash
-moon build
+moon build lib          # 编译库包
+moon build cmd/main     # 编译 CLI
 ```
 
 ### 运行 CLI
@@ -41,11 +44,11 @@ moon test
 
 ```bash
 # 默认后端 wasm-gc（体积最小、性能最优，宿主只需提供 spectest.print_char）
-moon build --release
+moon build cmd/main --release
 moon run   cmd/main
 
 # 兼容后端 wasm（WASI preview1，可被 node / wasmtime 等标准宿主加载）
-moon build --target wasm --release
+moon build cmd/main --target wasm --release
 moon run   cmd/main --target wasm
 
 # js
@@ -77,6 +80,7 @@ moon run cmd/main --target js
 | [core-仓库布局参考与目标架构.md](./docs/core-仓库布局参考与目标架构.md) | 参考 `moonbitlang/core` 布局得出的目标包架构与分阶段落地路线 |
 | [项目基础框架-详细分析.md](./docs/项目基础框架-详细分析.md) | **项目基础框架**：资产盘点、参考模块→MoonBit 映射、移植语义、验证策略与 P0-P2 路线（实现 QR 前先读） |
 | [moonbit-重写-roadmap-详细分析.md](./docs/moonbit-重写-roadmap-详细分析.md) | **MoonBit 重写路线图**：基于 `/fast_qr` 源码核验的架构要点、S1-S9 实现顺序、里程碑 M0-M3 与验证基座 |
+| [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
 
@@ -92,38 +96,45 @@ moon run cmd/main --target js
 | [fast-qr-开发者指南.md](docs/移植参考/fast-qr-开发者指南.md) | 参考库环境、feature 矩阵、CI 与已知注意事项 |
 | [跨语言重写评估.md](docs/移植参考/专有概念/跨语言重写评估.md) | 重写价值判定、候选语言对比与机械翻译+黄金测试路线图 |
 
-## 代码放置约定
+## 代码放置约定（方案 3：模块根无包，库包在 `lib/`）
 
-本仓库布局与 `moon new` 生成的官方布局一致，按下列约定放置代码：
+本仓库模块根只放元数据（对齐 `moonbitlang/core` 形态），按下列约定放置代码：
 
 | 文件 / 目录 | 放置位置 | 约定 |
 |-------------|---------|------|
-| 模块配置 | 根目录 `moon.mod` | 声明 `name` / `preferred_target` / `supported_targets` |
-| 包描述 | 每个包目录一个 `moon.pkg` | 根包可为空；依赖在使用方声明 |
-| 库主文件 | 根目录 `<模块名>.mbt` | 文件名与 `moon.mod` 的 `name` 末段同名 |
-| 黑盒测试 | 根目录 `<模块名>_test.mbt` | **包外**运行，只能访问 `pub` API；用 `@fast_qr_moonbit` 别名引用本包 |
-| 白盒测试 | 根目录 `<模块名>_wbtest.mbt` | **包内**运行，可直接访问私有实现 |
+| 模块配置 | 根目录 `moon.mod` | 声明 `name` / `preferred_target` / `supported_targets`；**根目录不建包**（无 `moon.pkg`） |
+| 库包 | `lib/` + `lib/moon.pkg` | 库源码全部在 `lib/`；公共类型/入口在 `lib/` 根文件，实现子包在 `lib/internal/` |
+| 库入口 | `lib/fast_qr_moonbit.mbt` | 文件名沿用模块名便于识别（目录内可自由命名） |
+| 黑盒测试 | `lib/<模块名>_test.mbt` | **包外**运行，只能访问 `pub` API；用 `@lib` 别名引用本包（别名 = 目录名 `lib`） |
+| 白盒测试 | `lib/<模块名>_wbtest.mbt` | **包内**运行，可直接访问私有实现 |
 | CLI 入口 | `cmd/main/` | `moon.pkg` 需写 `pkgtype(kind: "executable")` |
-| 跨包依赖 | 使用方的 `moon.pkg` | `import { "tryandrun/fast_qr_moonbit" @lib }`；**声明后必须使用**，否则触发 `unused_package` 告警 |
+| 跨包依赖 | 使用方的 `moon.pkg` | `import { "tryandrun/fast_qr_moonbit/lib" @lib }`；**声明后必须使用**，否则触发 `unused_package` 告警 |
 
-> **不要建 `src/`**：MoonBit 无 `src/` 约定（官方教程的标准目录树中不含 `src/`）。
-> 库源码直接放模块根目录，CLI 放 `cmd/main/`。
-> 拆分多个子包时按功能建目录（如 `reedsolomon/`），每个目录各带一个 `moon.pkg`；
-> **包名由目录名决定且不可配置**，目录内 `.mbt` 的文件名则可自由命名。
-> 注意 `src/` 并非被禁止：在其中放 `.mbt` + `moon.pkg` 技术上可编译（实测通过），
-> 只是**不合官方惯例**。
-> 详见 [moonbit-项目目录设置-最佳实践.md](./docs/moonbit-项目目录设置-最佳实践.md)。
+> **不要建 `src/`**：MoonBit 无 `src/` 约定；本仓库用 `lib/` 承载库包、`lib/internal/`
+> 承载实现细节（与 core 的 feature 包 + internal 形态一致）。
+> 每个子包目录各带一个 `moon.pkg`；**包名由目录名决定且不可配置**，目录内 `.mbt` 的文件名则可自由命名。
+> 详见 [moonbit-项目目录设置-最佳实践.md](./docs/moonbit-项目目录设置-最佳实践.md)
+> 与 [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md)。
 > 弃用代码统一放各目录的 `deprecated.mbt`。
 
 ## 项目结构
 
 ```
-├── moon.mod                    # MoonBit 模块配置
-├── moon.pkg                    # 根包描述（暂无依赖，留空）
-├── fast_qr_moonbit.mbt         # 库主文件（公共 API）
-├── fast_qr_moonbit_test.mbt    # 黑盒测试（包外，仅 pub API）
-├── fast_qr_moonbit_wbtest.mbt  # 白盒测试（包内，可访问私有实现）
-├── cmd/main/                   # CLI 可执行入口
+├── moon.mod                    # MoonBit 模块配置（模块根不建包）
+├── lib/                        # 库包（公共 API，lib/moon.pkg）
+│   ├── fast_qr_moonbit.mbt     #   库入口 / 公共 API 组装（当前为职责注释）
+│   ├── ecl/version/mode/mask.mbt  # 公共枚举（.mbti 对外契约）
+│   ├── qr.mbt / helpers.mbt    #   QRCode 容器与错误 / 终端输出
+│   ├── fast_qr_moonbit_test.mbt  # 黑盒测试（包外，@lib）
+│   ├── fast_qr_moonbit_wbtest.mbt # 白盒测试（包内）
+│   └── internal/               #   实现子包（各带 moon.pkg；不反向依赖 lib；注释骨架）
+│       ├── constants/          #     常量表 + 容量/元数据表
+│       ├── bitstream/          #     位流缓冲（CompactQR）
+│       ├── reedsolomon/        #     GF(256) 除法与交织
+│       ├── data_encoding/      #     三模式编码
+│       └── matrix/             #     module/matrix/placement/datamasking/score
+│       # 职责与 roadmap 批次（B1-B11）见 docs/moonbit-实现布局与文件职责.md
+├── cmd/main/                   # CLI 可执行入口（import { ".../lib" @lib }）
 │   ├── main.mbt
 │   └── moon.pkg
 ├── docs/                       # 项目文档（工程/布局 + 移植参考/fast_qr 语料）

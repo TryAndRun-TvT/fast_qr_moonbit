@@ -217,16 +217,21 @@ moon fmt && moon info && moon check && moon test
 
 ## 三、本仓库对照与整改
 
+> 布局演进（2026-09-05，**方案 3**）：仓库已改为「模块根不建包、库包在 `lib/`」的 core 形态，
+> 与下方按 `moon new` 根包形态的对照存在差异；落地形态以
+> [moonbit-实现布局与文件职责](./moonbit-实现布局与文件职责.md) 为准。下表 3.1 中凡与
+> 该形态冲突的行已在说明处标注。
+
 ### 3.1 符合项
 
 | 项 | 本仓库 | 判定 |
 |----|--------|:---:|
-| 无 `src/`，库源码放模块根 | `fast_qr_moonbit.mbt` 在根 | 符合 |
-| 根包 `moon.pkg`（可为空） | 存在，为空 | 符合 |
+| 无 `src/` | 库源码在 `lib/`（方案 3，非模块根） | 符合（无 `src/`） |
+| 根包 `moon.pkg` | **无**——模块根只放元数据 | 偏离（方案 3，见 §3.3） |
 | CLI 在 `cmd/main/` + `pkgtype(kind: "executable")` | 存在 | 符合 |
-| 黑盒测试 `_test.mbt` | `fast_qr_moonbit_test.mbt` | 符合 |
-| 白盒测试 `_wbtest.mbt` | `fast_qr_moonbit_wbtest.mbt` | 符合 |
-| 库主文件与模块名末段同名 | `fast_qr_moonbit.mbt` | 符合 |
+| 黑盒测试 `_test.mbt` | `lib/fast_qr_moonbit_test.mbt`（`@lib`） | 符合 |
+| 白盒测试 `_wbtest.mbt` | `lib/fast_qr_moonbit_wbtest.mbt` | 符合 |
+| 库主文件命名 | `lib/fast_qr_moonbit.mbt`（文件名沿用模块名） | 符合 |
 | README 入口（真实文件） | `README.md`（`moon.mod` 的 `readme` 指向它） | 偏离（见 §3.3） |
 | `supported_targets` 用集合语法 | `"+wasm+wasm-gc+js"` | 符合 |
 | 未使用的依赖不提前声明 | `cmd/main/moon.pkg` 仅注释记录 | 符合 |
@@ -253,6 +258,7 @@ moon fmt && moon info && moon check && moon test
 | README 入口 | `README.mbt.md` + `README.md -> README.mbt.md` 符号链接（官方 `moon new` 布局） | `README.md`（单一真实文件） | **有意偏离**：撤销官方双文件+符号链接布局，避免两份内容需手动同步（符号链接在 Windows 开发环境还需管理员/开发者模式）；Git/平台渲染首页一致；`moon.mod` 的 `readme` 指向 `README.md` |
 | `.githooks/` | 有（含 `pre-commit`） | 有 | **已补齐**：`pre-commit` 执行 `moon fmt --check` + `moon check`（比官方的仅 `moon check` 更严）；启用需开发者自行执行 `git config core.hooksPath .githooks`（本仓库不代设本地配置） |
 | `.github/workflows/` | 有（copilot-setup-steps） | 无 | 本仓库 CI 在 `.cnb.yml`，无需 GitHub Actions |
+| 模块形态 | `moon new` 单库：模块根即根包（`moon.pkg` + `<模块名>.mbt`） | **方案 3**：模块根不建包，库包在 `lib/`（`.../lib`），实现子包在 `lib/internal/` | **有意偏离**（对齐 core）：模块根只放元数据，目录更干净；导入路径变 `.../lib`，构建需显式给包名；见 [moonbit-实现布局与文件职责](./moonbit-实现布局与文件职责.md) |
 
 > 关于符号链接：本仓库目前已**无符号链接** —— README 与 `agents.md` 的官方符号链接
 > 布局均已撤销，相关文件均为单一真实文件（见上表 README 入口与代理指南文件名两行）。
@@ -264,17 +270,18 @@ moon fmt && moon info && moon check && moon test
 
 实现 QR 功能时按此执行：
 
-1. **库 API** 写在根目录 `fast_qr_moonbit.mbt`（可按需拆多个 `.mbt`，共享根 `moon.pkg`）。
+1. **库 API** 写在 `lib/fast_qr_moonbit.mbt`（可按需拆多个 `.mbt`，共享 `lib/moon.pkg`）；
+   实现子包放 `lib/internal/`。
 2. **公共 API** 加 `///` 文档注释；可选开启 `missing_doc` 告警（core 已启用）。
-3. **黑盒测试** `fast_qr_moonbit_test.mbt`：用 `@fast_qr_moonbit` 引用，只测公共行为。
-4. **白盒测试** `fast_qr_moonbit_wbtest.mbt`：直接调用私有 helper。
+3. **黑盒测试** `lib/fast_qr_moonbit_test.mbt`：用 `@lib` 引用，只测公共行为。
+4. **白盒测试** `lib/fast_qr_moonbit_wbtest.mbt`：直接调用私有 helper。
 5. **贴近实现的断言**优先写成源码内联 `test { }` 块（不影响产物体积）。
 6. **CLI** 在 `cmd/main/`，调用库时在 `cmd/main/moon.pkg` 声明
-   `import { "tryandrun/fast_qr_moonbit" @lib }` —— 与首次实际调用同一批改动，勿提前加。
-7. **若需拆子包**：按功能在根建目录（如 `reedsolomon/`），加 `moon.pkg`，
+   `import { "tryandrun/fast_qr_moonbit/lib" @lib }` —— 与首次实际调用同一批改动，勿提前加。
+7. **若需拆子包**：在 `lib/` 内按功能建目录（如 `lib/internal/reedsolomon/`），加 `moon.pkg`，
    目录名即包名；**不要建 `src/`**。
 8. **收尾**：`moon fmt && moon info && moon check && moon test`；
-   三后端回归 `wasm` / `wasm-gc` / `js`。
+   三后端回归：`for t in wasm-gc wasm js; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done`。
 
 ---
 

@@ -132,7 +132,13 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 
 > 验收标志：60 快照 JSON 生成；version/hardcode/polynomials 黄金单测在 MoonBit 侧转译后全绿。
 
-### 4.2 实现顺序（单根包起步，出现信号再拆）
+### 4.2 实现顺序（按 internal 子包落地，出现信号再细分）
+
+> 布局说明：仓库已采用**方案 3**（模块根无包），库包在 `lib/`，实现子包在
+> `lib/internal/`（constants/bitstream/reedsolomon/data_encoding/matrix，见
+> [moonbit-实现布局与文件职责](./moonbit-实现布局与文件职责.md)）。下表各步落点为对应子包
+> （B 表目标文件名即其内文件）；原「S8 拆包」语义调整为：在既有 internal 包之上，
+> 出现细分信号时再拆。
 
 | 步 | 内容 | 参考源码（已核验锚点） | 对应黄金/快照 |
 |----|------|------------------------|---------------|
