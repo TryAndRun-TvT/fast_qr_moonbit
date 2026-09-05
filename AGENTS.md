@@ -91,13 +91,13 @@ for t in wasm-gc wasm js; do moon build --target $t --release; moon test --targe
   如 `wasm-编译与运行-结果分析.md`）。
 - **单文档 ≤800 行**，超长应拆分。
 - **死链零容忍**：文档中不得引用不存在的文件；新增文档须同步更新
-  `README.mbt.md` 的「文档」索引表。
+  `README.md` 的「文档」索引表。
 - **纯本地 / 私人配置调整**（如本地默认值改动）：只改代码/配置，**不生成、不更新项目文档**。
 
 ---
 
 ## 四、参考
 
-- 项目文档索引见 [README.mbt.md](./README.mbt.md)「文档」表。
+- 项目文档索引见 [README.md](./README.md)「文档」表。
 - MoonBit 技能库：<https://github.com/moonbitlang/skills>
 - MoonBit 构建系统：<https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/tutorial.html>

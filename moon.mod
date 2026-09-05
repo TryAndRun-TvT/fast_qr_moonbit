@@ -5,7 +5,7 @@ name = "tryandrun/fast_qr_moonbit"
 
 version = "0.1.0"
 
-readme = "README.mbt.md"
+readme = "README.md"
 
 repository = "https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit"
 

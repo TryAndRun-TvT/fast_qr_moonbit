@@ -49,8 +49,9 @@ https://cnb.cool/tryandrun/web_dev/chat_hub/chathub-server
 └── docs/           # 文档目录
 ```
 
-> 现状请以 [README.mbt.md](../README.mbt.md)「项目结构」为准 —— 其后又新增了
-> MoonBit 源码、`cmd/main/`、`.githooks/`、`README.md` 符号链接等。
+> 现状请以 [README.md](../README.md)「项目结构」为准 —— 其后又新增了
+> MoonBit 源码、`cmd/main/`、`.githooks/` 等，README 入口改为单一真实 `README.md`
+> （原官方 `README.mbt.md` + `README.md` 符号链接布局已撤销）。
 
 ## 四、注意事项
 

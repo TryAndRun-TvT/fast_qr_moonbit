@@ -310,7 +310,7 @@ node --input-type=module -e "
 
 - [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) — 工具链安装与构建系统
 - [repo-初始化配置说明.md](./repo-初始化配置说明.md) — 仓库初始化与 CI 配置
-- [README.mbt.md](../README.mbt.md) — 项目入口与快速开始
+- [README.md](../README.md) — 项目入口与快速开始
 
 官方链接：
 

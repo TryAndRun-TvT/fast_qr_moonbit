@@ -227,10 +227,9 @@ moon fmt && moon info && moon check && moon test
 | 黑盒测试 `_test.mbt` | `fast_qr_moonbit_test.mbt` | 符合 |
 | 白盒测试 `_wbtest.mbt` | `fast_qr_moonbit_wbtest.mbt` | 符合 |
 | 库主文件与模块名末段同名 | `fast_qr_moonbit.mbt` | 符合 |
-| `README.mbt.md` | 存在 | 符合 |
+| README 入口（真实文件） | `README.md`（`moon.mod` 的 `readme` 指向它） | 偏离（见 §3.3） |
 | `supported_targets` 用集合语法 | `"+wasm+wasm-gc+js"` | 符合 |
 | 未使用的依赖不提前声明 | `cmd/main/moon.pkg` 仅注释记录 | 符合 |
-| 符号链接 `README.md -> README.mbt.md` | 已建立 | 符合 |
 
 ### 3.2 整改记录
 
@@ -238,7 +237,7 @@ moon fmt && moon info && moon check && moon test
 
 | 动作 | 依据 | 说明 |
 |------|------|------|
-| 新增 `README.md -> README.mbt.md` 符号链接 | 官方布局含此链接 | 让 GitHub/GitLab 正常渲染首页；git 以 `mode 120000` 跟踪 |
+| 新增 `README.md -> README.mbt.md` 符号链接（后已撤销，见 §3.3） | 官方布局含此链接 | 让 GitHub/GitLab 正常渲染首页；git 以 `mode 120000` 跟踪 |
 | `preferred_target` 改为 `wasm-gc` | 实测：release 产物 440 B vs wasm 的 2598 B（-83%）；微基准 45 ms vs 60 ms（快 33%）；宿主仅需 1 个 `spectest.print_char` 回调 | 让 `moon check/build/run/test` 与 IDE 默认走最优后端；兼容产物仍可用 `--target wasm` 单独产出 |
 | `agents.md` → `AGENTS.md` | 官方 `moon new` 输出 `AGENTS.md` | `git mv` 保留历史；建 `agents.md -> AGENTS.md` 符号链接，兼容读小写名的工具，保持单一事实源 |
 | 新增 `.githooks/pre-commit` + `README.md` | 官方布局含此目录 | 执行 `moon fmt --check` + `moon check`（比官方仅 `moon check` 更严）；未装 `moon` 时自动跳过；启用由开发者自设 `core.hooksPath`，仓库不代设 |
@@ -251,12 +250,14 @@ moon fmt && moon info && moon check && moon test
 | 项 | 官方 | 本仓库 | 说明 |
 |----|------|--------|------|
 | 代理指南文件名 | `AGENTS.md` | `AGENTS.md` | **已对齐**：原小写 `agents.md` 于 2026-09-05 重命名；保留 `agents.md` 符号链接兼容读小写名的工具 |
+| README 入口 | `README.mbt.md` + `README.md -> README.mbt.md` 符号链接（官方 `moon new` 布局） | `README.md`（单一真实文件） | **有意偏离**：撤销官方双文件+符号链接布局，避免两份内容需手动同步（符号链接在 Windows 开发环境还需管理员/开发者模式）；Git/平台渲染首页一致；`moon.mod` 的 `readme` 指向 `README.md` |
 | `.githooks/` | 有（含 `pre-commit`） | 有 | **已补齐**：`pre-commit` 执行 `moon fmt --check` + `moon check`（比官方的仅 `moon check` 更严）；启用需开发者自行执行 `git config core.hooksPath .githooks`（本仓库不代设本地配置） |
 | `.github/workflows/` | 有（copilot-setup-steps） | 无 | 本仓库 CI 在 `.cnb.yml`，无需 GitHub Actions |
 
-> 关于符号链接：教程注明「在 Windows 系统上，你需要管理员权限或启用开发者模式才能创建符号链接」。
-> 若协作方在 Windows 上开发，无法创建该链接时可直接复制一份 `README.md`
-> （代价是两份内容需手动同步）。
+> 关于符号链接：本仓库仍保留 `agents.md -> AGENTS.md` 一个符号链接。
+> 教程注明「在 Windows 系统上，你需要管理员权限或启用开发者模式才能创建符号链接」；
+> 若协作方在 Windows 上开发，无法创建该链接时可把 `agents.md` 复制为真实文件
+> （代价是两份内容需手动同步）。README 不再使用符号链接（见 §3.3 已知差异）。
 
 ---
 

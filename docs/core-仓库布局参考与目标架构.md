@@ -32,8 +32,8 @@ LICENSE / NOTICE / CHANGELOG.md / CONTRIBUTING.md
 bench/ test/        # 跨包基准与通用测试基座
 ```
 
-> `moon.mod` 的 `readme = "README.md"` 直接指向真实文件（本仓库按 `moon new`
-> 惯例用 `README.mbt.md` + `README.md` 符号链接，属既有约定，不做变动）。
+> `moon.mod` 的 `readme = "README.md"` 直接指向真实文件（本仓库现亦采用单一真实
+> `README.md`，不沿用官方 `README.mbt.md` + 符号链接布局，见 README「项目结构」）。
 
 ### 1.2 包组织（核心模式）
 
