@@ -179,3 +179,55 @@ pub fn QRCode::select_capacity(
   }
   Ok((mode_idx, ecl_idx, version_idx))
 }
+
+///|
+/// M1 最小编排入口：固定 mask 下把 select_capacity→encode→structure→放置→Format→固定 mask 串成完整 QRCode。
+/// 对应参考 fast_qr v0.14.0 `src/placement.rs::create_matrix`（S4 方案 §1「M1 编排」）。
+/// - input 为输入字节；mode/ecl/version 为 `None` 时走 select_capacity 自动择优
+///   （mode 按 best_encoding 回退、ecl 默认 Q、version 取最小适配）；
+/// - mask **必填**：S4/M1 只按指定固定 mask 应用一次掩码、写真实 Format（8 轮择优评分留 S5）。
+/// - 返回完整 `QRCode`（data 已含掩码后明暗、元数据 version/ecl/mask/mode 为解析值）。
+pub fn QRCode::build_fixed(
+  input : Array[Byte],
+  mode : Mode?,
+  ecl : ECL?,
+  version : Version?,
+  mask : Mask,
+) -> Result[QRCode, QRCodeError] {
+  // 1) 容量/版本选择：返回 (mode_idx, ecl_idx, version_idx) 序号
+  let (mode_idx, ecl_idx, version_idx) = match
+    QRCode::select_capacity(input, mode, ecl, version) {
+    Ok(t) => t
+    Err(e) => return Err(e)
+  }
+  // 2) 编码到位流缓冲（data 前 data_codewords 字节为数据码字）
+  let compact = @data_encoding.encode(input, ecl_idx, mode_idx, version_idx)
+  // 3) 分块纠错 + 交织：输出 5430 缓冲，前 max_bytes(version) 字节为交织码字
+  let interleaved = @reedsolomon.structure(compact.data(), ecl_idx, version_idx)
+  // 4) 放置 + 覆写真实 Format + 一次固定 mask，得到 packed 字节矩阵
+  let packed = @matrix.create_fixed_qr(
+    interleaved,
+    version_idx,
+    ecl_idx,
+    mask.to_int(),
+  )
+  // 5) 逐格包装回公共 Module，装入固定容量 QRCode
+  let size = version_idx * 4 + 21
+  let data = Array::make(QR_MAX_MODULES, Module::data(false))
+  let mut i = 0
+  while i < size * size {
+    let b = packed[i]
+    let value = (b & 1) == 1
+    let t = ModuleType::from_int((b >> 1) & 7)
+    data[i] = Module::new(value, t)
+    i += 1
+  }
+  Ok(QRCode::{
+    data,
+    size,
+    version: Some(Version::from_int(version_idx)),
+    ecl: Some(ECL::from_int(ecl_idx)),
+    mask: Some(mask),
+    mode: Some(Mode::from_int(mode_idx)),
+  })
+}

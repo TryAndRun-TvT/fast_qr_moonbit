@@ -1,7 +1,10 @@
 // lib 公共包：顶层 API 组装
-// 依赖 lib/internal/data_encoding（best_encoding）与 lib/internal/constants（version_for/容量），
-// internal 各子包不反向依赖 lib（无环约束，S3/B8 首次让 lib → internal 显式化）。
+// 依赖 lib/internal/data_encoding（best_encoding/encode）、lib/internal/constants（version_for/容量）、
+// lib/internal/reedsolomon（structure 交织）、lib/internal/matrix（create_fixed_qr 放置）。
+// internal 各子包不反向依赖 lib（无环约束）。
 import {
   "tryandrun/fast_qr_moonbit/lib/internal/data_encoding",
   "tryandrun/fast_qr_moonbit/lib/internal/constants",
+  "tryandrun/fast_qr_moonbit/lib/internal/reedsolomon",
+  "tryandrun/fast_qr_moonbit/lib/internal/matrix",
 }
