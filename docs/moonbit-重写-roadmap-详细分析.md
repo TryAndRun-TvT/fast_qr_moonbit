@@ -165,6 +165,10 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | S7 | 输出层：`to_str` 终端画 + SVG（按需） | `helpers.rs` / `convert/svg.rs` | `tests/svg.rs` 快照 |
 | S8 | 拆 `internal/` 子包（触发信号：文件过多/分层/私有类型需进 `.mbti` 之外） | 见框架文档 §三.2 | `.mbti` 对照 |
 | S9 | 性能：移植三基准点 V03H/V10H/V40H（输入 `https://example.com/`） | `benches/qr.rs` | 透明对比（无硬门槛） |
+> - **S6 详细方案见 [S6-端到端对齐与公共API-实现方案.md](./S6-端到端对齐与公共API-实现方案.md)**：承接 S5 锁定的自动择优
+>   正确性，做 60 快照全量端到端逐位对齐（补 Numeric/Alnum 三模式矩阵级 + V40 满容量/边界 +
+>   V14/V26/V32 版本信息区 + 全参数 None 纯自动路径）+ 公共 `QRBuilder` 构造器（对齐 lib.rs 导出面），
+>   收敛里程碑 M2 功能对齐。本方案为**方案评估文档**，待具备 Rust 环境生成 60 快照后落地。
 
 ### 4.3 代码迁移路线图（文件级）
 
