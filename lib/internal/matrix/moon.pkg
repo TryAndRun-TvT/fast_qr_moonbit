@@ -1,1 +1,5 @@
-
+// internal/matrix 包：功能图案 + 放置 + 掩码
+// 依赖 internal/constants（alignment_grid / information / format_information）
+import {
+  "tryandrun/fast_qr_moonbit/lib/internal/constants",
+}
