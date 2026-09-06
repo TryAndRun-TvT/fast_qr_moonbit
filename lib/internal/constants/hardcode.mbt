@@ -1,8 +1,9 @@
 ///|
-/// hardcode.mbt —— 常量表（分组 / 格式信息 / 生成多项式）
-/// 对应参考：fast_qr v0.14.0 src/hardcode.rs（roadmap 批次 B3，实现记录 §4.2）
+/// hardcode.mbt —— 常量表（分组 / 格式信息 / 生成多项式 / 暗比惩罚）
+/// 对应参考：fast_qr v0.14.0 src/hardcode.rs（roadmap 批次 B3/B10，实现记录 §4.2）
 /// 职责：ecc_to_groups（两个 (count,size) 分组对）、get_polynomial（生成多项式选择）、
-///       format_information（纠错×掩码 → 15 位格式信息字，S5 写真实 Format 用）。
+///       format_information（纠错×掩码 → 15 位格式信息字，S5 写真实 Format 用）、
+///       percent_score_table（N4 暗比惩罚表，S5 评分用）。
 /// 实现：表由提取脚本从参考源码 src/hardcode.rs 生成（禁止手抄）。
 /// 依赖规则：叶节点（无依赖）；ecl/version/mask 以 Int 序号入参。
 
@@ -827,4 +828,29 @@ pub fn format_information(ecl_idx : Int, mask_idx : Int) -> Int {
   let e = if ecl_idx < 0 || ecl_idx > 3 { 3 } else { ecl_idx }
   let m = if mask_idx < 0 || mask_idx > 7 { 0 } else { mask_idx }
   format_information_table[e][m]
+}
+
+///|
+/// percent_score_table[percent(0..=99)] = 暗模块占比惩罚分（N4 评分用）。
+/// 对应参考 fast_qr v0.14.0 `hardcode.rs:406 PERCENT_SCORE`（roadmap 铁律：脚本提取、禁止手抄）。
+/// 每偏离 50% 一档（5% 步长）给固定惩罚分；percent 取整为 `暗模块数*100 // 总模块数`（0..=99）。
+/// S5 落：N4 `score_dark` 查此表。
+pub let percent_score_table : Array[Int] = [
+  90, 90, 90, 90, 90, 80, 80, 80, 80, 80, 70, 70, 70, 70, 70, 60, 60, 60, 60, 60,
+  50, 50, 50, 50, 50, 40, 40, 40, 40, 40, 30, 30, 30, 30, 30, 20, 20, 20, 20, 20,
+  10, 10, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 20, 20, 20,
+  20, 20, 30, 30, 30, 30, 30, 40, 40, 40, 40, 40, 50, 50, 50, 50, 50, 60, 60, 60,
+  60, 60, 70, 70, 70, 70, 70, 80, 80, 80, 80, 80, 90, 90, 90, 90, 90,
+]
+
+///|
+/// N4 暗比查表：percent_score(percent) -> 惩罚分。percent 需 0..=99。
+pub fn percent_score(percent : Int) -> Int {
+  if percent < 0 {
+    percent_score_table[0]
+  } else if percent > 99 {
+    percent_score_table[99]
+  } else {
+    percent_score_table[percent]
+  }
 }
