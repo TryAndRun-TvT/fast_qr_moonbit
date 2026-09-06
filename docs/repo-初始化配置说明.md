@@ -55,6 +55,12 @@ https://cnb.cool/tryandrun/web_dev/chat_hub/chathub-server
 > `.cnb.yml` 各阶段命令已于 ISSUE #9 抽离到 `scripts/` 下的独立脚本，
 > `.cnb.yml` 仅以 `bash scripts/<name>.sh` 调用（详见
 > [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) §四.2）。
+>
+> **演进记录（ISSUE #9 第二轮）**：clone `tryandrun/rust_dev/rs-site-tools` 参考其
+> `scripts/rust_setup.sh`，新增 `scripts/setup-rust.sh` —— 用 rsproxy 镜像安装 Rust 工具链，
+> 供与 Rust 参考实现 `fast_qr` 做源码核对 / 黄金输出 / 体积性能对比用（**可选**，不接入 push CI，
+> 因本仓库核心 CI 走 MoonBit，且 AGENTS.md 规定 native/C 编译器相关阶段不进 CI 必选流程）。
+> 详见 [rust-环境配置脚本与fast_qr对比-setup.md](./rust-环境配置脚本与fast_qr对比-setup.md)。
 
 ## 四、注意事项
 
