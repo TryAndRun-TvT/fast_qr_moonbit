@@ -97,3 +97,36 @@ pub fn create_fixed_qr(
   create_matrix_format_info(m, size, ecl_idx, mask_idx)
   apply_mask(m, size, mask_idx)
 }
+
+///|
+/// 自动择优总装：基础矩阵一次构建 + 放置码字后，8 轮 clone+apply_mask+score 选最低分掩码，
+/// 再在基础矩阵上覆写真实 Format 并应用最优掩码。返回 (packed 矩阵, 最优 mask 序号)。
+/// 对照参考 `placement.rs place_on_matrix` 的自动择优分支（:85-119）。
+/// 铁律：
+///   - 列评分必须在掩码后做（历史 bug）：每轮对已掩码副本 score；
+///   - Format 占位先写、择优循环评分用占位、选中后在基础矩阵统一覆写真实 Format；
+///   - 并列取先到的低位 mask（score < best 严格小，从左到右扫描）。
+pub fn create_auto_qr(
+  structure : Array[Byte],
+  version_idx : Int,
+  ecl_idx : Int,
+) -> (Array[Int], Int) {
+  let size = version_idx * 4 + 21
+  let base = create_matrix(version_idx)
+  place_on_matrix_data(base, size, structure)
+  let mut best_score = 2147483647 // 参考 u32::MAX，取充分大 Int
+  let mut best_mask = 0
+  let mut k = 0
+  while k < 8 {
+    let masked = apply_mask(base, size, k)
+    let s = score(masked, size)
+    if s < best_score {
+      best_score = s
+      best_mask = k
+    }
+    k += 1
+  }
+  create_matrix_format_info(base, size, ecl_idx, best_mask)
+  let masked_out = apply_mask(base, size, best_mask)
+  (masked_out, best_mask)
+}
