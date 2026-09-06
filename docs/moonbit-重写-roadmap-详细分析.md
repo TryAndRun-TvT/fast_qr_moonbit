@@ -169,9 +169,12 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   [S6-端到端对齐与公共API-实现方案.md](./S6-端到端对齐与公共API-实现方案.md)）**：承接 S5 锁定的自动择优
 >   正确性，落地公共 `QRBuilder` 构造器（new/from_string + mode/ecl/version/mask 不可变链式 setter +
 >   build，对齐 lib.rs 导出面）+ 快照收口（三模式×4ECL 矩阵级 + V01/V14/V26/V32 + V40-H 满容量 +
->   全参数 None 纯自动路径，约 20 条参考全矩阵逐位对齐 0 差异），收敛里程碑 **M2 功能对齐**
->   （测试 91→94，双后端全绿）。roadmap §4.1 原 60 条中大量 Byte 固定 mask 用例已在 S4/S5 逐位对齐，
+>   自动 mask 路径，约 20 条参考全矩阵逐位对齐 0 差异），收敛里程碑 **M2 功能对齐**
+>   （测试 85→94 +9，双后端全绿）。roadmap §4.1 原 60 条中大量 Byte 固定 mask 用例已在 S4/S5 逐位对齐，
 >   本阶段补的快照精确对准 S6 真实缺口即「60 快照全量对齐」的覆盖收口。
+>   ⚠️ 已评审判定：此前的「全参数 None 纯自动 ×3 对参考逐位」表述失实——C 组实为 mode/ecl/version 冻结、
+>   仅 mask 自动；真全 None 分支缺参考端到端快照，详见
+>   [S6-实现评审与优化-记录.md](./S6-实现评审与优化-记录.md) §2.1。
 
 ### 4.3 代码迁移路线图（文件级）
 
