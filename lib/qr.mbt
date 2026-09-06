@@ -381,3 +381,21 @@ pub fn QRBuilder::mask(self : QRBuilder, m : Mask) -> QRBuilder {
 pub fn QRBuilder::build(self : QRBuilder) -> Result[QRCode, QRCodeError] {
   QRCode::build(self.input, self.mode, self.ecl, self.version, self.mask)
 }
+
+///|
+/// ===== S7 输出便捷方法（对齐参考 src/qr.rs:174-185） =====
+/// 架构决策（D8）：纯渲染函数 `print_matrix_with_margin` 放 helpers.mbt（roadmap B11 终端画），
+///       `QRCode` 上仅挂便捷方法 `to_str`/`print` 委托之（对齐参考 qr.rs `to_str`→helpers）。
+///       `to_str` 纯字符串无 IO；`print` 承担 stdout 副作用（走 `println`）。
+
+///|
+/// 渲染为终端 Unicode 半块字符画（含边距），返回整串字符串。
+pub fn QRCode::to_str(self : QRCode) -> String {
+  print_matrix_with_margin(self)
+}
+
+///|
+/// 打印终端字符画到 stdout。
+pub fn QRCode::print(self : QRCode) -> Unit {
+  println(self.to_str())
+}
