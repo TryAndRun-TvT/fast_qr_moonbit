@@ -85,7 +85,10 @@ let capacity_table : Array[Array[Array[Int]]] = [
 ]
 
 ///|
-/// 每版本数据总字节上限（不含纠错），40 项。供 CompactQR::from_version 定初始容量。
+/// 每版本码字位置总字节容量（= 数据码字区 + 纠错码字区合计，ISO 各版本总码字数），
+/// 40 项。供 CompactQR::from_version 定编码缓冲初始容量（先写数据段、尾部接纠错，
+/// 故上界须覆盖含纠错的全部码字）。注：它**不是**某 (版本,ECL) 下的数据字节上限
+/// （那应查 capacity_table/data_codewords）。
 
 ///|
 let max_bytes_table : Array[Int] = [
@@ -219,7 +222,7 @@ pub fn version_for(mode_idx : Int, ecl_idx : Int, len : Int) -> Int {
 }
 
 ///|
-/// 每版本数据总字节上限（不含纠错）。
+/// 每版本码字位置总字节容量（= 数据码字 + 纠错码字合计；V1=26、V40=3706）。
 pub fn max_bytes(version_idx : Int) -> Int {
   max_bytes_table[if version_idx < 0 || version_idx > 39 {
     39

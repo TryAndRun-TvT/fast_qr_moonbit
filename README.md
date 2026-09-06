@@ -5,7 +5,7 @@
 ## 功能特性
 
 - 纯 MoonBit 实现，无外部依赖
-- 支持 `wasm` / `wasm-gc` / `js` 后端（`native` 需系统 C 编译器）
+- 支持 `wasm-gc` / `wasm` 双后端（`js` 已按需移除，`native` 需系统 C 编译器）
 - 快速生成符合 ISO/IEC 18004 标准的二维码
 
 ## 快速开始
@@ -40,7 +40,7 @@ moon test
 
 ## 编译为 Wasm
 
-`supported_targets = "+wasm+wasm-gc+js"`，默认后端 `preferred_target = "wasm-gc"`。
+`supported_targets = "+wasm+wasm-gc"`，默认后端 `preferred_target = "wasm-gc"`。
 
 ```bash
 # 默认后端 wasm-gc（体积最小、性能最优，宿主只需提供 spectest.print_char）
@@ -50,9 +50,6 @@ moon run   cmd/main
 # 兼容后端 wasm（WASI preview1，可被 node / wasmtime 等标准宿主加载）
 moon build cmd/main --target wasm --release
 moon run   cmd/main --target wasm
-
-# js
-moon run cmd/main --target js
 ```
 
 产物位置：
@@ -61,7 +58,6 @@ moon run cmd/main --target js
 |------|------|--------------------:|------|
 | **`wasm-gc`**（默认） | `_build/wasm-gc/release/build/cmd/main/main.wasm` | **440 B** | 仅 1 个 `spectest.print_char` 导入，不导出 memory，宿主集成成本最低 |
 | `wasm` | `_build/wasm/release/build/cmd/main/main.wasm` | 2598 B | 符合 WASI preview1，可被 node / wasmtime 等标准宿主加载 |
-| `js` | `_build/js/debug/build/cmd/main/main.js` | 293 B | 可直接用于 npm / 浏览器 |
 
 默认选 `wasm-gc` 的依据：体积比 `wasm` 小 83%，计算微基准快约 33%。
 `native` 后端需系统 C 编译器（`cc` / `gcc` / `clang`），当前未安装，不可用。
@@ -86,6 +82,7 @@ moon run cmd/main --target js
 | [S2-常量表与GF256-实现方案.md](./docs/S2-常量表与GF256-实现方案.md) | **S2 详细方案**：容量表 + 分组/格式信息/生成多项式硬编码表（internal/constants）+ GF(256) division/structure（internal/reedsolomon）的文件级落地、脚本生成表、黄金测试与 S1 衔接 |
 | [S2-实现评估与源码核对-记录.md](./docs/S2-实现评估与源码核对-记录.md) | **S2 评估记录**：动手前阅读代码/文档并恢复 fast_qr 源码核对，修正方案 2 处与源码不一致点（`get_polynomial(v,ecl)` 31 条、capacity=Version::get 分段阈值）+ 补 `data_codewords` 等 3 张旁路表，给出修订后文件级落地清单 |
 | [S2-实现记录.md](./docs/S2-实现记录.md) | **S2 落地记录**：constants 容量表/分组/多项式硬编码表 + reedsolomon division/structure 真实实现（大表脚本提取）、回填 CompactQR::from_version、tests/structure.rs 黄金逐字节对齐，三后端全绿（测试 32→42） |
+| [S2-实现评审与优化-记录.md](./docs/S2-实现评审与优化-记录.md) | **S2 复核记录**：逐文件复核 S2 实现并校对工程状态，落地「移除 js 后端（收敛为 wasm-gc/wasm 双后端）」「表间不变量交叉一致性测试（42→43）」「max_bytes 注释语义修正」，其余无阻断 bug、方向确认正确 |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
@@ -150,7 +147,7 @@ moon run cmd/main --target js
 │   ├── fmt-check.sh            #   格式门禁（moon fmt --check）
 │   ├── check.sh                #   静态检查门禁（moon check --deny-warn）
 │   ├── test.sh                 #   单元测试
-│   └── build-and-run.sh        #   多后端(wasm-gc/wasm/js)构建回归
+│   └── build-and-run.sh        #   多后端(wasm-gc/wasm)构建回归
 ├── .githooks/                  # 可选 Git 钩子（需自行启用，见其 README）
 ├── .cnb.yml                    # 云原生构建配置
 ├── .codebuddy/                 # CodeBuddy 自定义命令

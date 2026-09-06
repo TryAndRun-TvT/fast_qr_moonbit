@@ -17,6 +17,6 @@ preferred_target = "wasm-gc"
 
 // 显式声明实际支持的后端（native 需系统 C 编译器，当前不纳入）
 
-supported_targets = "+wasm+wasm-gc+js"
+supported_targets = "+wasm+wasm-gc"
 
 description = "Fast QR code generator library written in MoonBit"
