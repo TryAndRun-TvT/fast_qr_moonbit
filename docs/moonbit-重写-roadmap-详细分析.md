@@ -144,10 +144,10 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 |----|------|------------------------|---------------|
 | S1 | 数据结构：Module 打包、QRCode 固定数组、CompactQR、错误类型、公共枚举骨架 | `module.rs` / `qr.rs:25,200` / `compact.rs:61-224` / `version.rs` / `ecl.rs` | `tests/compact.rs` |
 | S2 | 常量表提取 + GF(256)（division/structure） | `hardcode.rs` / `version.rs:96` / `polynomials.rs:11-106` | `tests/version.rs`、`tests/polynomials.rs`、`tests/structure.rs` |
-| S3 | encode（先 Byte 模式）+ 容量选择 | `encode.rs` / `version.rs` | `tests/encode.rs` |
+| S3 ✅ | 三模式 encode + 容量选择（D2：一次全落三模式） | `encode.rs` / `version.rs` | `tests/encode.rs` |
 | S4 | default 功能图案 + placement 之字形放置（固定 mask 首码） | `default.rs` / `placement.rs:36` | 快照（固定 mask 路径） |
 | S5 | 8 掩码 + 4 评分 + 择优主循环（最难点） | `datamasking.rs` / `score.rs` / `placement.rs:85-119` | 全量快照对齐 |
-| S6 | 三模式 + best_encoding 自动回退；公共 API 完善 | `encode.rs` / `lib.rs` 导出面 | 60 快照 100% |
+| S6 | 60 快照端到端对齐 + 公共 API 完善（三模式已在 S3 落地） | `lib.rs` 导出面 | 60 快照 100% |
 | S7 | 输出层：`to_str` 终端画 + SVG（按需） | `helpers.rs` / `convert/svg.rs` | `tests/svg.rs` 快照 |
 | S8 | 拆 `internal/` 子包（触发信号：文件过多/分层/私有类型需进 `.mbti` 之外） | 见框架文档 §三.2 | `.mbti` 对照 |
 | S9 | 性能：移植三基准点 V03H/V10H/V40H（输入 `https://example.com/`） | `benches/qr.rs` | 透明对比（无硬门槛） |
@@ -175,7 +175,7 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | B4 | `polynomials.rs` → `reedsolomon.mbt` | LOG/ANTILOG + `division` + `structure` | `tests/polynomials.rs` + `tests/structure.rs` 全绿 |
 | B5 | `module.rs` → `module.mbt` | Module 位打包 + 类型/明暗读写 | 位级断言（含「只动 Data」） |
 | B6 | `compact.rs` → `bitbuffer.mbt` | CompactQR（大端序、KEEP_LAST、fill） | `tests/compact.rs` 全绿 |
-| B7 | `encode.rs` → `encode.mbt`（先 Byte） | 三模式编码（先 Byte）+ 容量选择 | `tests/encode.rs` |
+| B7 | `encode.rs` → `encode.mbt` | 三模式编码 + 容量选择（S3 已落地，D2） | `tests/encode.rs` |
 | B8 | `qr.rs` → 根包入口 | QRCode 组装 + 公共 API/错误面 | 黑盒行为用例 |
 | B9 | `default.rs` / `placement.rs` → 放置层 | 图案绘制 + 之字形放置（跳第 6 列） | 固定 mask 首码与快照一致（M1） |
 | B10 | `datamasking.rs` / `score.rs` → 择优层 | 8 掩码 + 4 评分 + 择优主循环 | 全量快照对齐（M2） |
@@ -191,7 +191,7 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | 里程碑 | 含义 | 验收 |
 |--------|------|------|
 | M0 | 验证基座 + 数据结构全绿 | S1-S2 完成；单测与黄金数据通过 |
-| M1 | Byte 模式最小路径跑通 | 固定参数首码与参考快照逐位一致；CLI 已 import 库并输出 |
+| M1 | 编码 + 放置最小路径跑通 | 固定参数首码与参考快照逐位一致；CLI 已 import 库并输出 |
 | M2 | **功能对齐** | 60 快照 100% 逐位一致；API 面与 `lib.rs` 导出对齐 |
 | M3 | 性能与分发基线 | 三基准点可跑并给出对比数字；后端/产物分发结论记录在案 |
 

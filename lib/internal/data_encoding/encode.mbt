@@ -203,7 +203,7 @@ pub fn is_qr_alphanumeric(c : Byte) -> Bool {
   b == 32 ||
   b == 36 ||
   b == 37 ||
-  b == 38 ||
+  b == 42 ||
   b == 43 ||
   b == 45 ||
   b == 46 ||
