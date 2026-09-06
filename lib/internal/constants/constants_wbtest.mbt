@@ -162,3 +162,34 @@ test "table_cross_consistency_160" {
     m += 1
   }
 }
+
+///|
+/// cci_bits 分段边界（决策 D1 验收点）：跨 V9/V10/V26/V27 三模式取值断言。
+/// version_idx：V9=8、V10=9、V26=25、V27=26。
+test "cci_bits_boundaries" {
+  // V1-V9（idx 0..=8）
+  assert_eq(cci_bits(0, 0), 10) // Numeric V1
+  assert_eq(cci_bits(8, 0), 10) // Numeric V9
+  assert_eq(cci_bits(0, 1), 9) // Alnum V1
+  assert_eq(cci_bits(8, 1), 9) // Alnum V9
+  assert_eq(cci_bits(0, 2), 8) // Byte V1
+  assert_eq(cci_bits(8, 2), 8) // Byte V9
+  // V10-V26（idx 9..=25）
+  assert_eq(cci_bits(9, 0), 12) // Numeric V10
+  assert_eq(cci_bits(25, 0), 12) // Numeric V26
+  assert_eq(cci_bits(9, 1), 11) // Alnum V10
+  assert_eq(cci_bits(25, 1), 11) // Alnum V26
+  assert_eq(cci_bits(9, 2), 16) // Byte V10 升 16
+  assert_eq(cci_bits(25, 2), 16) // Byte V26
+  // V27-V40（idx 26..=39）
+  assert_eq(cci_bits(26, 0), 14) // Numeric V27
+  assert_eq(cci_bits(39, 0), 14) // Numeric V40
+  assert_eq(cci_bits(26, 1), 13) // Alnum V27
+  assert_eq(cci_bits(39, 1), 13) // Alnum V40
+  assert_eq(cci_bits(26, 2), 16) // Byte V27 不再涨
+  assert_eq(cci_bits(39, 2), 16) // Byte V40
+  // 越界护栏
+  assert_eq(cci_bits(-1, 0), 10) // 回退 V1
+  assert_eq(cci_bits(40, 0), 14) // 回退 V40
+  assert_eq(cci_bits(0, 5), 8) // mode 越界按 Byte V1
+}

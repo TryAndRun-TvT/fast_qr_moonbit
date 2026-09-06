@@ -277,3 +277,48 @@ pub fn missing_bits(version_idx : Int) -> Int {
     version_idx
   }]
 }
+
+///|
+/// 字符计数指示符（CCI）位宽：每种 (版本, 模式) 下写在各模式头(4bit mode)之后的
+/// 「字符计数」字段位宽。对应参考 fast_qr v0.14.0 `src/hardcode.rs:302 cci_bits`
+/// （roadmap 批次 B2 补丁，决策 D1：与 data_bits 同归 capacity.mbt）。
+/// 分段：Numeric V1-V9=10 / V10-V26=12 / V27-V40=14；
+///       Alnum   V1-V9=9  / V10-V26=11 / V27-V40=13；
+///       Byte    V1-V9=8  / V10-V40=16（Byte 只在 V10 升到 16、V27 不再涨）。
+/// 入参为序号：version_idx 0..=39（V01=0..V40=39）、mode_idx 0/1/2。
+/// 越界回退：version_idx 超界按最近端点，mode_idx 超 2 按 Byte——与 internal 其余表一致，
+/// 仅作统一护栏（受控调用方 encode 保证合法）。
+pub fn cci_bits(version_idx : Int, mode_idx : Int) -> Int {
+  let v = if version_idx < 0 {
+    0
+  } else if version_idx > 39 {
+    39
+  } else {
+    version_idx
+  }
+  let m = if mode_idx < 0 || mode_idx > 2 { 2 } else { mode_idx }
+  match m {
+    0 => // Numeric
+      if v >= 26 {
+        14
+      } else if v >= 9 {
+        12
+      } else {
+        10
+      }
+    1 => // Alphanumeric
+      if v >= 26 {
+        13
+      } else if v >= 9 {
+        11
+      } else {
+        9
+      }
+    _ => // Byte：V10(idx 9) 升 16，V27 不再涨
+      if v >= 9 {
+        16
+      } else {
+        8
+      }
+  }
+}
