@@ -176,6 +176,13 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   仅 mask 自动；真全 None 分支缺参考端到端快照，详见
 >   [S6-实现评审与优化-记录.md](./S6-实现评审与优化-记录.md) §2.1。
 
+> - **S7 详细方案见 [S7-输出层to_str与SVG-实现方案.md](./S7-输出层to_str与SVG-实现方案.md)**：输出层——
+>   `helpers.mbt` 落地终端画 `print_matrix_with_margin`（含四态映射与边距）+ `QRCode::to_str`/`print`
+>   （对齐 `helpers.rs`/`qr.rs:174-185`，补 M1「CLI 输出」欠账）；`lib/svg.mbt` 落地公共 `Shape`+
+>   `SvgBuilder`（margin/shape/module_color/background_color + `to_str(qr)`）纯字符串 SVG 输出（对齐
+>   `convert/svg.rs` 不依赖 resvg/file IO 的子集）；含参考**全串快照**逐字节对齐验收（比 tests/svg.rs 更严）。
+>   S7 不做 PNG/image.rs 与 wasm 嵌图子集（无 resvg/无 wasm-bindgen 对应物，按需/二期）。
+
 ### 4.3 代码迁移路线图（文件级）
 
 把 §4.2 的步骤落到**逐个 Rust 文件**的迁移上。顺序 = 源码依赖方向；每一层完成即可独立验证，
