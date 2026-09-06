@@ -196,6 +196,12 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   `convert/{mod,svg}.rs` 子集）；参考**全串字节对齐**快照（受控矩阵 ×6 形状 + 多 shape + 真实 V01/V05 终端画
 >   + 真实 V01 SVG）比 tests/svg.rs 的 contains 更严；`cmd/main` 落地真码终端画+SVG 输出（补 M1 CLI 欠账）；
 >   roadmap §4.4 输出面补齐完成，测试 94→109，双后端全绿。下一步为 S8（internal 拆包）/S9（性能）。
+> - **S8 详细方案见 [S8-内部结构归位与分层-实现方案.md](./S8-内部结构归位与分层-实现方案.md)**：按 §三.2
+>   拆包判据对 post-S7 代码库逐条核对后判定——roadmap 原义「拆 internal 子包」已被 S1-S5 实质达成，
+>   internal 五子包单一职责/测试齐备、**无再拆信号**；真正命中判据的是 **lib 公共层的失效入口
+>   `fast_qr_moonbit.mbt`（仍自称骨架、实已实现）+ `qr.mbt`（401 行）混容器/编排/builder/output 三类子关注**。
+>   S8 定方案 = 公共层**文件级职责归位**（拆 qr.mbt → qr_build/qr_builder/qr_output，不改 `.mbti`、不加 internal
+>   包、无逻辑改动）+ 入口文档刷新，低风险收口、回归 109 全绿即验收。
 
 ### 4.3 代码迁移路线图（文件级）
 
