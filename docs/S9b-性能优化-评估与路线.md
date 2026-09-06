@@ -135,7 +135,10 @@ let masked_out = apply_mask(base, size, best_mask)  // ③ 末尾再一次全量
 
 - 层②（MoonBit-wasm vs fast_qr-wasm32 逐位对齐 + 同口径计时）与本优化路线正交、可并行推进；
   **2026-09-06 已落地**（Node.js 调用 wasm，三基准点逐位对齐零差异 + 计时在案），见
-  [S9c-性能测试与fast_qr-wasm对比-实现记录.md](./S9c-性能测试与fast_qr-wasm对比-实现记录.md)，
+  [S9c-性能测试与fast_qr-wasm对比-实现记录.md](./S9c-性能测试与fast_qr-wasm对比-实现记录.md) 与
+  [S9c-性能测试与fast_qr-wasm对比-详细分析.md](./S9c-性能测试与fast_qr-wasm对比-详细分析.md)
+  （复测 + N 扫描成本分解：**边际单次 build** MoonBit 0.304/1.162/9.01ms vs fast_qr 0.061/0.335/3.18ms，
+  每模块 0.29–0.36µs vs 0.07–0.10µs，即 P1/P2 落地前后同一把尺子），
   收敛 roadmap M3（M3 ✅）。层③（native 注记）仍可选（需 fast_qr native + C 工具链环境，非 M3 门槛）。
 
 ---
