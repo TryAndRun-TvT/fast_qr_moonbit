@@ -91,6 +91,7 @@ moon run   cmd/main --target wasm
 | [S4-矩阵与放置-实现记录.md](./docs/S4-矩阵与放置-实现记录.md) | **S4 落地记录**：B9b 之字形放置（place_on_matrix_data/create_fixed_qr）+ M1 lib 最小编排入口（QRCode::build_fixed），对照 fast_qr 固定 mask 快照逐位对齐（测试 73→77），双后端全绿 |
 | [S5-掩码评分与择优-实现方案.md](./docs/S5-掩码评分与择优-实现方案.md) | **S5 详细方案**：落地 `internal/matrix/score.mbt` 4 条评分（N1/N2/N3/N4）+ `placement` 8 轮 clone+score 择优主循环（自动 mask），补 N4 的 `PERCENT_SCORE` 表，lib 自动择优入口；含 score 语义铁律核对清单与择优快照验收策略 |
 | [S5-掩码评分与择优-实现记录.md](./docs/S5-掩码评分与择优-实现记录.md) | **S5 落地记录**：score.mbt 4 条评分（N1/N2/N3/N4）+ placement `create_auto_qr` 8 轮择优 + constants N4 表 + lib `QRCode::build` 自动择优入口，对照 fast_qr 自动择优快照（10 用例最优 mask+全矩阵）逐位对齐（测试 77→85），双后端全绿 |
+| [S5-实现评审与优化-记录.md](./docs/S5-实现评审与优化-记录.md) | **S5 复核记录**：对照 fast_qr v0.14.0 `score.rs`/`placement.rs:85-119` 逐行比对，确认无正确性 BUG、与参考逐字等价；落地固定 mask 路径注释口径修正（实际跳过 8 轮评分），补参考概念澄清注记；列 S6/S9 两条非阻断优化建议 |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析

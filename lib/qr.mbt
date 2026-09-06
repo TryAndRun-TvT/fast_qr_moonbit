@@ -249,7 +249,8 @@ pub fn QRCode::build_fixed(
 
 ///|
 /// S5 自动择优入口（mask 可 None）：`None` 走 8 轮 clone+score 择优主循环（自动 mask），
-/// `Some(m)` 走固定 mask 语义（仍评估、但用用户指定的——同 build_fixed）。
+/// `Some(m)` 走固定 mask 快速路径：直接应用一次用户 mask、跳过冗余 8 轮评分（输出等价参考
+/// fast_qr 的强制掩码旁路——参考虽照跑评分但用用户 mask 覆盖，本实现直接跳过为等价优化）。
 /// 编排队列：select_capacity → encode → structure → （mask None→ create_auto_qr 择优 / Some→create_fixed_qr）。
 /// 返回完整 `QRCode`（data 含最终明暗、mask 元数据为实际应用的那个掩码）。
 pub fn QRCode::build(
@@ -267,7 +268,8 @@ pub fn QRCode::build(
   let compact = @data_encoding.encode(input, ecl_idx, mode_idx, version_idx)
   let interleaved = @reedsolomon.structure(compact.data(), ecl_idx, version_idx)
   match mask {
-    // 指定固定掩码：仍评估但用用户的（参考 place_on_matrix 强制掩码旁路）
+    // 指定固定掩码：走 create_fixed_qr 快速路径——直接应用用户 mask、跳过冗余 8 轮评分
+    // （输出等价参考 place_on_matrix 强制掩码旁路，跳过为合理优化，未改行为）
     Some(m) => {
       let packed = @matrix.create_fixed_qr(
         interleaved,
