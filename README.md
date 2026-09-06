@@ -83,7 +83,8 @@ moon run   cmd/main --target wasm
 | [S2-实现评估与源码核对-记录.md](./docs/S2-实现评估与源码核对-记录.md) | **S2 评估记录**：动手前阅读代码/文档并恢复 fast_qr 源码核对，修正方案 2 处与源码不一致点（`get_polynomial(v,ecl)` 31 条、capacity=Version::get 分段阈值）+ 补 `data_codewords` 等 3 张旁路表，给出修订后文件级落地清单 |
 | [S2-实现记录.md](./docs/S2-实现记录.md) | **S2 落地记录**：constants 容量表/分组/多项式硬编码表 + reedsolomon division/structure 真实实现（大表脚本提取）、回填 CompactQR::from_version、tests/structure.rs 黄金逐字节对齐，三后端全绿（测试 32→42） |
 | [S2-实现评审与优化-记录.md](./docs/S2-实现评审与优化-记录.md) | **S2 复核记录**：逐文件复核 S2 实现并校对工程状态，落地「移除 js 后端（收敛为 wasm-gc/wasm 双后端）」「表间不变量交叉一致性测试（42→43）」「max_bytes 注释语义修正」，其余无阻断 bug、方向确认正确 |
-| [S3-数据编码-实现方案.md](./docs/S3-数据编码-实现方案.md) | **S3 详细方案**：落地 `internal/data_encoding` 三模式编码 + best_encoding 自动回退 + terminator/8 位对齐，补 `cci_bits` 依赖，并覆盖 B8（QRCode 容量选择 / QRCodeError），含测试/验收与 S3 直接做三模式的取舍论证 |
+| [S3-数据编码-实现方案.md](./docs/S3-数据编码-实现方案.md) |
+| [S3-数据编码-实现记录.md](./docs/S3-数据编码-实现记录.md) | **S3 落地记录**：data_encoding 三模式编码 + best_encoding 自动回退 + terminator/pad，补 `cci_bits`（capacity），B8 容量选择与 QRCodeError（lib 首次 import internal），黄金/Python 逐字节核对，三后端全绿（测试 43→63） | **S3 详细方案**：落地 `internal/data_encoding` 三模式编码 + best_encoding 自动回退 + terminator/8 位对齐，补 `cci_bits` 依赖，并覆盖 B8（QRCode 容量选择 / QRCodeError），含测试/验收与 S3 直接做三模式的取舍论证 |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
