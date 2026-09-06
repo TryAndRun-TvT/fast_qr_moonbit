@@ -4,6 +4,9 @@
 # 配置结构:
 #   vscode — 云原生开发环境启动时初始化 MoonBit 工具链
 #   push   — 每次推送代码时执行 MoonBit 安装+构建+测试 CI
+#
+# 各阶段的具体命令已抽离到 scripts/ 目录下的独立脚本，便于维护与复用；
+# 此处仅以 bash scripts/<name>.sh 方式调用，不再内嵌长命令。
 
 $:
   vscode:
@@ -13,13 +16,7 @@ $:
         - vscode
       stages:
         - name: setup-moonbit-toolchain
-          script: |
-            echo "Setting up MoonBit toolchain in cloud dev environment..."
-            # 安装 MoonBit CLI 工具链
-            curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
-            export PATH="$HOME/.moon/bin:$PATH"
-            # 验证 moon 可用
-            moon version
+          script: bash scripts/setup-moonbit.sh
 
   push:
     - name: moonbit-ci
@@ -27,36 +24,16 @@ $:
         cpus: 2
       stages:
         - name: setup-moonbit
-          script: |
-            echo "=== Installing MoonBit toolchain ==="
-            curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
-            export PATH="$HOME/.moon/bin:$PATH"
-            moon version
+          script: bash scripts/setup-moonbit.sh
         # 先校验格式：moon fmt 会格式化 moon.mod / moon.pkg / 所有 .mbt，
         # 提前拦截配置与代码格式腐化。
         - name: fmt-check
-          script: |
-            export PATH="$HOME/.moon/bin:$PATH"
-            moon fmt --check
+          script: bash scripts/fmt-check.sh
         - name: check
-          script: |
-            export PATH="$HOME/.moon/bin:$PATH"
-            # --deny-warn：把告警（如 unused_package）升级为失败
-            moon check --deny-warn
+          script: bash scripts/check.sh
         - name: test
-          script: |
-            export PATH="$HOME/.moon/bin:$PATH"
-            moon test
+          script: bash scripts/test.sh
         # 多后端回归：默认后端 wasm-gc + 兼容后端 wasm(WASI) + js
         # 注意：不要加 native 阶段 —— 需系统 C 编译器，本镜像未安装。
-        # 模块根无包（方案 3 布局），构建需显式指定包：lib（库）+ cmd/main（CLI）。
         - name: build-and-run
-          script: |
-            export PATH="$HOME/.moon/bin:$PATH"
-            for t in wasm-gc wasm js; do
-              echo "=== target: $t ==="
-              moon build lib --target $t --release
-              moon build cmd/main --target $t --release
-              moon run cmd/main --target $t
-              moon test --target $t
-            done
+          script: bash scripts/build-and-run.sh

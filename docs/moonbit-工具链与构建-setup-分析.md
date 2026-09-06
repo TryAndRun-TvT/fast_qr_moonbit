@@ -183,14 +183,16 @@ moon build            # 构建当前包（可 --target、--release）
 - **`push`（代码推送 CI）**：工具链 setup → `moon fmt --check` → `moon check --deny-warn`
   → `moon test` → 多后端 `build-and-run` 回归。
 
-各阶段说明：
+各阶段命令已**抽离到 `scripts/` 目录下的独立脚本**（`.cnb.yml` 仅以 `bash scripts/<name>.sh` 调用），
+便于维护与复用、避免各阶段重复内嵌长命令：
 
-| 阶段 | 命令 | 作用 |
+| 阶段 | 脚本 | 作用 |
 |------|------|------|
-| `fmt-check` | `moon fmt --check` | 格式门禁（`moon fmt` 会格式化 `moon.mod` / `moon.pkg` / 所有 `.mbt`） |
-| `check` | `moon check --deny-warn` | 把告警（如 `unused_package`）升级为失败 |
-| `test` | `moon test` | 全项目测试 |
-| `build-and-run` | 遍历 `wasm-gc` / `wasm` / `js` 做 `--release` 构建、运行、测试 | 多后端回归 |
+| `setup-moonbit` / `setup-moonbit-toolchain` | `scripts/setup-moonbit.sh` | 安装 MoonBit 工具链并校验 `moon version` |
+| `fmt-check` | `scripts/fmt-check.sh` | 格式门禁（`moon fmt --check`；`moon fmt` 会格式化 `moon.mod` / `moon.pkg` / 所有 `.mbt`） |
+| `check` | `scripts/check.sh` | 静态检查门禁（`moon check --deny-warn`，把告警如 `unused_package` 升级为失败） |
+| `test` | `scripts/test.sh` | 全项目测试（`moon test`） |
+| `build-and-run` | `scripts/build-and-run.sh` | 多后端回归：遍历 `wasm-gc` / `wasm` / `js` 做 `--release` 构建、运行、测试 |
 
 > **不要加 `native` 阶段**：需系统 C 编译器，本镜像未安装，加入必然失败
 > （见 [wasm-编译与运行-结果分析.md](./wasm-编译与运行-结果分析.md) §6.1）。

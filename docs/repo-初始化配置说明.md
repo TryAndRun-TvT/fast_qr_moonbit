@@ -50,8 +50,11 @@ https://cnb.cool/tryandrun/web_dev/chat_hub/chathub-server
 ```
 
 > 现状请以 [README.md](../README.md)「项目结构」为准 —— 其后又新增了
-> MoonBit 源码、`cmd/main/`、`.githooks/` 等，README 入口改为单一真实 `README.md`
+> MoonBit 源码、`cmd/main/`、`.githooks/`、`scripts/` 等，README 入口改为单一真实 `README.md`
 > （原官方 `README.mbt.md` + `README.md` 符号链接布局已撤销）。
+> `.cnb.yml` 各阶段命令已于 ISSUE #9 抽离到 `scripts/` 下的独立脚本，
+> `.cnb.yml` 仅以 `bash scripts/<name>.sh` 调用（详见
+> [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) §四.2）。
 
 ## 四、注意事项
 

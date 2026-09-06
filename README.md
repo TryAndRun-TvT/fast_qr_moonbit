@@ -140,6 +140,12 @@ moon run cmd/main --target js
 │   └── moon.pkg
 ├── docs/                       # 项目文档（工程/布局 + 移植参考/fast_qr 语料）
 ├── AGENTS.md                   # AI 协作代理指南（单一真实文件）
+├── scripts/                    # 云原生构建脚本（.cnb.yml 各阶段命令）
+│   ├── setup-moonbit.sh        #   安装 MoonBit 工具链并校验
+│   ├── fmt-check.sh            #   格式门禁（moon fmt --check）
+│   ├── check.sh                #   静态检查门禁（moon check --deny-warn）
+│   ├── test.sh                 #   单元测试
+│   └── build-and-run.sh        #   多后端(wasm-gc/wasm/js)构建回归
 ├── .githooks/                  # 可选 Git 钩子（需自行启用，见其 README）
 ├── .cnb.yml                    # 云原生构建配置
 ├── .codebuddy/                 # CodeBuddy 自定义命令
