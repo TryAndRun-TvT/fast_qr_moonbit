@@ -187,6 +187,16 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   多 shape → 多 `<path>` / 坐标已含 margin 等 4 处精确核对点 + Shape↔字符串映射等优化建议。
 
 
+> - **S7 已落地（据 [S7-输出层to_str与SVG-实现记录.md](./S7-输出层to_str与SVG-实现记录.md)、方案见
+>   [S7-输出层to_str与SVG-实现方案.md](./S7-输出层to_str与SVG-实现方案.md)）**：输出面补齐达成——`helpers.mbt`
+>   落地终端画 `print_matrix_with_margin`（四态映射/上边距两行合一/末行，逐字符对齐 `helpers.rs`）+
+>   `QRCode::to_str`/`print`（委托，对齐 `qr.rs:174-185`）；`lib/shape.mbt` 公共 `Shape` 枚举 + 名字↔枚举映射、
+>   `lib/svg.mbt` 公共 `SvgBuilder`（margin/shape/module_color/background_color 值语义 + `to_str`）纯字符串 SVG
+>   （6 形状 path 片段集中常量、rounded 描边特判、多 shape→多 `<path>`、坐标含 margin，对齐
+>   `convert/{mod,svg}.rs` 子集）；参考**全串字节对齐**快照（受控矩阵 ×6 形状 + 多 shape + 真实 V01/V05 终端画
+>   + 真实 V01 SVG）比 tests/svg.rs 的 contains 更严；`cmd/main` 落地真码终端画+SVG 输出（补 M1 CLI 欠账）；
+>   roadmap §4.4 输出面补齐完成，测试 94→109，双后端全绿。下一步为 S8（internal 拆包）/S9（性能）。
+
 ### 4.3 代码迁移路线图（文件级）
 
 把 §4.2 的步骤落到**逐个 Rust 文件**的迁移上。顺序 = 源码依赖方向；每一层完成即可独立验证，

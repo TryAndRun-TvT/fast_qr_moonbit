@@ -97,6 +97,7 @@ moon run   cmd/main --target wasm
 | [S6-实现评审与优化-记录.md](./docs/S6-实现评审与优化-记录.md) | **S6 复核记录**：确认交付范围内（ASCII 字节）无正确性 BUG、QRBuilder 单一委托与生成器介质一致；发现 3 处文档/PR 与代码失实——「全参数 None 纯自动 ×3 对参考逐位」实为参数冻结（仅 mask 自动，全 None 分支缺参考端到端快照）、测试计数实为 85→94（+9）而非 91→94、auto 路径 meta 断言承诺未落地；列 from_string 非 ASCII 字节语义与 V40 单行 hex 两条优化建议 |
 | [S7-输出层to_str与SVG-实现方案.md](./docs/S7-输出层to_str与SVG-实现方案.md) | **S7 详细方案**：输出层——终端画 `to_str`/`print`（对齐 `helpers.rs`，补 M1「CLI 输出」欠账）+ 公共 `SvgBuilder`/`Shape` SVG 字符串输出（对齐 `convert/svg.rs` 纯字符串子集，无 resvg/无 file IO），含 D8/D9 决策、四态映射/边距/形状 path 语义核对清单、参考全串快照验收策略 |
 | [S7-输出层to_str与SVG-实现评估与优化-记录.md](./docs/S7-输出层to_str与SVG-实现评估与优化-记录.md) | **S7 方案评估记录**：独立检出 fast_qr v0.14.0 参考源码逐行复核 S7 方案，方向正确无致命漏洞；补 4 处精确核对点（circle 形状特例 / `<svg>` 的 `xmlns` 与单行无分隔 / 多 shape → 多 `<path>` / 坐标已含 margin）+ Shape↔字符串映射等优化建议 |
+| [S7-输出层to_str与SVG-实现记录.md](./docs/S7-输出层to_str与SVG-实现记录.md) | **S7 落地记录**：`helpers.mbt` 终端画 `print_matrix_with_margin`（四态映射/边距两行合一/末行，对齐 `helpers.rs`）+ `QRCode::to_str`/`print`（委托）+ 公共 `Shape`/`SvgBuilder`/`to_str` SVG 纯字符串输出（6 形状 path 常量集中、rounded 描边特判、多 shape→多 `<path>`、坐标含 margin，对齐 `convert/{mod,svg}.rs` 子集），参考全串字节对齐快照 + CLI 真码输出（测试 94→109）；双后端全绿
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
