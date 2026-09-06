@@ -93,6 +93,7 @@ moon run   cmd/main --target wasm
 | [S5-掩码评分与择优-实现记录.md](./docs/S5-掩码评分与择优-实现记录.md) | **S5 落地记录**：score.mbt 4 条评分（N1/N2/N3/N4）+ placement `create_auto_qr` 8 轮择优 + constants N4 表 + lib `QRCode::build` 自动择优入口，对照 fast_qr 自动择优快照（10 用例最优 mask+全矩阵）逐位对齐（测试 77→85），双后端全绿 |
 | [S5-实现评审与优化-记录.md](./docs/S5-实现评审与优化-记录.md) | **S5 复核记录**：对照 fast_qr v0.14.0 `score.rs`/`placement.rs:85-119` 逐行比对，确认无正确性 BUG、与参考逐字等价；落地固定 mask 路径注释口径修正（实际跳过 8 轮评分），补参考概念澄清注记；列 S6/S9 两条非阻断优化建议 |
 | [S6-端到端对齐与公共API-实现方案.md](./docs/S6-端到端对齐与公共API-实现方案.md) | **S6 详细方案**：60 快照全量端到端逐位对齐（补 Numeric/Alnum 三模式矩阵级 + V40 满容量/边界 + V14/V26/V32 版本信息区 + 全参数 None 纯自动路径，roadmap §4.1 集 100%）+ 公共 `QRBuilder` 构造器（`new` + mode/ecl/version/mask 链式 setter + `build`，对齐 fast_qr `lib.rs:75-80` 导出面），收敛 M2 功能对齐；含 60 快照脚本生成策略、D6/D7 决策、逐文件落地清单与验收
+| [S6-端到端对齐与公共API-实现记录.md](./docs/S6-端到端对齐与公共API-实现记录.md) | **S6 落地记录**：新增公共 `QRBuilder` 构造器（`new`/`from_string` + mode/ecl/version/mask 不可变链式 setter + `build` 委托 `QRCode::build`，对齐 `lib.rs:75-80`）+ S6-1 快照收口（三模式×4ECL 矩阵级 + V01/V14/V26/V32/V40-H 满容量 + 全参数 None 纯自动路径，约 20 条参考全矩阵逐位对齐 0 差异），验证 S1-S5 完整管线与 fast_qr 逐字节一致（测试 91→94），双后端全绿 |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
