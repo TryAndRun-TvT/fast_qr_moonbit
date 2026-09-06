@@ -182,6 +182,10 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   `SvgBuilder`（margin/shape/module_color/background_color + `to_str(qr)`）纯字符串 SVG 输出（对齐
 >   `convert/svg.rs` 不依赖 resvg/file IO 的子集）；含参考**全串快照**逐字节对齐验收（比 tests/svg.rs 更严）。
 >   S7 不做 PNG/image.rs 与 wasm 嵌图子集（无 resvg/无 wasm-bindgen 对应物，按需/二期）。
+> - **S7 方案评估见 [S7-输出层to_str与SVG-实现评估与优化-记录.md](./S7-输出层to_str与SVG-实现评估与优化-记录.md)**：独立检出
+>   fast_qr v0.14.0 参考源码逐行复核方案，方向正确无致命漏洞；补 circle 形状特例 / `<svg>` 的 `xmlns` /
+>   多 shape → 多 `<path>` / 坐标已含 margin 等 4 处精确核对点 + Shape↔字符串映射等优化建议。
+
 
 ### 4.3 代码迁移路线图（文件级）
 
