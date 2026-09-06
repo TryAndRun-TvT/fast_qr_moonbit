@@ -102,6 +102,8 @@ moon run   cmd/main --target wasm
 | [S9-性能基准-实现评估与优化-记录.md](./docs/S9-性能基准-实现评估与优化-记录.md) | **S9 方案评估记录**：独立重读实码 + roadmap 复核 S9 方案，方向正确无致命漏洞；更正输入 `https://example.com/` 实为 **20 字节**（非 19，V03H 最小适配结论不变）、bench 循环须消费 build 结果防空循环（死代码消除）、补「KEEP_LAST 33 vs 65 对真实 QR 语义无差别」论证——把层②逐位对齐重新定位为对既有 S1-S7 快照对齐的跨宿主重确认（增量价值在计时可比性）；供 S9 实现直接执行前兜底 |
 | [S9-性能基准-实现记录.md](./docs/S9-性能基准-实现记录.md) | **S9 实现记录**：落地基准载体 `cmd/bench`（三基准点 V03H/V10H/V40H，输入 `https://example.com/`=20 字节、ECL=H、强制版本、mask 自动择优，循环累加消费 build 结果防死代码消除）+ `scripts/bench.sh`（宿主多次取最小计时，主口径在宿主，预留层② `FAST_QR_WASM` 入口）；跑出层①跨后端数字——wasm-gc 全程更快（约 1.2–1.4×，V03H 0.695/0.854s、V10H 0.451/0.621s、V40H 0.369/0.484s @ N=2000/400/40），两后端各点 TOTAL_CHECKSUM 一致 → 同源码跨后端结果互证成立；层②对 fast_qr-wasm32 / 层③ native 需外部环境，预留驱动入口；回归 109 全绿 + lib `.mbti` 零漂移 |
 | [S9b-性能优化-评估与路线.md](./docs/S9b-性能优化-评估与路线.md) | **S9 后续优化评估路线**：对 S9 之后的性能优化做逐热点评估（纯文档）——进程级差分实测建成本模型（V40H auto 7.99ms vs fixed 1.13ms，8 轮择优开销 ≈6.86ms、占 auto **≈86%**，随版本超线性放大）；定位头号靶点 `create_auto_qr` 8 轮择优主循环（S5 O1），给分优先级路线——P1 O1-a 就地翻转免每轮全量 copy / O1-b 复用最优轮矩阵省末尾一次 copy；P2 O2 score 融合减趟 / O3 wrap_packed 按 size*size 分配；含测量坑（argv 探针被编译器折叠须编译期常量+消费结果）与统一验收口径（快照零差异 + 109 测试 + 双后端 checksum）；未越界做性能改写 |
+| [S9c-性能测试与fast_qr-wasm对比-实现方案.md](./docs/S9c-性能测试与fast_qr-wasm对比-实现方案.md) | **S9c 详细方案（层②，收口 M3）**：把 S9 预留的「与 fast_qr wasm 对比」落成 **Node.js 调用 wasm** 的可复跑性能测试代码——fast_qr v0.14.0 检出 patch `wasm.rs` 加 `qr_with(content,ecl,version)` 导出 + `wasm-bindgen --target nodejs` 产物（Node 直调返回矩阵；env = stable + wasm32 target + 预编译 cli 0.2.100 + 系统 gcc）；MoonBit `cmd/bench --target wasm` 产物由同一 Node 脚本经 `moonrun` 子进程驱动（`_start` 同进程 spike 否决）；补 `cmd/bench --dump` 值全集规范矩阵（现校验和含模块类型位、与 fast_qr wasm 0/1 值不可跨库互比，D19），默认行为不变；层②对齐为 S1-S7 快照对齐的跨宿主重确认（预期零差异） |
+| [S9c-性能测试与fast_qr-wasm对比-实现记录.md](./docs/S9c-性能测试与fast_qr-wasm对比-实现记录.md) | **S9c 实现记录（层②落地，M3 ✅）**：新增 `cmd/bench --dump`（默认输出逐字不变：82000/32400/9200）+ 4 个 scripts（setup-fast-qr-wasm-env / build-fast-qr-wasm / bench-layer2 / wasm-compare）；fast_qr v0.14.0 `qr_with` → wasm-bindgen nodejs 产物（Node 进程内直调）vs MoonBit `cmd/bench --target wasm`（moonrun 子进程，Node 统一计时）；实测三基准点**逐位对齐零差异**（sha256 一致）+ 计时：MoonBit 646.70/493.60/386.43ms vs fast_qr-wasm32 124.07/132.38/126.15ms（@N=2000/400/40，R=3）→ fast_qr 快约 3.1–5.2×；踩坑：wasm-bindgen 宿主宏需系统 gcc、Node 内 `_start` spike 否决；回归 109 全绿，**roadmap M3 收口** |
 | [S7-输出层to_str与SVG-实现记录.md](./docs/S7-输出层to_str与SVG-实现记录.md) | **S7 落地记录**：`helpers.mbt` 终端画 `print_matrix_with_margin`（四态映射/边距两行合一/末行，对齐 `helpers.rs`）+ `QRCode::to_str`/`print`（委托）+ 公共 `Shape`/`SvgBuilder`/`to_str` SVG 纯字符串输出（6 形状 path 常量集中、rounded 描边特判、多 shape→多 `<path>`、坐标含 margin，对齐 `convert/{mod,svg}.rs` 子集），参考全串字节对齐快照 + CLI 真码输出（测试 94→109）；双后端全绿
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
@@ -165,6 +167,9 @@ moon run   cmd/main --target wasm
 ├── cmd/main/                   # CLI 可执行入口（import { ".../lib" @lib }）
 │   ├── main.mbt
 │   └── moon.pkg
+├── cmd/bench/                  # 性能三基准点基准可执行包（S9 层① / 层② dump 导出，见 docs/S9-…/S9c-…）
+│   ├── main.mbt                #   V03H/V10H/V40H 循环 build + checksum；--dump <点> 导出值全集矩阵
+│   └── moon.pkg
 ├── docs/                       # 项目文档（工程/布局 + 移植参考/fast_qr 语料）
 ├── AGENTS.md                   # AI 协作代理指南（单一真实文件）
 ├── scripts/                    # 构建与开发辅助脚本
@@ -173,7 +178,13 @@ moon run   cmd/main --target wasm
 │   ├── fmt-check.sh            #   格式门禁（moon fmt --check）
 │   ├── check.sh                #   静态检查门禁（moon check --deny-warn）
 │   ├── test.sh                 #   单元测试
-│   └── build-and-run.sh        #   多后端(wasm-gc/wasm)构建回归
+│   ├── build-and-run.sh        #   多后端(wasm-gc/wasm)构建回归
+│   ├── bench.sh                #   层①宿主计时（wasm-gc/wasm 多次取最小，S9）
+│   ├── setup-fast-qr-wasm-env.sh # 层②环境：rust wasm32 target + wasm-bindgen-cli 0.2.100（幂等，S9c）
+│   ├── build-fast-qr-wasm.sh   #   层②构建：fast_qr v0.14.0 qr_with → nodejs wasm 包（S9c）
+│   ├── bench-layer2.sh         #   层②一键：Node.js 调用 wasm 对比（对齐 + 计时，S9c）
+│   ├── wasm-compare.mjs        #   层② Node 驱动：fast_qr 直调 + moonrun 子进程（S9c）
+│   └── snapshot_gen_s6.rs      #   参考快照生成辅助（Rust，S6 用，不入构建）
 ├── .githooks/                  # 可选 Git 钩子（需自行启用，见其 README）
 ├── .cnb.yml                    # 云原生构建配置
 ├── .codebuddy/                 # CodeBuddy 自定义命令
