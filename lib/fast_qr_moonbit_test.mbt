@@ -56,3 +56,66 @@ test "public_qrcode_meta_defaults" {
   assert_eq(mask, None)
   assert_eq(mode, None)
 }
+
+///|
+
+///|
+/// ASCII 串 → Byte 数组（测试辅助）。
+fn bstr(s : String) -> Array[Byte] {
+  let out : Array[Byte] = []
+  for ch in s {
+    out.push(ch.to_int().to_byte())
+  }
+  out
+}
+
+///|
+test "public_select_capacity_auto" {
+  // Numeric 全数字 → best=Numeric(0)，ecl 默认 Q(2)，V01 可容 5 位 → Ok((0,2,0))
+  let input = bstr("12345")
+  let r = QRCode::select_capacity(input, None, None, None)
+  match r {
+    Ok((m, e, v)) => {
+      assert_eq(m, 0)
+      assert_eq(e, 2)
+      assert_eq(v, 0)
+    }
+    Err(_) => fail("expected Ok for small numeric")
+  }
+}
+
+///|
+test "public_select_capacity_specified_ok" {
+  // 指定 version V05(4) >= 自动 V01(0) → 采用 V05
+  let input = bstr("12345")
+  let r = QRCode::select_capacity(input, None, None, Some(Version::V05))
+  match r {
+    Ok((_, _, v)) => assert_eq(v, Version::V05.to_int())
+    Err(_) => fail("expected Ok when specified version big enough")
+  }
+}
+
+///|
+test "public_select_capacity_too_small_version" {
+  // Numeric-Q V01 上限 27；28 位需 V02，强制 V01 → SpecifiedVersion
+  let input = bstr("1234567890123456789012345678")
+  let r = QRCode::select_capacity(input, None, None, Some(Version::V01))
+  match r {
+    Ok(_) => fail("expected Err(SpecifiedVersion)")
+    Err(e) =>
+      if e != SpecifiedVersion {
+        fail("expected SpecifiedVersion, got other")
+      }
+  }
+}
+
+///|
+test "public_select_capacity_data_too_big" {
+  // Byte-Q 全 2000 字节超 V40(1663) → EncodedData
+  let input = Array::make(2000, b'x')
+  let r = QRCode::select_capacity(input, Some(Mode::Byte), None, None)
+  match r {
+    Ok(_) => fail("expected Err(EncodedData)")
+    Err(e) => if e != EncodedData { fail("expected EncodedData, got other") }
+  }
+}
