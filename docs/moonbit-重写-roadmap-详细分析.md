@@ -145,7 +145,7 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | S1 | 数据结构：Module 打包、QRCode 固定数组、CompactQR、错误类型、公共枚举骨架 | `module.rs` / `qr.rs:25,200` / `compact.rs:61-224` / `version.rs` / `ecl.rs` | `tests/compact.rs` |
 | S2 | 常量表提取 + GF(256)（division/structure） | `hardcode.rs` / `version.rs:96` / `polynomials.rs:11-106` | `tests/version.rs`、`tests/polynomials.rs`、`tests/structure.rs` |
 | S3 ✅ | 三模式 encode + 容量选择（D2：一次全落三模式） | `encode.rs` / `version.rs` | `tests/encode.rs` |
-| S4 📋 | default 功能图案 + placement 之字形放置（固定 mask 首码） | `default.rs` / `placement.rs:36` | 快照（固定 mask 路径） |
+| S4 🔨 | default 功能图案 + placement 之字形放置（固定 mask 首码）【D3 module helper + 8 掩码数学式已落，图案/放置/Format 位序待快照工具链】 | `default.rs` / `placement.rs:36` | 快照（固定 mask 路径） |
 >
 > - **S4 详细方案见 [S4-矩阵与放置-实现方案](./S4-矩阵与放置-实现方案.md)**：在 `internal/matrix` 落
 >   `matrix.mbt`（功能图案）+ `placement.mbt`（之字形放置）+ 8 掩码实现，以**固定 mask** 串
