@@ -42,6 +42,14 @@ test "best_encoding_modes" {
 }
 
 ///|
+test "best_encoding_star_ampersand" {
+  // '*' 是合法 QR alnum → Alnum；'&' 非法 → Byte（回归：此前误把 38 当 42）
+  assert_eq(best_encoding(s("HELLO*WORLD")), 1)
+  assert_eq(best_encoding(s("HELLO&WORLD")), 2)
+  assert_eq(best_encoding(s("5*9")), 1)
+}
+
+///|
 test "best_encoding_long" {
   // 参考 best_encoding_numeric_1 / alnum_1 / byte_2
   assert_eq(best_encoding(s("95904409521090298052194059450950249521940")), 0)
@@ -172,6 +180,8 @@ test "is_qr_alnum" {
   assert_eq(is_qr_alphanumeric(b'A'), true)
   assert_eq(is_qr_alphanumeric(b' '), true)
   assert_eq(is_qr_alphanumeric(b':'), true)
+  assert_eq(is_qr_alphanumeric(b'*'), true) // '*' (42) 是 QR alnum 合法字符
+  assert_eq(is_qr_alphanumeric(b'&'), false) // '&' (38) 不是 QR alnum 字符
   assert_eq(is_qr_alphanumeric(b'a'), false) // 小写字母不属于 QR alnum
   assert_eq(is_qr_alphanumeric(b'!'), false)
   assert_eq(is_qr_alphanumeric(b','), false)
