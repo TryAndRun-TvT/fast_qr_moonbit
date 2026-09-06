@@ -81,6 +81,7 @@ moon run cmd/main --target js
 | [项目基础框架-详细分析.md](./docs/项目基础框架-详细分析.md) | **项目基础框架**：资产盘点、参考模块→MoonBit 映射、移植语义、验证策略与 P0-P2 路线（实现 QR 前先读） |
 | [moonbit-重写-roadmap-详细分析.md](./docs/moonbit-重写-roadmap-详细分析.md) | **MoonBit 重写路线图**：基于 `/fast_qr` 源码核验的架构要点、S1-S9 实现顺序、里程碑 M0-M3 与验证基座 |
 | [S1-数据结构-实现方案.md](./docs/S1-数据结构-实现方案.md) | **S1 详细方案**：数据结构层（Module/QRCode/CompactQR/错误/公共枚举骨架）的文件级实现清单、Module 归属与依赖边界决策（D1/D2）、待实测项与 M0 验收 |
+| [S1-数据结构-实现记录.md](./docs/S1-数据结构-实现记录.md) | **S1 落地记录**：S1 数据结构（ECL/Version/Mode/Mask/Module/QRCode/CompactQR）的真实实现、实测拍板决策（pub(all)/Array 矩阵/KEEP_LAST 32 位/错误推迟）与三后端全绿测试 |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
