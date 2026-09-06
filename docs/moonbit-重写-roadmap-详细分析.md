@@ -145,7 +145,7 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | S1 | 数据结构：Module 打包、QRCode 固定数组、CompactQR、错误类型、公共枚举骨架 | `module.rs` / `qr.rs:25,200` / `compact.rs:61-224` / `version.rs` / `ecl.rs` | `tests/compact.rs` |
 | S2 | 常量表提取 + GF(256)（division/structure） | `hardcode.rs` / `version.rs:96` / `polynomials.rs:11-106` | `tests/version.rs`、`tests/polynomials.rs`、`tests/structure.rs` |
 | S3 ✅ | 三模式 encode + 容量选择（D2：一次全落三模式） | `encode.rs` / `version.rs` | `tests/encode.rs` |
-| S4 🔨 | default 功能图案 + placement 之字形放置（固定 mask 首码）【D3 module helper + 8 掩码数学式 + **B9a 功能图案/Format 覆写已落**（对照 fast_qr v0.14.0 快照逐位对齐，测试 73）；placement 之字形放置(B9b)与 M1 lib 编排待快照工具链】 | `default.rs` / `placement.rs:36` | 快照（固定 mask 路径） |
+| S4 ✅ | default 功能图案 + placement 之字形放置（固定 mask 首码）【D3 module helper + 8 掩码数学式 + **B9a 功能图案/Format 覆写 + B9b 之字形放置 + M1 lib 最小编排入口均已落**（对照 fast_qr v0.14.0 固定 mask 快照逐位对齐，测试 77）；固定 mask 首码闭环达成，见 [S4 实现记录](./S4-矩阵与放置-实现记录.md)】 | `default.rs` / `placement.rs:36` | 快照（固定 mask 路径） |
 >
 > - **S4 详细方案见 [S4-矩阵与放置-实现方案](./S4-矩阵与放置-实现方案.md)**：在 `internal/matrix` 落
 >   `matrix.mbt`（功能图案）+ `placement.mbt`（之字形放置）+ 8 掩码实现，以**固定 mask** 串
@@ -198,9 +198,9 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 
 | 里程碑 | 含义 | 验收 |
 |--------|------|------|
-| M0 | 验证基座 + 数据结构全绿 | S1-S2 完成；单测与黄金数据通过 |
-| M1 | 编码 + 放置最小路径跑通 | 固定参数首码与参考快照逐位一致；CLI 已 import 库并输出 |
-| M2 | **功能对齐** | 60 快照 100% 逐位一致；API 面与 `lib.rs` 导出对齐 |
+| M0 ✅ | 验证基座 + 数据结构全绿 | S1-S2 完成；单测与黄金数据通过 |
+| M1 ✅ | 编码 + 放置最小路径跑通 | 固定参数首码与参考快照逐位一致（S4 达成，测试 77）；CLI 已 import 库并输出 |
+| M2 | **功能对齐** | 60 快照 100% 逐位一致；API 面与 `lib.rs` 导出对齐（待 S5 评分择优 + S6 全量快照） |
 | M3 | 性能与分发基线 | 三基准点可跑并给出对比数字；后端/产物分发结论记录在案 |
 
 ### 4.5 收尾门禁（沿用 AGENTS.md）
