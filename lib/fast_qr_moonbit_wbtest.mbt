@@ -129,3 +129,14 @@ test "qr_code_get_set" {
   let qr2 = qr.set(0, 0, dark)
   assert_eq(qr2.get(0, 0).value(), true)
 }
+
+///|
+test "qr_code_set_immutable_no_alias" {
+  // 回归：QRCode::set 需不可变——返回新 QRCode 不得改到源（别名/共享数组回归）
+  let qr = QRCode::for_version(Version::V01)
+  let dark = Module::data(true)
+  let qr2 = qr.set(0, 0, dark)
+  assert_eq(qr2.get(0, 0).value(), true)
+  // 源对象保持不受影响
+  assert_eq(qr.get(0, 0).value(), false)
+}
