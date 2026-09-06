@@ -5,19 +5,19 @@
 ///|
 test "mask_at 前 4 号掩码公式" {
   // mask 0：(x+y)%2==0
-  if !(mask_at(0, 0, 0)) || mask_at(1, 0, 0) {
+  if !mask_at(0, 0, 0) || mask_at(1, 0, 0) {
     fail("mask0: (0,0)真、(1,0)假")
   }
   // mask 1：y%2==0
-  if !(mask_at(0, 0, 1)) || !(mask_at(3, 2, 1)) || mask_at(0, 1, 1) {
+  if !mask_at(0, 0, 1) || !mask_at(3, 2, 1) || mask_at(0, 1, 1) {
     fail("mask1: y 偶为真、y 奇为假")
   }
   // mask 2：x%3==0
-  if !(mask_at(0, 0, 2)) || !(mask_at(3, 5, 2)) || mask_at(1, 0, 2) {
+  if !mask_at(0, 0, 2) || !mask_at(3, 5, 2) || mask_at(1, 0, 2) {
     fail("mask2: x 3 的倍数真")
   }
   // mask 3：(x+y)%3==0
-  if !(mask_at(1, 2, 3)) || !(mask_at(0, 0, 3)) || mask_at(1, 1, 3) {
+  if !mask_at(1, 2, 3) || !mask_at(0, 0, 3) || mask_at(1, 1, 3) {
     fail("mask3: (x+y)%3==0")
   }
 }
@@ -25,15 +25,15 @@ test "mask_at 前 4 号掩码公式" {
 ///|
 test "mask_at 5/6/7 网格公式" {
   // mask 5：(xy)%2+(xy)%3==0。取 x=y=0 →0；x=1,y=1→1%2+1%3=1+1=2≠0 假
-  if !(mask_at(0, 0, 5)) || mask_at(1, 1, 5) {
+  if !mask_at(0, 0, 5) || mask_at(1, 1, 5) {
     fail("mask5")
   }
   // mask 6：((xy)%2+(xy)%3)%2==0。x=1,y=1 → (1+1)%2=0 真；x=0,y=0→0 真
-  if !(mask_at(1, 1, 6)) {
+  if !mask_at(1, 1, 6) {
     fail("mask6")
   }
   // mask 7：((x+y)%2+(xy)%3)%2==0
-  if !(mask_at(0, 0, 7)) {
+  if !mask_at(0, 0, 7) {
     fail("mask7 (0,0)")
   }
 }
