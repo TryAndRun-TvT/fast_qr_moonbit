@@ -1,0 +1,13 @@
+// S9 性能三基准点基准可执行包（V03H/V10H/V40H，输入 https://example.com/）。
+// 职责：对三基准点各重复 build N 次并累加消费结果（防死代码消除/空循环），
+//       宿主由 scripts/bench.sh 用 time 整程计时、多次取最小（主口径，D15）。
+// 依赖 lib 公共 API（QRBuilder 链式构造 + build）与 core @env（读取 argv 覆盖迭代数）/
+//       @strconv（解析覆盖迭代数为整数）。
+// cmd 是独立可执行包，新增不影响 lib 公共接口（.mbti 零漂移）。
+pkgtype(kind: "executable")
+
+import {
+  "tryandrun/fast_qr_moonbit/lib",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+}
