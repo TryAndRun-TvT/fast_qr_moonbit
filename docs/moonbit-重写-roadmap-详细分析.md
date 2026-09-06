@@ -145,8 +145,16 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | S1 | 数据结构：Module 打包、QRCode 固定数组、CompactQR、错误类型、公共枚举骨架 | `module.rs` / `qr.rs:25,200` / `compact.rs:61-224` / `version.rs` / `ecl.rs` | `tests/compact.rs` |
 | S2 | 常量表提取 + GF(256)（division/structure） | `hardcode.rs` / `version.rs:96` / `polynomials.rs:11-106` | `tests/version.rs`、`tests/polynomials.rs`、`tests/structure.rs` |
 | S3 ✅ | 三模式 encode + 容量选择（D2：一次全落三模式） | `encode.rs` / `version.rs` | `tests/encode.rs` |
-| S4 | default 功能图案 + placement 之字形放置（固定 mask 首码） | `default.rs` / `placement.rs:36` | 快照（固定 mask 路径） |
+| S4 📋 | default 功能图案 + placement 之字形放置（固定 mask 首码） | `default.rs` / `placement.rs:36` | 快照（固定 mask 路径） |
+>
+> - **S4 详细方案见 [S4-矩阵与放置-实现方案](./S4-矩阵与放置-实现方案.md)**：在 `internal/matrix` 落
+>   `matrix.mbt`（功能图案）+ `placement.mbt`（之字形放置）+ 8 掩码实现，以**固定 mask** 串
+>   encode→structure→放置→Format 闭环产出 M1 首码；含 D3 原始字节矩阵介质决策与快照验收策略。
 | S5 | 8 掩码 + 4 评分 + 择优主循环（最难点） | `datamasking.rs` / `score.rs` / `placement.rs:85-119` | 全量快照对齐 |
+>
+> - **S4/S5 掩码分批（据 S4 方案 §5）**：8 种掩码**数学式实现**随 S4 落（可独立快照验证）；
+>   S5 只做 **4 条评分 + 8 轮 clone+score 择优主循环**（B10 后半）——降低 S5 耦合、避免 S4 只写
+>   单掩码再返工补 7 种。
 | S6 | 60 快照端到端对齐 + 公共 API 完善（三模式已在 S3 落地） | `lib.rs` 导出面 | 60 快照 100% |
 | S7 | 输出层：`to_str` 终端画 + SVG（按需） | `helpers.rs` / `convert/svg.rs` | `tests/svg.rs` 快照 |
 | S8 | 拆 `internal/` 子包（触发信号：文件过多/分层/私有类型需进 `.mbti` 之外） | 见框架文档 §三.2 | `.mbti` 对照 |

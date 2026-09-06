@@ -86,6 +86,7 @@ moon run   cmd/main --target wasm
 | [S3-数据编码-实现方案.md](./docs/S3-数据编码-实现方案.md) | **S3 详细方案**：落地 `internal/data_encoding` 三模式编码 + best_encoding 自动回退 + terminator/8 位对齐，补 `cci_bits` 依赖，并覆盖 B8（QRCode 容量选择 / QRCodeError），含测试/验收与 S3 直接做三模式的取舍论证 |
 | [S3-数据编码-实现记录.md](./docs/S3-数据编码-实现记录.md) | **S3 落地记录**：data_encoding 三模式编码 + best_encoding 自动回退 + terminator/pad，补 `cci_bits`（capacity），B8 容量选择与 QRCodeError（lib 首次 import internal），黄金/Python 逐字节核对，三后端全绿（测试 43→63） |
 | [S3-实现评审与优化-记录.md](./docs/S3-实现评审与优化-记录.md) | **S3 复核记录**：发现并修复 `is_qr_alphanumeric` 字符映射 bug（`&`/`*` 混淆，与 S3 已修 ascii 映射 bug 同源）、README 表格格式、roadmap 范围同步；其余设计点方向正确 |
+| [S4-矩阵与放置-实现方案.md](./docs/S4-矩阵与放置-实现方案.md) | **S4 详细方案**：落地 `internal/matrix` 功能图案绘制（matrix.mbt）+ 之字形数据放置（placement.mbt）+ 8 掩码实现，配**固定 mask** 打通 encode→structure→放置→Format 最小闭环产出 M1 固定参数首码，含 D3 原始字节矩阵介质决策与快照验收策略 |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
