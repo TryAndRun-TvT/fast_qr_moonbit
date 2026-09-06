@@ -187,6 +187,38 @@ pub fn QRCode::select_capacity(
 ///   （mode 按 best_encoding 回退、ecl 默认 Q、version 取最小适配）；
 /// - mask **必填**：S4/M1 只按指定固定 mask 应用一次掩码、写真实 Format（8 轮择优评分留 S5）。
 /// - 返回完整 `QRCode`（data 已含掩码后明暗、元数据 version/ecl/mask/mode 为解析值）。
+
+///|
+/// 将 packed 字节矩阵逐格包装回公共 Module，装入固定容量 QRCode（build_fixed/build 共用尾步）。
+/// `mask_idx` 为最终 mask 序号；`mode_idx/ecl_idx/version_idx` 为解析值写元数据。
+fn wrap_packed(
+  packed : Array[Int],
+  version_idx : Int,
+  ecl_idx : Int,
+  mask_idx : Int,
+  mode_idx : Int,
+) -> QRCode {
+  let size = version_idx * 4 + 21
+  let data = Array::make(QR_MAX_MODULES, Module::data(false))
+  let mut i = 0
+  while i < size * size {
+    let b = packed[i]
+    let value = (b & 1) == 1
+    let t = ModuleType::from_int((b >> 1) & 7)
+    data[i] = Module::new(value, t)
+    i += 1
+  }
+  QRCode::{
+    data,
+    size,
+    version: Some(Version::from_int(version_idx)),
+    ecl: Some(ECL::from_int(ecl_idx)),
+    mask: Some(Mask::from_int(mask_idx)),
+    mode: Some(Mode::from_int(mode_idx)),
+  }
+}
+
+///|
 pub fn QRCode::build_fixed(
   input : Array[Byte],
   mode : Mode?,
@@ -211,23 +243,45 @@ pub fn QRCode::build_fixed(
     ecl_idx,
     mask.to_int(),
   )
-  // 5) 逐格包装回公共 Module，装入固定容量 QRCode
-  let size = version_idx * 4 + 21
-  let data = Array::make(QR_MAX_MODULES, Module::data(false))
-  let mut i = 0
-  while i < size * size {
-    let b = packed[i]
-    let value = (b & 1) == 1
-    let t = ModuleType::from_int((b >> 1) & 7)
-    data[i] = Module::new(value, t)
-    i += 1
+  // 5) 逐格包装回公共 Module
+  Ok(wrap_packed(packed, version_idx, ecl_idx, mask.to_int(), mode_idx))
+}
+
+///|
+/// S5 自动择优入口（mask 可 None）：`None` 走 8 轮 clone+score 择优主循环（自动 mask），
+/// `Some(m)` 走固定 mask 语义（仍评估、但用用户指定的——同 build_fixed）。
+/// 编排队列：select_capacity → encode → structure → （mask None→ create_auto_qr 择优 / Some→create_fixed_qr）。
+/// 返回完整 `QRCode`（data 含最终明暗、mask 元数据为实际应用的那个掩码）。
+pub fn QRCode::build(
+  input : Array[Byte],
+  mode : Mode?,
+  ecl : ECL?,
+  version : Version?,
+  mask : Mask?,
+) -> Result[QRCode, QRCodeError] {
+  let (mode_idx, ecl_idx, version_idx) = match
+    QRCode::select_capacity(input, mode, ecl, version) {
+    Ok(t) => t
+    Err(e) => return Err(e)
   }
-  Ok(QRCode::{
-    data,
-    size,
-    version: Some(Version::from_int(version_idx)),
-    ecl: Some(ECL::from_int(ecl_idx)),
-    mask: Some(mask),
-    mode: Some(Mode::from_int(mode_idx)),
-  })
+  let compact = @data_encoding.encode(input, ecl_idx, mode_idx, version_idx)
+  let interleaved = @reedsolomon.structure(compact.data(), ecl_idx, version_idx)
+  match mask {
+    // 指定固定掩码：仍评估但用用户的（参考 place_on_matrix 强制掩码旁路）
+    Some(m) => {
+      let packed = @matrix.create_fixed_qr(
+        interleaved,
+        version_idx,
+        ecl_idx,
+        m.to_int(),
+      )
+      Ok(wrap_packed(packed, version_idx, ecl_idx, m.to_int(), mode_idx))
+    }
+    None => {
+      let (packed, best_mask) = @matrix.create_auto_qr(
+        interleaved, version_idx, ecl_idx,
+      )
+      Ok(wrap_packed(packed, version_idx, ecl_idx, best_mask, mode_idx))
+    }
+  }
 }

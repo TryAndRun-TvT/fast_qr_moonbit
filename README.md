@@ -90,6 +90,7 @@ moon run   cmd/main --target wasm
 | [S4-矩阵与放置-实现方案.md](./docs/S4-矩阵与放置-实现方案.md) | **S4 详细方案**：落地 `internal/matrix` 功能图案绘制（matrix.mbt）+ 之字形数据放置（placement.mbt）+ 8 掩码实现，配**固定 mask** 打通 encode→structure→放置→Format 最小闭环产出 M1 固定参数首码，含 D3 原始字节矩阵介质决策与快照验收策略 |
 | [S4-矩阵与放置-实现记录.md](./docs/S4-矩阵与放置-实现记录.md) | **S4 落地记录**：B9b 之字形放置（place_on_matrix_data/create_fixed_qr）+ M1 lib 最小编排入口（QRCode::build_fixed），对照 fast_qr 固定 mask 快照逐位对齐（测试 73→77），双后端全绿 |
 | [S5-掩码评分与择优-实现方案.md](./docs/S5-掩码评分与择优-实现方案.md) | **S5 详细方案**：落地 `internal/matrix/score.mbt` 4 条评分（N1/N2/N3/N4）+ `placement` 8 轮 clone+score 择优主循环（自动 mask），补 N4 的 `PERCENT_SCORE` 表，lib 自动择优入口；含 score 语义铁律核对清单与择优快照验收策略 |
+| [S5-掩码评分与择优-实现记录.md](./docs/S5-掩码评分与择优-实现记录.md) | **S5 落地记录**：score.mbt 4 条评分（N1/N2/N3/N4）+ placement `create_auto_qr` 8 轮择优 + constants N4 表 + lib `QRCode::build` 自动择优入口，对照 fast_qr 自动择优快照（10 用例最优 mask+全矩阵）逐位对齐（测试 77→85），双后端全绿 |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
