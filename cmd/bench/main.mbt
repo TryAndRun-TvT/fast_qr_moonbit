@@ -21,8 +21,14 @@
 ///   moon run cmd/bench --release --            # 跑全部三点（每点默认迭代档）
 ///   moon run cmd/bench --release -- V40        # 只跑 V40H，默认迭代档
 ///   moon run cmd/bench --release -- V40 40     # 只跑 V40H，40 次
+///   moon run cmd/bench --release -- --dump V40 # 只导出 V40H 值全集规范矩阵（层②逐位对齐用，不计时）
 /// 版本越大单次越贵、默认迭代越少（避免单点 <1ms 计时噪声）。host 侧 scripts/bench.sh 用
 /// 「多次取最小」为每点×后端分别计时。
+///
+/// --dump 说明（S9c D19）：层②「与 fast_qr wasm 逐位对齐」需要**值全集（0/1）规范矩阵**——现默认
+/// 校验和取样走 Module::byte()（含模块类型位 bit1-3），fast_qr wasm 侧只输出 0/1 明暗值，两套公式
+/// 不可跨库互比。--dump 一次 build 后逐行导出 '0'/'1'（行主序，值=模块明暗），供 Node 宿主与 fast_qr
+/// wasm 产物 diff/sha256；默认路径行为完全不变（层①数字可复现）。
 ///
 /// KEEP_LAST 说明（评估 §2.4）：真实 QR 路径单次 push ≤16 位、index>16 不触达，故本仓库 wasm
 ///       形态（KEEP_LAST=33）与 fast_qr native（=65）对 V03H/V10H/V40H 矩阵输出语义一致；层②对
@@ -133,6 +139,44 @@ fn bench_point_checksum(ver : @lib.Version, n : Int) -> Int {
 }
 
 ///|
+/// 值全集规范矩阵导出（S9c D19，层②逐位对齐协议）。对指定点 build **一次**并导出：
+///   首行 `QR_MATRIX <点名> size=<边长>`，随后 `size` 行、每行 `size` 个 '1'/'0'
+///   （行主序；1=DARK/0=LIGHT，即 `Module::value()`，不含模块类型位——fast_qr wasm 侧
+///   `bool_to_u8` 只取该位，故本协议两侧可逐字符 diff）。
+/// 输出全部经 println 落地，build 结果被消费，无死代码消除风险。
+fn dump_matrix(ver : @lib.Version) -> Unit {
+  let res = @lib.QRBuilder::from_string(bench_input())
+    .ecl(@lib.ECL::H)
+    .version(ver)
+    .build()
+  match res {
+    Ok(q) => {
+      let size = q.size()
+      println("QR_MATRIX \{point_name(ver)} size=\{size}")
+      let mut row = 0
+      while row < size {
+        let sb = StringBuilder()
+        let mut col = 0
+        while col < size {
+          if q.get(row, col).value() {
+            sb.write_char('1')
+          } else {
+            sb.write_char('0')
+          }
+          col += 1
+        }
+        println(sb.to_string())
+        row += 1
+      }
+    }
+    Err(_) =>
+      abort(
+        "bench: force-version build unexpectedly failed for \{point_name(ver)}",
+      )
+  }
+}
+
+///|
 /// 跑单个版本 `n` 次并打印一行；返回其校验和。
 fn run_one(ver : @lib.Version, n : Int) -> Int {
   let cs = bench_point_checksum(ver, n)
@@ -158,33 +202,42 @@ fn run_all_default() -> Int {
 ///|
 fn main {
   let argv = @env.args()
-  // argv[0] = 程序/产物路径；argv[1]（可选）= 版本选择；argv[2]（可选）= 迭代数。
-  let total = match argv.length() {
-    0 | 1 => run_all_default()
-    _ => {
-      let ver_opt = parse_point(argv[1])
-      match ver_opt {
-        Some(ver) => {
-          let n = if argv.length() > 2 {
-            let ov = parse_iters_opt(argv[2])
-            if ov > 0 {
-              ov
+  // argv[0] = 程序/产物路径；argv[1]（可选）= 版本选择 或 `--dump`；argv[2]（可选）= 迭代数 /
+  // `--dump` 时的版本选择。
+  if argv.length() > 1 && argv[1] == "--dump" {
+    let ver_opt = if argv.length() > 2 { parse_point(argv[2]) } else { None }
+    match ver_opt {
+      Some(ver) => dump_matrix(ver)
+      None => println("--dump expects V03|V10|V40")
+    }
+  } else {
+    let total = match argv.length() {
+      0 | 1 => run_all_default()
+      _ => {
+        let ver_opt = parse_point(argv[1])
+        match ver_opt {
+          Some(ver) => {
+            let n = if argv.length() > 2 {
+              let ov = parse_iters_opt(argv[2])
+              if ov > 0 {
+                ov
+              } else {
+                default_iters(ver)
+              }
             } else {
               default_iters(ver)
             }
-          } else {
-            default_iters(ver)
+            run_one(ver, n)
           }
-          run_one(ver, n)
-        }
-        None => {
-          println(
-            "unknown point '\{argv[1]}'; expected V03|V10|V40|(default all)",
-          )
-          run_all_default()
+          None => {
+            println(
+              "unknown point '\{argv[1]}'; expected V03|V10|V40|(default all)",
+            )
+            run_all_default()
+          }
         }
       }
     }
+    println("TOTAL_CHECKSUM=\{total}")
   }
-  println("TOTAL_CHECKSUM=\{total}")
 }
