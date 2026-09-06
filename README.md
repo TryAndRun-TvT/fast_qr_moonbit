@@ -85,6 +85,7 @@ moon run cmd/main --target js
 | [S1-实现评审与优化-记录.md](./docs/S1-实现评审与优化-记录.md) | **S1 复核记录**：逐文件挑漏洞/找优化点，发现并修复 `QRCode::set` 别名写穿（共享数组破坏不可变语义）、补回归测试，其余设计点确认方向正确 |
 | [S2-常量表与GF256-实现方案.md](./docs/S2-常量表与GF256-实现方案.md) | **S2 详细方案**：容量表 + 分组/格式信息/生成多项式硬编码表（internal/constants）+ GF(256) division/structure（internal/reedsolomon）的文件级落地、脚本生成表、黄金测试与 S1 衔接 |
 | [S2-实现评估与源码核对-记录.md](./docs/S2-实现评估与源码核对-记录.md) | **S2 评估记录**：动手前阅读代码/文档并恢复 fast_qr 源码核对，修正方案 2 处与源码不一致点（`get_polynomial(v,ecl)` 31 条、capacity=Version::get 分段阈值）+ 补 `data_codewords` 等 3 张旁路表，给出修订后文件级落地清单 |
+| [S2-实现记录.md](./docs/S2-实现记录.md) | **S2 落地记录**：constants 容量表/分组/多项式硬编码表 + reedsolomon division/structure 真实实现（大表脚本提取）、回填 CompactQR::from_version、tests/structure.rs 黄金逐字节对齐，三后端全绿（测试 32→42） |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
