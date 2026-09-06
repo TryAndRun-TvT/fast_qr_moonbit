@@ -207,6 +207,20 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   `lib` 包 `.mbti` 拆前拆后 **零漂移**（接口集不变）、测试维持 **109 全绿**（纯搬移未增减行为测试）。roadmap 原义
 >   「拆 internal」经核对**不拆**（internal 无再拆信号）。
 
+> - **S9 详细方案见 [S9-性能基准-实现方案.md](./S9-性能基准-实现方案.md)**（2026-09-06 按「本项目与
+>   fast_qr 主比较 wasm 产物性能」修订对比分层）：承接 S8 合入（测试 109）后性能三基准点移植（roadmap §4.2
+>   S9，收敛 M3）。核心架构事实——MoonBit `Int` 32 位，`bitbuffer.mbt` 的 `KEEP_LAST` 取 Rust **wasm32 分支**
+>   （33 项、对全部后端生效），本仓库是 **wasm 形态**移植，故与其语义最贴近的 fast_qr 参照物是 **wasm32
+>   build**（`wasm-pack.sh` 产物 `fast_qr_bg.wasm`），而非 64 位 native（KEEP_LAST=65）。故「透明对比」三层
+>   分层：① wasm-gc/wasm 跨后端选型（同源码、host 计时）；② **MoonBit-wasm-gc/wasm vs fast_qr-wasm32**
+>   （同执行模型、**不依赖 C 工具链、当前环境可落地，主口径**：逐位对齐 + 计时双验证）；③ native MoonBit vs
+>   fast_qr native（可选方法学量级注记、需 C 工具链环境、注明内存模型差异，非主口径）。参考 82.2/269.3/
+>   2436.2 us 标注为「64 位 native」并提示口径。S9 定方案 = 新增 `cmd/bench` 基准命令 + `scripts/bench.sh`
+>   宿主计时（D14/D15），计时口径同时喂层①与层②；三基准点 = `QRBuilder::from_string(input).ecl(H).
+>   version(V03/V10/V40).build()`，强制版本语义待实现时对 `benches/qr.rs` 核对（V03H 恰为 19 字节 Byte-H
+>   最小适配版本，V10/V40 强制升版；fast_qr wasm 侧自动择优需对参考核对）；只测基线、**不并入** S5 O1
+>   （8 轮 clone→就地翻转）等正确性敏感主循环重构（单列 P2）。回归 109 全绿 + 快照零差异即安全。
+
 ### 4.3 代码迁移路线图（文件级）
 
 把 §4.2 的步骤落到**逐个 Rust 文件**的迁移上。顺序 = 源码依赖方向；每一层完成即可独立验证，
@@ -247,8 +261,8 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 |--------|------|------|
 | M0 ✅ | 验证基座 + 数据结构全绿 | S1-S2 完成；单测与黄金数据通过 |
 | M1 ✅ | 编码 + 放置最小路径跑通 | 固定参数首码与参考快照逐位一致（S4 达成，测试 77）；CLI 已 import 库并输出 |
-| M2 | **功能对齐** | 60 快照 100% 逐位一致；API 面与 `lib.rs` 导出对齐（待 S5 评分择优 + S6 全量快照） |
-| M3 | 性能与分发基线 | 三基准点可跑并给出对比数字；后端/产物分发结论记录在案 |
+| M2 ✅ | **功能对齐** | 三模式×4ECL 全矩阵逐位对齐 + 公共 QRBuilder/API 面对齐（S6 达成，测试 94→109）；60 快照覆盖收口 |
+| M3 | 性能与分发基线 | 三基准点可跑并给出对比数字；后端/产物分发结论记录在案（S9 方案见 [S9-性能基准-实现方案.md](./S9-性能基准-实现方案.md)，待实现跑测） |
 
 ### 4.5 收尾门禁（沿用 AGENTS.md）
 
