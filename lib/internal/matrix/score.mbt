@@ -1,10 +1,192 @@
 ///|
-/// score.mbt —— 掩码评分（4 条惩罚规则）
-/// 对应参考：/fast_qr/src/score.rs（roadmap 批次 B10 后半）
-/// 职责：N1 连续同色（行/列）、N2 2x2 同色块、N3 11 位窗口命中类 finder 图案、
+/// score.mbt —— 掩码评分（4 条惩罚规则，S5 落地）
+/// 对应参考：fast_qr v0.14.0 `src/score.rs`（roadmap 批次 B10 后半）
+/// 职责：N1 连续同色（行/列）、N2 2×2 同色块、N3 11 位窗口命中类 finder 图案、
 ///       N4 暗模块比例查表；总分越低越优。
-/// 关键语义：quiet zone（行首/行尾按浅色计，双侧浅命中计两次）；2x2 触及功能
-///       模块不计分且连续性归零（框架文档 §五.6）。
-/// 所在包：internal/matrix（roadmap 批次 B10 后半）。
-/// 依赖规则：不依赖lib 公共包；仅操作本包 Module 字节。
-/// 待实现：评分逻辑 + 黄金/快照测试（最难点，预留充分时间）。
+/// 关键语义（framework §五.6 / 掩码与评分不变量）：
+///   - quiet zone：N3 滚动窗口行首以 0 起始（相当于补 4 浅色）、行尾补 4 浅色移位，
+///     双侧浅命中计两次 40（N1 运行只在符号内结算，quiet zone 仅参与 N3 图案窗口）；
+///   - 2×2 触及非 Data 模块不计分且连续性归零（N2 类型门槛）；
+///   - 列评分必须在掩码后做（placement 历史 bug 铁律）；评分只对 Data 计；
+///   - N4 查 constants.percent_score_table（S5 落）。
+/// 介质：原始字节矩阵 `Array[Int]`（D3），坐标扁平 = 行*size + 列。
+/// 依赖规则：不依赖 lib 公共包；仅依赖本包 module helper + constants（同包/已有 import）。
+
+///|
+/// N3 两个目标 11 位窗口（行首/尾各 4 浅色补齐）：浅色在前的 finder 类图案。
+let pattern_light_before : Int = 0b00001011101
+
+///|
+/// 浅色在后的 finder 类图案（行尾 4 浅色补齐后命中）。
+let pattern_light_after : Int = 0b10111010000
+
+///|
+/// 11 位窗口掩码（截断移位溢出）。
+let pattern_window_mask : Int = 0b11111111111
+
+///|
+/// 对一段逻辑行（行=连续切片；列=跳跃访问）做 N1 运行结算 + N3 图案窗口扫描。
+/// `get(i)` 返回第 i 格 packed 值（明暗|类型<<1）；返回 (pattern_score, run_line_score)。
+/// 完全对照参考 `score.rs::line`：运行计数只在 Data 上累计，非 Data 或变色即结算；
+/// quiet zone 由窗口初值 0（行首 4 浅色）+ 行尾补 4 浅色移位体现（仅影响 N3 图案）。
+fn line_score(get : (Int) -> Int, len : Int) -> (Int, Int) {
+  let mut patt = 0
+  let mut run = 0
+  let mut count = 1
+  let mut current = 1 - (get(0) & 1) // = !line[0].value()：起始与首格相反
+  let mut buffer : Int = 0
+  let mut i = 0
+  while i < len {
+    let v = get(i)
+    let val = v & 1
+    buffer = ((buffer << 1) | val) & pattern_window_mask
+    if buffer == pattern_light_before || buffer == pattern_light_after {
+      patt = patt + 40
+    }
+    if val != current {
+      if count >= 5 {
+        run = run + count - 2
+      }
+      count = 0
+      current = val
+    }
+    if !is_data_byte(v) {
+      if count >= 5 {
+        run = run + count - 2
+      }
+      count = 0
+      i += 1
+      continue
+    }
+    count = count + 1
+    i += 1
+  }
+  if count >= 5 {
+    run = run + count - 2
+  }
+  // 行尾补 4 浅色移位：仅浅色在后的图案仍可在此命中。
+  let mut j = 0
+  while j < 4 {
+    buffer = (buffer << 1) & pattern_window_mask
+    if buffer == pattern_light_after {
+      patt = patt + 40
+    }
+    j += 1
+  }
+  (patt, run)
+}
+
+///|
+/// N1 行运行分 + N3 行图案分（整矩阵逐行扫描）。
+fn line_rows(m : Array[Int], size : Int) -> (Int, Int) {
+  let mut run = 0
+  let mut patt = 0
+  let mut row = 0
+  while row < size {
+    let base = row * size
+    let (p, r) = line_score(fn(i) { m[base + i] }, size)
+    run = run + r
+    patt = patt + p
+    row += 1
+  }
+  (run, patt)
+}
+
+///|
+/// N1 列运行分 + N3 列图案分（逐列跳跃访问，列评分须在掩码后做）。
+fn line_cols(m : Array[Int], size : Int) -> (Int, Int) {
+  let mut run = 0
+  let mut patt = 0
+  let mut col = 0
+  while col < size {
+    let (p, r) = line_score(fn(i) { m[i * size + col] }, size)
+    run = run + r
+    patt = patt + p
+    col += 1
+  }
+  (run, patt)
+}
+
+///|
+/// 白盒用：对一段逻辑行返回运行分（参考 test_score_line）。仅供 *_wbtest 内部调用。
+pub fn test_line_run(get : (Int) -> Int, len : Int) -> Int {
+  line_score(get, len).1
+}
+
+///|
+/// 白盒用：对一段逻辑行返回图案分（参考 test_score_pattern）。
+pub fn test_line_pattern(get : (Int) -> Int, len : Int) -> Int {
+  line_score(get, len).0
+}
+
+///|
+/// N1 汇总：整矩阵 行运行 + 列运行 分。
+pub fn score_line(m : Array[Int], size : Int) -> Int {
+  let (rr, _) = line_rows(m, size)
+  let (cr, _) = line_cols(m, size)
+  rr + cr
+}
+
+///|
+/// N3 汇总：整矩阵 行 + 列 图案命中 40 分（quiet zone 双侧命中各计）。
+pub fn score_pattern(m : Array[Int], size : Int) -> Int {
+  let (_, rp) = line_rows(m, size)
+  let (_, cp) = line_cols(m, size)
+  rp + cp
+}
+
+///|
+/// N2 2×2 同色块分（参考 `matrix_score_squares`）。触及非 Data 不计且连续性归零。
+pub fn score_squares(m : Array[Int], size : Int) -> Int {
+  let mut square = 0
+  let mut i = 0
+  while i < size - 1 {
+    let mut count_data = 2
+    let mut buffer = 0
+    buffer = buffer | ((m[i * size] & 1) << 2)
+    buffer = buffer | ((m[(i + 1) * size] & 1) << 3)
+    let mut j = 0
+    while j < size - 1 {
+      buffer = buffer >> 2
+      buffer = buffer | ((m[i * size + (j + 1)] & 1) << 2)
+      buffer = buffer | ((m[(i + 1) * size + (j + 1)] & 1) << 3)
+      if !is_data_byte(m[i * size + (j + 1)]) ||
+        !is_data_byte(m[(i + 1) * size + (j + 1)]) {
+        count_data = 0
+      }
+      if count_data >= 2 && (buffer == 0b1111 || buffer == 0b0000) {
+        square = square + 3
+      }
+      count_data = count_data + 1
+      j += 1
+    }
+    i += 1
+  }
+  square
+}
+
+///|
+/// N4 暗模块比例分（参考 `dark_module_score`）：统计暗模块 → 占比 → 查 constants 惩罚表。
+pub fn score_dark(m : Array[Int], size : Int) -> Int {
+  let mut dark = 0
+  let mut i = 0
+  while i < size * size {
+    if (m[i] & 1) == 1 {
+      dark = dark + 1
+    }
+    i += 1
+  }
+  let percent = dark * 100 / (size * size)
+  @constants.percent_score(percent)
+}
+
+///|
+/// 4 条规则总分（越低越优）。供 placement 择优主循环调用。
+/// = N1(行+列运行) + N2(squares) + N3(行+列图案) + N4(dark)。
+pub fn score(m : Array[Int], size : Int) -> Int {
+  let (rr, rp) = line_rows(m, size)
+  let (cr, cp) = line_cols(m, size)
+  let dark = score_dark(m, size)
+  let squares = score_squares(m, size)
+  rr + rp + cr + cp + dark + squares
+}
