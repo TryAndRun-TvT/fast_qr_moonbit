@@ -5,8 +5,11 @@
 > 构造器 + 链式 setter，对齐 fast_qr `lib.rs:75-80` 导出面，收敛 roadmap §4.4 里程碑 **M2（功能对齐）**。
 > 管线逻辑零改动（S1-S5 正确性已锁），本阶段为「补快照收口验证 + API 壳层补齐」。
 >
-> 日期：2026-09-06　｜　基线：main（PR #32 已合，91 测试绿）　｜　落地后测试 **91 → 94**，
+> 日期：2026-09-06　｜　基线：main（PR #32 已合，**85 个 test 块**）　｜　落地后测试 **85 → 94（净 +9）**，
 > wasm-gc / wasm 双后端 release 全绿；无构建产物入库；Rust 参考数据由 `scripts/snapshot_gen_s6.rs` 一次生成。
+> ⚠️ 评审后更正：原稿「91 测试绿 / 91 → 94」计数失实（实为 85 → 94，新增 qr_builder_test 6 + s6_snapshot_test 3）；
+> 「全参数 None 纯自动路径 ×3」实为 mode/ecl/version 冻结、仅 mask 自动。详见
+> [S6-实现评审与优化-记录.md](./S6-实现评审与优化-记录.md) §2.1-2.2。
 
 ---
 
@@ -18,7 +21,7 @@ S6 两块交付全部达成：
   `QRCode::build` 同参等价、缺省全 None 语义正确、错误面透传。
 - **S6-1（快照端到端收口）**：用 Rust fast_qr v0.14.0（commit `53e8c99`）一次生成约 20 条**参考全矩阵 hex**
   （禁止手抄），覆盖 **Numeric/Alnum/Byte × L/M/Q/H** 在 V05 的矩阵级端到端、**V01 最短**、**版本信息区
-  V14/V26/V32**、**V40-H 满容量（177×177）**、**全参数 None 纯自动路径**，逐位对齐 **0 差异**——证明
+  V14/V26/V32**、**V40-H 满容量（177×177）**（mask 自动择优），逐位对齐 **0 差异**——证明
   S1-S5 完整管线（含 Numeric/Alnum 矩阵编码、版本信息格式、V40 大矩阵 RS 交织）与 fast_qr 逐字节一致，
   **未发现任何正确性 bug**。
 
@@ -60,7 +63,7 @@ S6 两块交付全部达成：
 | A. 三模式 × 4 ECL（V05，mask 自动） | 12 | Numeric(81 位)/Alnum(39 字符)/Byte × L/M/Q/H 矩阵级逐位 |
 | B1. V01 最短（L，25 位数字） | 1 | 低版本边界 |
 | B2. 版本信息区 V14/V26/V32（Byte-Q） | 3 | 版本信息格式逐格对齐 |
-| C. 全参数 None 纯自动路径 | 3 | numeric/alnum/byte 各 1，自动 mode/ecl/version/mask 全对齐 |
+| C. 自动 mask 路径（mode/ecl/version 冻结）| 3 | numeric/alnum/byte 各 1；⚠️ 评审后更正：非全 None，mode/ecl/version 为 Some，仅 mask 自动 |
 | D. V40-H 满容量边界 | 1 | 177×177 全矩阵逐位 |
 | **合计** | **20** | 全部 0 差异 |
 
@@ -74,7 +77,7 @@ S6 两块交付全部达成：
 - `from_string` == `new(字节)`；错误面 `EncodedData`（超 V40）/`SpecifiedVersion`（指定过小）透传。
 
 ### 3.3 门禁（AGENTS §二.4）
-`moon fmt`、`moon info`、`moon check --deny-warn`、`moon test` 全绿（测试 91 → **94**）；
+`moon fmt`、`moon info`、`moon check --deny-warn`、`moon test` 全绿（测试 85 → **94**，净 +9）；
 wasm-gc / wasm 双后端 release 构建 + `moon test --target` 通过；`git status` 无 `.mbti`/`_build` 产物入库。
 `.mbti` 护栏：lib 新增 `QRBuilder` 公共 API 属预期变更；internal 各 `.mbti` 不变（internal 层零改动）。
 
