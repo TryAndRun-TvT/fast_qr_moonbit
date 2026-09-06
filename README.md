@@ -144,7 +144,10 @@ moon run   cmd/main --target wasm
 │   ├── fast_qr_moonbit.mbt     #   库入口 / 公共 API 总览（真实实现见下列各文件）
 │   ├── ecl/version/mode/mask.mbt  # 公共枚举（ECL/Version/Mode/Mask，.mbti 对外契约）
 │   ├── module.mbt              #   公共 Module / ModuleType（呈现层，位打包语义）
-│   ├── qr.mbt                  #   QRCode 结果容器 + QRCodeError + 访问器
+│   ├── qr.mbt                  #   QRCode 结果容器 + QRCodeError + 访问器（S8 拆后收敛）
+│   ├── qr_build.mbt             #   编排/构造：select_capacity + build_fixed/build（S8 拆出）
+│   ├── qr_builder.mbt           #   公共 QRBuilder 构造器（S8 拆出）
+│   ├── qr_output.mbt            #   QRCode 输出便捷 to_str/print（S8 拆出）
 │   ├── helpers.mbt / svg.mbt / shape.mbt  # 输出层：终端画 + SVG + Shape 枚举
 │   ├── fast_qr_moonbit_test.mbt  # 黑盒测试（包外，@lib）
 │   ├── fast_qr_moonbit_wbtest.mbt # 白盒测试（包内）

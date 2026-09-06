@@ -202,6 +202,10 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   `fast_qr_moonbit.mbt`（仍自称骨架、实已实现）+ `qr.mbt`（401 行）混容器/编排/builder/output 三类子关注**。
 >   S8 定方案 = 公共层**文件级职责归位**（拆 qr.mbt → qr_build/qr_builder/qr_output，不改 `.mbti`、不加 internal
 >   包、无逻辑改动）+ 入口文档刷新，低风险收口、回归 109 全绿即验收。
+>   **S8 拆改已落地（2026-09-06，据本方案 §4 清单执行）**：qr.mbt → qr_build/qr_builder/qr_output 同包文件级
+>   拆分完成、`fast_qr_moonbit.mbt` 刷新为真实库入口文档头、README 项目结构树补 qr_build/qr_builder/qr_output；公共
+>   `lib` 包 `.mbti` 拆前拆后 **零漂移**（接口集不变）、测试维持 **109 全绿**（纯搬移未增减行为测试）。roadmap 原义
+>   「拆 internal」经核对**不拆**（internal 无再拆信号）。
 
 ### 4.3 代码迁移路线图（文件级）
 
