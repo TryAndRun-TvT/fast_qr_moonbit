@@ -69,7 +69,9 @@ pub fn QRCode::get(self : QRCode, row : Int, col : Int) -> Module {
 ///|
 /// 覆写第 `row` 行第 `col` 列模块（不可变式：返回新 QRCode）。
 pub fn QRCode::set(self : QRCode, row : Int, col : Int, m : Module) -> QRCode {
-  let data = self.data
+  // 不可变式写入：先拷贝数组再改，避免返回的新 QRCode 与源共享同一底层数组
+  // （Array 是引用类型，直接 `data = self.data` 会原地改源，破坏不可变语义）
+  let data = self.data.copy()
   data[row * self.size + col] = m
   QRCode::{
     data,
