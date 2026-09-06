@@ -136,8 +136,10 @@ pub fn CompactQR::fill(self : CompactQR) -> Unit {
 }
 
 ///|
-/// 以某版本总数据容量构造空缓冲（供 encode 管线起步）。
+/// 以某版本码字总容量构造空缓冲（供 encode 管线起步：先写数据段、尾部接纠错，
+/// 初始容量取 max_bytes = 版本总码字数）。
 /// 等价参考 compact.rs::from_version(version)：初始容量 = max_bytes(version) * 8 比特。
+/// 容量不足时 push 会按需扩容，故该容量只作起步预留、不限制最终编码长度。
 pub fn CompactQR::from_version(version_idx : Int) -> CompactQR {
   from_bits(@constants.max_bytes(version_idx) * 8)
 }

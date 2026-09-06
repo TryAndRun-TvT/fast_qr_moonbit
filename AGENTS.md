@@ -59,9 +59,10 @@
 
 ### 3. 后端与构建
 
-- 模块声明 `supported_targets = "+wasm+wasm-gc+js"`，默认 `preferred_target = "wasm-gc"`。
+- 模块声明 `supported_targets = "+wasm+wasm-gc"`（**`js` 已按项目决策移除**，保留 `wasm-gc`/`wasm`
+  双后端），默认 `preferred_target = "wasm-gc"`。
 - 主推 **`wasm-gc`**（实测体积比 `wasm` 小 83%、计算微基准快约 33%、宿主接入成本最低）；
-  `wasm` 作 WASI 兼容兜底，`js` 用于 npm / 浏览器。
+  `wasm` 作 WASI 兼容兜底。
 - 需要兼容产物时显式指定包与后端：`moon build cmd/main --target wasm --release`
   （默认命令走 `wasm-gc`；模块根无包，构建需显式给包名）。
 - **`native` 后端需系统 C 编译器**（`cc` / `gcc` / `clang`）。当前环境缺失，
@@ -75,11 +76,11 @@
 ```bash
 export PATH="$HOME/.moon/bin:$PATH"
 moon fmt && moon info && moon check --deny-warn && moon test
-# 多后端回归（release，显式构建 lib 与 cmd/main）
-for t in wasm-gc wasm js; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done
+# 多后端回归（release，显式构建 lib 与 cmd/main；js 已移除，仅 wasm-gc/wasm）
+for t in wasm-gc wasm; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done
 ```
 
-> CI 会执行 `moon fmt --check`、`moon check --deny-warn` 与三后端 release 回归，
+> CI 会执行 `moon fmt --check`、`moon check --deny-warn` 与双后端（wasm-gc/wasm）release 回归，
 > 本地先跑一遍可避免推送后失败。可选启用本地钩子：
 > `git config core.hooksPath .githooks`（属个人本地配置，仓库不代设）。
 
