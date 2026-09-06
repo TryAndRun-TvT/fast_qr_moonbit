@@ -72,6 +72,7 @@ moon run   cmd/main --target wasm
 | [代码布局检查与整理.md](./docs/代码布局检查与整理.md) | 代码放置位置检查、MoonBit 文件/测试约定与整理记录 |
 | [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md) | wasm 编译/运行全过程、产物结构、多后端对比与选型 |
 | [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成 |
+| [rust-环境配置脚本与fast_qr对比-setup.md](./docs/rust-环境配置脚本与fast_qr对比-setup.md) | Rust 参考环境配置（`scripts/setup-rust.sh`，rsproxy 镜像）+ fast_qr 对比用法 |
 | [repo-初始化配置说明.md](./docs/repo-初始化配置说明.md) | 仓库初始化与云原生构建配置 |
 | [core-仓库布局参考与目标架构.md](./docs/core-仓库布局参考与目标架构.md) | 参考 `moonbitlang/core` 布局得出的目标包架构与分阶段落地路线 |
 | [项目基础框架-详细分析.md](./docs/项目基础框架-详细分析.md) | **项目基础框架**：资产盘点、参考模块→MoonBit 映射、移植语义、验证策略与 P0-P2 路线（实现 QR 前先读） |
@@ -146,8 +147,9 @@ moon run   cmd/main --target wasm
 │   └── moon.pkg
 ├── docs/                       # 项目文档（工程/布局 + 移植参考/fast_qr 语料）
 ├── AGENTS.md                   # AI 协作代理指南（单一真实文件）
-├── scripts/                    # 云原生构建脚本（.cnb.yml 各阶段命令）
-│   ├── setup-moonbit.sh        #   安装 MoonBit 工具链并校验
+├── scripts/                    # 构建与开发辅助脚本
+│   ├── setup-moonbit.sh        #   安装 MoonBit 工具链并校验（.cnb.yml 各阶段调用）
+│   ├── setup-rust.sh           #   安装 Rust 工具链（rsproxy 镜像，供 fast_qr 参考对比，可选）
 │   ├── fmt-check.sh            #   格式门禁（moon fmt --check）
 │   ├── check.sh                #   静态检查门禁（moon check --deny-warn）
 │   ├── test.sh                 #   单元测试
