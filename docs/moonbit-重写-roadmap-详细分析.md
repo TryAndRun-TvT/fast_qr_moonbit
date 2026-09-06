@@ -150,8 +150,14 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 > - **S4 详细方案见 [S4-矩阵与放置-实现方案](./S4-矩阵与放置-实现方案.md)**：在 `internal/matrix` 落
 >   `matrix.mbt`（功能图案）+ `placement.mbt`（之字形放置）+ 8 掩码实现，以**固定 mask** 串
 >   encode→structure→放置→Format 闭环产出 M1 首码；含 D3 原始字节矩阵介质决策与快照验收策略。
-| S5 | 8 掩码 + 4 评分 + 择优主循环（最难点） | `datamasking.rs` / `score.rs` / `placement.rs:85-119` | 全量快照对齐 |
+| S5 ✅ | 8 掩码 + 4 评分 + 择优主循环（最难点） | `datamasking.rs` / `score.rs` / `placement.rs:85-119` | 全量快照对齐 |
 >
+
+> - **S5 已落地（据 [S5 实现记录](./S5-掩码评分与择优-实现记录.md)）**：8 掩码随 S4 落；S5 补齐
+>   4 条评分（score.mbt N1/N2/N3/N4）+ 8 轮 clone+score 择优主循环（placement `create_auto_qr`）
+>   + N4 表 `PERCENT_SCORE`（constants）+ lib 自动择优 `QRCode::build`（mask 可 None）。对照
+>   fast_qr v0.14.0 自动择优快照（10 用例最优 mask + 全矩阵）逐位对齐，双后端全绿（测试 77→85）。
+
 > - **S4/S5 掩码分批（据 S4 方案 §5）**：8 种掩码**数学式实现**随 S4 落（可独立快照验证）；
 >   S5 只做 **4 条评分 + 8 轮 clone+score 择优主循环**（B10 后半）——降低 S5 耦合、避免 S4 只写
 >   单掩码再返工补 7 种。
