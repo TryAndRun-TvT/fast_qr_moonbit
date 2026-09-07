@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# NOTE: 本脚本已纳入仓库并公开可审阅，供复现与评审。
+# 目标：对比 MoonBit wasm 与 fast_qr-wasm32 的真实性能数据，脚本与依赖脚本均位于 scripts/ 下。
+#
 # 层② 一键驱动：Node.js 调用 wasm 对比（MoonBit wasm vs fast_qr-wasm32，S9c）。
 #
 # 职责（对应 S9c 方案 §4 #4 + 实现记录）：
