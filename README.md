@@ -1,42 +1,151 @@
 # tryandrun/fast_qr_moonbit
 
-基于 [MoonBit](https://www.moonbitlang.cn/) 的高性能二维码（QR Code）生成库。
+> 基于 [MoonBit](https://www.moonbitlang.cn/) 的高性能二维码（QR Code）生成库。
+> 纯 MoonBit 实现、无外部依赖，逐位对齐 Rust 参考库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr)。
+
+**项目状态**：功能对齐收口（M0–M3 里程碑 ✅），109 单测 + 快照全绿，`wasm-gc` / `wasm` 双后端回归通过。
+
+| | |
+|---|---|
+| **语言** | [MoonBit](https://www.moonbitlang.cn/)（`wasm-gc` 主推 + `wasm`/WASI 兼容；`js` 已移除，`native` 需系统 C 编译器） |
+| **标准** | ISO/IEC 18004 二维码（版本 1–40，ECL L/M/Q/H，8 掩码评分择优） |
+| **许可** | [Apache-2.0](./LICENSE) |
+| **参考** | Rust [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr) 逐位移植对齐 |
+
+---
+
+## 目录
+
+- [功能特性](#功能特性)
+- [能力与局限](#能力与局限)
+- [在项目中作为依赖使用](#在项目中作为依赖使用)
+- [从源码构建](#从源码构建)
+- [编译为 Wasm](#编译为-wasm)
+- [性能速览](#性能速览)
+- [文档索引](#文档索引)
+- [代码放置约定](#代码放置约定方案-3模块根无包库包在-lib)
+- [项目结构](#项目结构)
+- [开发与 CI](#开发与-ci)
+- [License](#license)
+
+---
 
 ## 功能特性
 
-- 纯 MoonBit 实现，无外部依赖
-- 支持 `wasm-gc` / `wasm` 双后端（`js` 已按需移除，`native` 需系统 C 编译器）
-- 快速生成符合 ISO/IEC 18004 标准的二维码
+- **纯 MoonBit 实现**，无外部依赖，可直接 `moon add` 依赖到你的项目。
+- **标准合规**：遵循 ISO/IEC 18004 —— 版本 V01–V40、四种纠错级别（L/M/Q/H）、
+  三模式自动编码（Numeric / Alphanumeric / Byte）+ 自动回退、8 种掩码评分择优。
+- **逐字节对齐参考**：矩阵与 fast_qr v0.14.0 全量快照逐位一致，可解码读回原文。
+- **双后端产物**：`wasm-gc`（默认，体积小、性能好）+ `wasm`（WASI，宿主接入灵活）。
+- **两用接口**：过程式 `QRCode::build` 编排入口 + 链式 `QRBuilder` 便捷构造器。
+- **多样输出**：终端字符画（`to_str`/`print`）与 SVG 字符串（`SvgBuilder`，6 种模块形状）。
 
-## 快速开始
+## 能力与局限
 
-### 安装 MoonBit 工具链
+| 能力 | 说明 |
+|------|------|
+| 编码内容 | **字节（ASCII）** 输入；自动选择 Numeric / Alphanumeric / Byte，也可强制指定模式 |
+| 版本/纠错 | 自动最小适配或强制指定版本 V01–V40；ECL 缺省 Quartile(Q)，可显式 L/M/Q/H |
+| 掩码 | 自动 8 轮评分择优，或指定固定掩码（走快速路径） |
+| 输出 | 终端 Unicode 字符画、SVG 字符串 |
+
+已知局限（诚实声明）：
+
+- **编码模式**仅支持 Byte/Alphanumeric/Numeric；**Kanji 模式暂不支持**（与参考 fast_qr 一致）。
+- 输入按 **ASCII 字节** 处理（非 ASCII 多字节字符的语义见 [S6 评审记录](./docs/S6-实现评审与优化-记录.md) 的优化建议）。
+- 产物形态面向 **wasm**：MoonBit `Int` 32 位、纠错位流 `KEEP_LAST=33`（取 Rust wasm32 分支），
+  对真实 QR 语义无差别（详见 [S9 评估记录](./docs/S9-性能基准-实现评估与优化-记录.md) §2.4）。
+- `native` 后端需系统 C 编译器，当前 CI/本地镜像未安装，暂不可用。
+
+---
+
+## 在项目中作为依赖使用
+
+在你的 MoonBit 项目里添加本库作为依赖：
+
+```toml
+# 项目 moon.mod 所在目录执行
+# moon add tryandrun/fast_qr_moonbit
+```
+
+在 `moon.pkg` 中声明依赖并起别名（本库包路径为 `.../lib`，别名默认即目录名 `lib`）：
+
+```toml
+import {
+  "tryandrun/fast_qr_moonbit/lib",
+}
+```
+
+然后即可用 `QRBuilder` 生成二维码（链式设置纠错/版本/掩码）：
+
+```moonbit
+/// 由字符串输入构建 QRCode（缺省全部自动：mode 自动、ECL=Q、version 最小、mask 择优）。
+fn gen() -> @lib.QRCode {
+  match @lib.QRBuilder::from_string("https://example.com/").build() {
+    Ok(q) => q
+    Err(_) => abort("content too large")
+  }
+}
+
+fn main {
+  let qr = gen()
+  // 输出终端 Unicode 半块字符画（含边距）
+  println(qr.to_str())
+  // 输出 SVG 字符串（默认黑色方块 + 白色背景、margin=4）
+  let svg = @lib.SvgBuilder::default()
+    .module_color("#0000ff")
+    .background_color("#ffffff")
+    .shape(@lib.Shape::RoundedSquare)
+    .to_str(qr)
+  println(svg[:200] + "...")
+}
+```
+
+主要公共类型一览（完整说明见 [文档索引](#文档索引) 各实现方案/记录）：
+
+| 类型 | 位置/说明 |
+|------|-----------|
+| `ECL` / `Version` / `Mode` / `Mask` | 纠错级别（L/M/Q/H）、版本（V01–V40）、编码模式、掩码枚举 |
+| `QRCode` | 生成结果容器（矩阵 + size/version/ecl/mask/mode 元数据 + `to_str`/`print`） |
+| `QRCode::build` | 过程式编排入口（input/mode/ecl/version/mask → `Result[QRCode]`） |
+| `QRBuilder` | 链式构造器：`from_string`/`new` + `mode/ecl/version/mask` + `build` |
+| `Module` / `ModuleType` | 单像素模块（明暗 + 8 种功能归属），供读取/访问 |
+| `SvgBuilder` / `Shape` | SVG 字符串输出；6 种模块形状（square/circle/rounded_square/vertical/horizontal/diamond） |
+| `QRCodeError` | 构造错误（`EncodedData` 数据过大、`SpecifiedVersion` 版本过小） |
+
+---
+
+## 从源码构建
+
+先安装 MoonBit 工具链：
 
 ```bash
 curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
 export PATH="$HOME/.moon/bin:$PATH"
 ```
 
-### 构建
-
 模块根不设包（core 式布局）：库包在 `lib/`，CLI 在 `cmd/main/`，构建需显式给包名。
 
 ```bash
 moon build lib          # 编译库包
 moon build cmd/main     # 编译 CLI
+moon run   cmd/main     # 运行 CLI 演示（终端字符画 + SVG）
+moon test               # 运行单元/快照测试
 ```
 
-### 运行 CLI
+提交前本地收尾检查（对齐 CI 门禁）：
 
 ```bash
-moon run cmd/main
+export PATH="$HOME/.moon/bin:$PATH"
+moon fmt && moon info && moon check --deny-warn && moon test
+for t in wasm-gc wasm; do
+  moon build lib --target "$t" --release
+  moon build cmd/main --target "$t" --release
+  moon test --target "$t"
+done
 ```
 
-### 测试
-
-```bash
-moon test
-```
+---
 
 ## 编译为 Wasm
 
@@ -52,74 +161,86 @@ moon build cmd/main --target wasm --release
 moon run   cmd/main --target wasm
 ```
 
-产物位置：
+产物位置与体积（release，`cmd/main` 骨架）：
 
-| 后端 | 产物 | 骨架体积（release） | 特点 |
-|------|------|--------------------:|------|
-| **`wasm-gc`**（默认） | `_build/wasm-gc/release/build/cmd/main/main.wasm` | **440 B** | 仅 1 个 `spectest.print_char` 导入，不导出 memory，宿主集成成本最低 |
+| 后端 | 产物 | 体积 | 特点 |
+|------|------|-----:|------|
+| **`wasm-gc`**（默认） | `_build/wasm-gc/release/build/cmd/main/main.wasm` | **440 B** | 仅 1 个 `spectest.print_char` 导入，宿主集成成本最低 |
 | `wasm` | `_build/wasm/release/build/cmd/main/main.wasm` | 2598 B | 符合 WASI preview1，可被 node / wasmtime 等标准宿主加载 |
 
-默认选 `wasm-gc` 的依据：体积比 `wasm` 小 83%，计算微基准快约 33%。
-`native` 后端需系统 C 编译器（`cc` / `gcc` / `clang`），当前未安装，不可用。
+默认选 `wasm-gc` 的依据：体积比 `wasm` 小 **83%**、计算密集基准快约 **33%**。
+详细分析见 [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md)。
 
-详见 [docs/wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md)。
+---
 
-## 文档
+## 性能速览
+
+项目自带可复跑基准（`cmd/bench` + `scripts/bench.sh`，输入 `https://example.com/`=20B、ECL H、
+强制 V03/V10/V40、自动 mask）。以下为记录在案的实测量级（详见链接文档的完整表格与口径说明）：
+
+- **层① 跨后端**：`wasm-gc` 全程更快（约 1.2–1.4×），两后端 `TOTAL_CHECKSUM` 完全一致（同源码互证）。
+  见 [S9 实现记录](./docs/S9-性能基准-实现记录.md)。
+- **层② vs fast_qr-wasm32**：三基准点**逐位对齐零差异**（sha256 一致）；同宿主口径下
+  fast_qr-wasm32 快约 2.8–5.0×（边际单次 build：MoonBit 0.304/1.162/9.01ms vs fast_qr
+  0.061/0.335/3.18ms @ V03H/V10H/V40H）。见 [S9c 实现记录](./docs/S9c-性能测试与fast_qr-wasm对比-实现记录.md)
+  与 [S9c 详细分析](./docs/S9c-性能测试与fast_qr-wasm对比-详细分析.md)。
+- **同语言 vs moonbit 生态**：同尺寸同语义可比子集中，本仓库快 `moonqr` **2.5–4.1×**
+  （V40H 单次 9.46 vs 38.29ms）。见 [S9d 实现记录](./docs/S9d-与moonbit生态QR包性能对比-实现记录.md)
+  与 [S9d 详细分析](./docs/S9d-与moonbit生态QR包性能对比-详细分析.md)。
+
+> 性能数字仅作选型与迭代基线，不代表对 fast_qr 的追赶承诺；逐条口径见 S9 系列文档。
+
+---
+
+## 文档索引
+
+### 面向用户的文档
 
 | 文档 | 说明 |
 |------|------|
 | [moonbit-项目目录设置-最佳实践.md](./docs/moonbit-项目目录设置-最佳实践.md) | 目录/包/测试设置的官方依据 + 实证验证 + 落地清单 |
-| [代码布局检查与整理.md](./docs/代码布局检查与整理.md) | 代码放置位置检查、MoonBit 文件/测试约定与整理记录 |
-| [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md) | wasm 编译/运行全过程、产物结构、多后端对比与选型 |
 | [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成 |
-| [rust-环境配置脚本与fast_qr对比-setup.md](./docs/rust-环境配置脚本与fast_qr对比-setup.md) | Rust 参考环境配置（`scripts/setup-rust.sh`，rsproxy 镜像）+ fast_qr 对比用法 |
+| [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md) | wasm 编译/运行全过程、产物结构、多后端对比与选型 |
+| [rust-环境配置脚本与fast_qr对比-setup.md](./docs/rust-环境配置脚本与fast_qr对比-setup.md) | Rust 参考环境配置（`scripts/setup-rust.sh`）+ fast_qr 对比用法 |
+
+### 面向维护者 / 架构文档
+
+工程与布局：
+
+| 文档 | 说明 |
+|------|------|
 | [repo-初始化配置说明.md](./docs/repo-初始化配置说明.md) | 仓库初始化与云原生构建配置 |
-| [core-仓库布局参考与目标架构.md](./docs/core-仓库布局参考与目标架构.md) | 参考 `moonbitlang/core` 布局得出的目标包架构与分阶段落地路线 |
-| [项目基础框架-详细分析.md](./docs/项目基础框架-详细分析.md) | **项目基础框架**：资产盘点、参考模块→MoonBit 映射、移植语义、验证策略与 P0-P2 路线（实现 QR 前先读） |
-| [moonbit-重写-roadmap-详细分析.md](./docs/moonbit-重写-roadmap-详细分析.md) | **MoonBit 重写路线图**：基于 `/fast_qr` 源码核验的架构要点、S1-S9 实现顺序、里程碑 M0-M3 与验证基座 |
-| [S1-数据结构-实现方案.md](./docs/S1-数据结构-实现方案.md) | **S1 详细方案**：数据结构层（Module/QRCode/CompactQR/错误/公共枚举骨架）的文件级实现清单、Module 归属与依赖边界决策（D1/D2）、待实测项与 M0 验收 |
-| [S1-数据结构-实现记录.md](./docs/S1-数据结构-实现记录.md) | **S1 落地记录**：S1 数据结构（ECL/Version/Mode/Mask/Module/QRCode/CompactQR）的真实实现、实测拍板决策（pub(all)/Array 矩阵/KEEP_LAST 32 位/错误推迟）与三后端全绿测试 |
-| [S1-实现评审与优化-记录.md](./docs/S1-实现评审与优化-记录.md) | **S1 复核记录**：逐文件挑漏洞/找优化点，发现并修复 `QRCode::set` 别名写穿（共享数组破坏不可变语义）、补回归测试，其余设计点确认方向正确 |
-| [S2-常量表与GF256-实现方案.md](./docs/S2-常量表与GF256-实现方案.md) | **S2 详细方案**：容量表 + 分组/格式信息/生成多项式硬编码表（internal/constants）+ GF(256) division/structure（internal/reedsolomon）的文件级落地、脚本生成表、黄金测试与 S1 衔接 |
-| [S2-实现评估与源码核对-记录.md](./docs/S2-实现评估与源码核对-记录.md) | **S2 评估记录**：动手前阅读代码/文档并恢复 fast_qr 源码核对，修正方案 2 处与源码不一致点（`get_polynomial(v,ecl)` 31 条、capacity=Version::get 分段阈值）+ 补 `data_codewords` 等 3 张旁路表，给出修订后文件级落地清单 |
-| [S2-实现记录.md](./docs/S2-实现记录.md) | **S2 落地记录**：constants 容量表/分组/多项式硬编码表 + reedsolomon division/structure 真实实现（大表脚本提取）、回填 CompactQR::from_version、tests/structure.rs 黄金逐字节对齐，三后端全绿（测试 32→42） |
-| [S2-实现评审与优化-记录.md](./docs/S2-实现评审与优化-记录.md) | **S2 复核记录**：逐文件复核 S2 实现并校对工程状态，落地「移除 js 后端（收敛为 wasm-gc/wasm 双后端）」「表间不变量交叉一致性测试（42→43）」「max_bytes 注释语义修正」，其余无阻断 bug、方向确认正确 |
-| [S3-数据编码-实现方案.md](./docs/S3-数据编码-实现方案.md) | **S3 详细方案**：落地 `internal/data_encoding` 三模式编码 + best_encoding 自动回退 + terminator/8 位对齐，补 `cci_bits` 依赖，并覆盖 B8（QRCode 容量选择 / QRCodeError），含测试/验收与 S3 直接做三模式的取舍论证 |
-| [S3-数据编码-实现记录.md](./docs/S3-数据编码-实现记录.md) | **S3 落地记录**：data_encoding 三模式编码 + best_encoding 自动回退 + terminator/pad，补 `cci_bits`（capacity），B8 容量选择与 QRCodeError（lib 首次 import internal），黄金/Python 逐字节核对，三后端全绿（测试 43→63） |
-| [S3-实现评审与优化-记录.md](./docs/S3-实现评审与优化-记录.md) | **S3 复核记录**：发现并修复 `is_qr_alphanumeric` 字符映射 bug（`&`/`*` 混淆，与 S3 已修 ascii 映射 bug 同源）、README 表格格式、roadmap 范围同步；其余设计点方向正确 |
-| [S4-矩阵与放置-实现方案.md](./docs/S4-矩阵与放置-实现方案.md) | **S4 详细方案**：落地 `internal/matrix` 功能图案绘制（matrix.mbt）+ 之字形数据放置（placement.mbt）+ 8 掩码实现，配**固定 mask** 打通 encode→structure→放置→Format 最小闭环产出 M1 固定参数首码，含 D3 原始字节矩阵介质决策与快照验收策略 |
-| [S4-矩阵与放置-实现记录.md](./docs/S4-矩阵与放置-实现记录.md) | **S4 落地记录**：B9b 之字形放置（place_on_matrix_data/create_fixed_qr）+ M1 lib 最小编排入口（QRCode::build_fixed），对照 fast_qr 固定 mask 快照逐位对齐（测试 73→77），双后端全绿 |
-| [S5-掩码评分与择优-实现方案.md](./docs/S5-掩码评分与择优-实现方案.md) | **S5 详细方案**：落地 `internal/matrix/score.mbt` 4 条评分（N1/N2/N3/N4）+ `placement` 8 轮 clone+score 择优主循环（自动 mask），补 N4 的 `PERCENT_SCORE` 表，lib 自动择优入口；含 score 语义铁律核对清单与择优快照验收策略 |
-| [S5-掩码评分与择优-实现记录.md](./docs/S5-掩码评分与择优-实现记录.md) | **S5 落地记录**：score.mbt 4 条评分（N1/N2/N3/N4）+ placement `create_auto_qr` 8 轮择优 + constants N4 表 + lib `QRCode::build` 自动择优入口，对照 fast_qr 自动择优快照（10 用例最优 mask+全矩阵）逐位对齐（测试 77→85），双后端全绿 |
-| [S5-实现评审与优化-记录.md](./docs/S5-实现评审与优化-记录.md) | **S5 复核记录**：对照 fast_qr v0.14.0 `score.rs`/`placement.rs:85-119` 逐行比对，确认无正确性 BUG、与参考逐字等价；落地固定 mask 路径注释口径修正（实际跳过 8 轮评分），补参考概念澄清注记；列 S6/S9 两条非阻断优化建议 |
-| [S6-端到端对齐与公共API-实现方案.md](./docs/S6-端到端对齐与公共API-实现方案.md) | **S6 详细方案**：60 快照全量端到端逐位对齐（补 Numeric/Alnum 三模式矩阵级 + V40 满容量/边界 + V14/V26/V32 版本信息区 + 全参数 None 纯自动路径，roadmap §4.1 集 100%）+ 公共 `QRBuilder` 构造器（`new` + mode/ecl/version/mask 链式 setter + `build`，对齐 fast_qr `lib.rs:75-80` 导出面），收敛 M2 功能对齐；含 60 快照脚本生成策略、D6/D7 决策、逐文件落地清单与验收 |
-| [S6-端到端对齐与公共API-实现记录.md](./docs/S6-端到端对齐与公共API-实现记录.md) | **S6 落地记录**：新增公共 `QRBuilder` 构造器（`new`/`from_string` + mode/ecl/version/mask 不可变链式 setter + `build` 委托 `QRCode::build`，对齐 `lib.rs:75-80`）+ S6-1 快照收口（三模式×4ECL 矩阵级 + V01/V14/V26/V32/V40-H 满容量 + 自动 mask 路径，约 20 条参考全矩阵逐位对齐 0 差异），验证 S1-S5 完整管线与 fast_qr 逐字节一致（测试 85→94 净 +9），双后端全绿；⚠️ 评审后已更正计数与原「全 None」表述 |
-| [S6-实现评审与优化-记录.md](./docs/S6-实现评审与优化-记录.md) | **S6 复核记录**：确认交付范围内（ASCII 字节）无正确性 BUG、QRBuilder 单一委托与生成器介质一致；发现 3 处文档/PR 与代码失实——「全参数 None 纯自动 ×3 对参考逐位」实为参数冻结（仅 mask 自动，全 None 分支缺参考端到端快照）、测试计数实为 85→94（+9）而非 91→94、auto 路径 meta 断言承诺未落地；列 from_string 非 ASCII 字节语义与 V40 单行 hex 两条优化建议 |
-| [S7-输出层to_str与SVG-实现方案.md](./docs/S7-输出层to_str与SVG-实现方案.md) | **S7 详细方案**：输出层——终端画 `to_str`/`print`（对齐 `helpers.rs`，补 M1「CLI 输出」欠账）+ 公共 `SvgBuilder`/`Shape` SVG 字符串输出（对齐 `convert/svg.rs` 纯字符串子集，无 resvg/无 file IO），含 D8/D9 决策、四态映射/边距/形状 path 语义核对清单、参考全串快照验收策略 |
-| [S7-输出层to_str与SVG-实现评估与优化-记录.md](./docs/S7-输出层to_str与SVG-实现评估与优化-记录.md) | **S7 方案评估记录**：独立检出 fast_qr v0.14.0 参考源码逐行复核 S7 方案，方向正确无致命漏洞；补 4 处精确核对点（circle 形状特例 / `<svg>` 的 `xmlns` 与单行无分隔 / 多 shape → 多 `<path>` / 坐标已含 margin）+ Shape↔字符串映射等优化建议 |
-| [S8-内部结构归位与分层-实现方案.md](./docs/S8-内部结构归位与分层-实现方案.md) | **S8 详细方案**：拆包判据（框架 §三.2）核对后判定 roadmap 原义「拆 internal」已被 S1-S5 达成、internal 无再拆信号；真命中项为 lib 公共层失效入口 `fast_qr_moonbit.mbt`（仍自称骨架）+ `qr.mbt`（401 行）职责混杂；方案 = 公共层文件级职责归位（qr.mbt→qr_build/qr_builder/qr_output，不改 `.mbti`/不加包/无逻辑改动）+ 入口刷新，回归 109 全绿即验收 |
-| [S9-性能基准-实现方案.md](./docs/S9-性能基准-实现方案.md) | **S9 详细方案**：性能三基准点移植（roadmap §4.2 S9 / 收敛 M3）——本仓库 MoonBit `Int` 32 位、`KEEP_LAST` 取 Rust wasm32 分支（33 项、全后端生效），是 wasm 形态移植；故「透明对比」三层分层：① wasm-gc/wasm 跨后端选型、② **MoonBit-wasm vs fast_qr-wasm32**（同执行模型、不依赖 C 工具链、当前环境可落地，主口径：逐位对齐+计时双验证）、③ native vs fast_qr native（可选量级注记，需 C 工具链）；参考 82.2/269.3/2436.2 us 标注「64 位 native」；定方案 = 新增 `cmd/bench` + `scripts/bench.sh` 宿主计时（D14/D15，口径同时喂层①②），三基准点 `QRBuilder::from_string(input).ecl(H).version(V03/V10/V40).build()`，只测基线、不并入 S5 O1 主循环重构（单列 P2）；回归 109 全绿 + 快照零差异即安全 |
-| [S9-性能基准-实现评估与优化-记录.md](./docs/S9-性能基准-实现评估与优化-记录.md) | **S9 方案评估记录**：独立重读实码 + roadmap 复核 S9 方案，方向正确无致命漏洞；更正输入 `https://example.com/` 实为 **20 字节**（非 19，V03H 最小适配结论不变）、bench 循环须消费 build 结果防空循环（死代码消除）、补「KEEP_LAST 33 vs 65 对真实 QR 语义无差别」论证——把层②逐位对齐重新定位为对既有 S1-S7 快照对齐的跨宿主重确认（增量价值在计时可比性）；供 S9 实现直接执行前兜底 |
-| [S9-性能基准-实现记录.md](./docs/S9-性能基准-实现记录.md) | **S9 实现记录**：落地基准载体 `cmd/bench`（三基准点 V03H/V10H/V40H，输入 `https://example.com/`=20 字节、ECL=H、强制版本、mask 自动择优，循环累加消费 build 结果防死代码消除）+ `scripts/bench.sh`（宿主多次取最小计时，主口径在宿主，预留层② `FAST_QR_WASM` 入口）；跑出层①跨后端数字——wasm-gc 全程更快（约 1.2–1.4×，V03H 0.695/0.854s、V10H 0.451/0.621s、V40H 0.369/0.484s @ N=2000/400/40），两后端各点 TOTAL_CHECKSUM 一致 → 同源码跨后端结果互证成立；层②对 fast_qr-wasm32 / 层③ native 需外部环境，预留驱动入口；回归 109 全绿 + lib `.mbti` 零漂移 |
-| [S9b-性能优化-评估与路线.md](./docs/S9b-性能优化-评估与路线.md) | **S9 后续优化评估路线**：对 S9 之后的性能优化做逐热点评估（纯文档）——进程级差分实测建成本模型（V40H auto 7.99ms vs fixed 1.13ms，8 轮择优开销 ≈6.86ms、占 auto **≈86%**，随版本超线性放大）；定位头号靶点 `create_auto_qr` 8 轮择优主循环（S5 O1），给分优先级路线——P1 O1-a 就地翻转免每轮全量 copy / O1-b 复用最优轮矩阵省末尾一次 copy；P2 O2 score 融合减趟 / O3 wrap_packed 按 size*size 分配；含测量坑（argv 探针被编译器折叠须编译期常量+消费结果）与统一验收口径（快照零差异 + 109 测试 + 双后端 checksum）；未越界做性能改写 |
-| [S9b-性能优化-再评估与实施建议.md](./docs/S9b-性能优化-再评估与实施建议.md) | **S9 优化再评估（承接层② fast_qr-wasm 实测，纯文档未改代码）**：用层②边际/每模块成本（V40H 边际 moon 9.01ms vs fast 3.18ms、每模块 0.29–0.36µs vs 0.07–0.10µs）+ 逐热点实码核对，把差距归因为「算法层冗余（可消，9 次整矩阵 copy + 8 轮 ~4 趟扫描 ≈32 趟 + 每格 mask match）」与「表示/实现层系数（难消：Array[Int] 4B vs Module(u8) 1B）」两层；给分优先实施批（T1 O1-a 免 8 copy → T2 O1-b → T3 减趟/T4 mask 特化 → T5 容器/T6 宽度实验）与组合预期量级（V40H 9.01 → ≈4–6.5ms）、验收复用快照 diff + 109 测试 + checksum + bench-layer2 同一把尺子；明确不承诺拉平到 fast 系数 |
-| [S9b-性能优化-O1实施记录.md](./docs/S9b-性能优化-O1实施记录.md) | **S9 优化首批实施记录（T2 落地 / T1 实测否决）**：落地 **T2（O1-b）**——自动择优复用最优轮掩码矩阵、真实 Format 直接覆写其上，省第 9 次整矩阵 copy（V40 ≈125KB）；语义逐位不变（109 测试 + S6 快照 + 层② sha256 三矩阵逐字一致 + 双后端 checksum）；实测 V40H marginal 9.0074→8.8742ms（≈−1.5%）。**T1（O1-a 就地翻转）实测否决**：V40H marginal 反而 +~8%（409 vs 384ms）——copy 非大头、score 多趟扫描才是，O1-a 用真实扫描换 memcpy 净亏，已回退；结论：主攻方向应转 **T3（O2 score 减趟）**，保留 O1-a 开放不按原形落地 |
-| [S9c-性能测试与fast_qr-wasm对比-实现方案.md](./docs/S9c-性能测试与fast_qr-wasm对比-实现方案.md) | **S9c 详细方案（层②，收口 M3）**：把 S9 预留的「与 fast_qr wasm 对比」落成 **Node.js 调用 wasm** 的可复跑性能测试代码——fast_qr v0.14.0 检出 patch `wasm.rs` 加 `qr_with(content,ecl,version)` 导出 + `wasm-bindgen --target nodejs` 产物（Node 直调返回矩阵；env = stable + wasm32 target + 预编译 cli 0.2.100 + 系统 gcc）；MoonBit `cmd/bench --target wasm` 产物由同一 Node 脚本经 `moonrun` 子进程驱动（`_start` 同进程 spike 否决）；补 `cmd/bench --dump` 值全集规范矩阵（现校验和含模块类型位、与 fast_qr wasm 0/1 值不可跨库互比，D19），默认行为不变；层②对齐为 S1-S7 快照对齐的跨宿主重确认（预期零差异） |
-| [S9c-性能测试与fast_qr-wasm对比-实现记录.md](./docs/S9c-性能测试与fast_qr-wasm对比-实现记录.md) | **S9c 实现记录（层②落地，M3 ✅）**：新增 `cmd/bench --dump`（默认输出逐字不变：82000/32400/9200）+ 4 个 scripts（setup-fast-qr-wasm-env / build-fast-qr-wasm / bench-layer2 / wasm-compare）；fast_qr v0.14.0 `qr_with` → wasm-bindgen nodejs 产物（Node 进程内直调）vs MoonBit `cmd/bench --target wasm`（moonrun 子进程，Node 统一计时）；实测三基准点**逐位对齐零差异**（sha256 一致）+ 计时：MoonBit 646.70/493.60/386.43ms vs fast_qr-wasm32 124.07/132.38/126.15ms（@N=2000/400/40，R=3）→ fast_qr 快约 3.1–5.2×；踩坑：wasm-bindgen 宿主宏需系统 gcc、Node 内 `_start` spike 否决；回归 109 全绿，**roadmap M3 收口** |
-| [S9c-性能测试与fast_qr-wasm对比-详细分析.md](./docs/S9c-性能测试与fast_qr-wasm对比-详细分析.md) | **S9c 复测与详细分析（跑测+文档，未改代码）**：R=3/5/7 复测确认三基准点逐位对齐 sha256 恒定零差异、计时相对漂移 ≤3%（多数点 <2%，可复现）；N 扫描把整程时间拆成 **T = 固定启动 + N×边际成本**（LSQ R²≈1）——MoonBit 侧 moonrun 子进程固定开销 23–34ms/run、fast_qr 侧≈0（Node 进程内）；**边际单次 build**：MoonBit wasm 0.304/1.162/9.01ms vs fast_qr-wasm32 0.061/0.335/3.18ms（V03H/V10H/V40H）→ fast_qr 快约 2.8–5.0×（整程口径 3.1–5.2×）；每模块成本 MoonBit 0.29–0.36µs vs fast_qr 0.07–0.10µs，差距随版本收窄（5.0→3.5→2.8×）；本表即 S9b P1/P2 优化落地前后同一把尺子；记录测量注记（勿并行扫多路） |
-| [S9d-与moonbit生态QR包性能对比-方案.md](./docs/S9d-与moonbit生态QR包性能对比-方案.md) | **S9d 详细方案（MoonBit 生态 3 包对比，纯文档未改代码）**：把 S9 对比视野从「跨语言 vs Rust fast_qr」扩到 **同语言 vs moonbit 生态 QR 包**（`bobzhang/qrc@0.1.1`、`naoto24kawa/moonqr@0.2.0`、`PaiGack/moonbitqrcode@0.1.0`）——三包实测 `moon add` 可装、wasm-gc/wasm 双后端可编译、API 足以承载「同输入同 ECL(H) 强制版本/自动 mask」基准；方案 = 仓库外独立对比模块 import 四方 → 单一 wasm，复用 `cmd/bench`「N 次 build 消费 + R 取最小 + moonrun/Node 计时」口径，产出 4 方边际/每模块成本表；仓库仅加 scripts（setup/build/bench），lib 零依赖零漂移；标注语义差异（moonbitqrcode lib 固定 mask0/仅自动版本、择优需走 src/coding，落地核） |
-| [S9d-与moonbit生态QR包性能对比-实现记录.md](./docs/S9d-与moonbit生态QR包性能对比-实现记录.md) | **S9d 首跑实现记录（跑测+文档，未改 lib）**：落地三包 `moon add` 引入仓库外对比模块，同一 `moonrun` 宿主 R=5 取最小实测——**同尺寸同语义（强制 V03/V10/V40+H+自动择优）可比子集 = 本仓库 vs moonqr**：本仓库 **2.5–4.1× 更快**（V40H 9.46 vs 38.29ms/单次、V03H 0.318 vs 0.805ms）；**qrc/moonbitqrcode 暂无法同口径对齐**（实测核实：qrc 强制版本 API 无 mask/Format、自动 H 落到 V2(25)<理论 V3、README 自述无 format/mask；moonbitqrcode lib 仅 L/M/Q 且固定 mask0、H 外部不可构造）→ 仅作参考口径；给出生态包可比性硬约束表 + 与 S9c 层② 同尺子衔接 |
-| [S9d-与moonbit生态QR包性能对比-详细分析.md](./docs/S9d-与moonbit生态QR包性能对比-详细分析.md) | **S9d 全库详细分析（4 方逐点对照 + 容量/语义核验，跑测+文档未改 lib）**：全库总表（含自动最小版本尺寸：本仓库/moonqr 自动 H→V3 ✅、qrc 自动 H→V2 ⚠️ 疑似容量单位 bug——bytes vs bits 混比、moonbitqrcode 自动 Q→V2 ✅ 恰容 20B）；可比子集排名 = 本仓库快 moonqr 2.5–4.1×；逐库归因：moonqr 为唯一可对齐对手（完整择优，每模块 0.94–1.32µs）、qrc 强制路径无择优/Format 故 0.166ms 低值不代表完整成本、moonbitqrcode 固定 mask0 + 无 H 是最小版下限（0.074µs/模块）不能与择优方排名 |
-| [S9d-moonbitqrcode快速原因与产物对比-分析.md](./docs/S9d-moonbitqrcode快速原因与产物对比-分析.md) | **S9d 专项：moonbitqrcode 为何快 + 各库产物对比（源码归因，跑测+文档）**：源码级归因——lib 固定 `Mask::of_int(0)` 不跑 8 轮择优 + 只做自动最小版本（20B@Q→V2/625 格），择优是其他库自动路径主要成本（S9b：V40H ≈86%）→ 免择优即快；产物交叉对比（矩阵→RGBA→moonqr decode 读回）：本仓库 V03H / moonqr auto-H（V3,29）/ moonbitqrcode auto-Q（V2,25）**均可解码读回输入**，qrc auto-H（V2<最小 V3，容量单位 bug）与 qrc forced V3H（缺 Format/mask）**均解码失败** → 结论：moonbitqrcode 快≠算法更优（产物可用但 mask 非最优），qrc 0.1.1 暂不产出可用完整 QR |
-| [S9d-moonbitqrcode固定mask0缺陷与主流对比.md](./docs/S9d-moonbitqrcode固定mask0缺陷与主流对比.md) | **S9d 专项：固定 mask0 缺陷 + 为何主流不这么做（纯分析+文档）**：核实固定 mask0 是**忠实移植 rsc.io/qr 的未完成择优**（Go 源码 `NewPlan(v,l,0)` + `// TODO: Pick appropriate mask.`，README 自称 Basic encoder，测试却对照有择优的 C libqrencode）——非移植丢功能；缺陷 = 放弃 ISO/IEC 18004 N1–N4 8 掩码评分择优带来的**最坏情况解码鲁棒性**（低对比/畸变/小尺寸时更易扫失败；产物仍可解码，故与上篇「可读回」不矛盾）；主流（fast_qr/本仓库/moonqr/zxing/qrcodegen/libqrencode）默认都做择优，因为择优是「小成本大保险」的默认质量机制；本仓库沿用择优正确 |
-| [S7-输出层to_str与SVG-实现记录.md](./docs/S7-输出层to_str与SVG-实现记录.md) | **S7 落地记录**：`helpers.mbt` 终端画 `print_matrix_with_margin`（四态映射/边距两行合一/末行，对齐 `helpers.rs`）+ `QRCode::to_str`/`print`（委托）+ 公共 `Shape`/`SvgBuilder`/`to_str` SVG 纯字符串输出（6 形状 path 常量集中、rounded 描边特判、多 shape→多 `<path>`、坐标含 margin，对齐 `convert/{mod,svg}.rs` 子集），参考全串字节对齐快照 + CLI 真码输出（测试 94→109）；双后端全绿
-| [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | **实现布局（方案 3 库机制）**：`lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则（B1-B11 落地）、测试规划与注释骨架状态 |
+| [core-仓库布局参考与目标架构.md](./docs/core-仓库布局参考与目标架构.md) | 参考 `moonbitlang/core` 得出的目标包架构与分阶段落地路线 |
+| [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | `lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则、测试规划 |
+| [代码布局检查与整理.md](./docs/代码布局检查与整理.md) | 代码放置位置检查、MoonBit 文件/测试约定与整理记录 |
+| [moonbit-重写-roadmap-详细分析.md](./docs/moonbit-重写-roadmap-详细分析.md) | 重写路线图：架构要点、S1–S9 实现顺序、里程碑 M0–M3 与验证基座 |
+
+实现系列（方案 → 记录 → 评审，按 S1–S9 顺序）：
+
+<details>
+<summary><b>S1–S9 实现系列文档（点击展开）</b></summary>
+
+| 阶段 | 文档 | 说明 |
+|------|------|------|
+| **S1 数据结构** | [实现方案](./docs/S1-数据结构-实现方案.md) · [实现记录](./docs/S1-数据结构-实现记录.md) · [评审与优化](./docs/S1-实现评审与优化-记录.md) | ECL/Version/Mode/Mask/Module/QRCode/CompactQR 骨架与实现 |
+| **S2 常量表与 GF256** | [实现方案](./docs/S2-常量表与GF256-实现方案.md) · [评估与源码核对](./docs/S2-实现评估与源码核对-记录.md) · [实现记录](./docs/S2-实现记录.md) · [评审与优化](./docs/S2-实现评审与优化-记录.md) | 容量表 + 分组/格式/生成多项式表 + GF(256) division/structure |
+| **S3 数据编码** | [实现方案](./docs/S3-数据编码-实现方案.md) · [实现记录](./docs/S3-数据编码-实现记录.md) · [评审与优化](./docs/S3-实现评审与优化-记录.md) | 三模式编码 + best_encoding 自动回退 + terminator/8 位对齐 |
+| **S4 矩阵与放置** | [实现方案](./docs/S4-矩阵与放置-实现方案.md) · [实现记录](./docs/S4-矩阵与放置-实现记录.md) | 功能图案绘制 + 之字形放置 + 8 掩码，M1 固定参数首码 |
+| **S5 掩码评分与择优** | [实现方案](./docs/S5-掩码评分与择优-实现方案.md) · [实现记录](./docs/S5-掩码评分与择优-实现记录.md) · [评审与优化](./docs/S5-实现评审与优化-记录.md) | N1–N4 评分 + 8 轮择优主循环 |
+| **S6 端到端对齐与公共 API** | [实现方案](./docs/S6-端到端对齐与公共API-实现方案.md) · [实现记录](./docs/S6-端到端对齐与公共API-实现记录.md) · [评审与优化](./docs/S6-实现评审与优化-记录.md) | 60 快照逐位对齐 + 公共 `QRBuilder`，收敛 M2 |
+| **S7 输出层** | [实现方案](./docs/S7-输出层to_str与SVG-实现方案.md) · [评估与优化](./docs/S7-输出层to_str与SVG-实现评估与优化-记录.md) · [实现记录](./docs/S7-输出层to_str与SVG-实现记录.md) | 终端 `to_str`/`print` + 公共 `Shape`/`SvgBuilder` SVG |
+| **S8 内部结构归位** | [实现方案](./docs/S8-内部结构归位与分层-实现方案.md) | 公共层文件级职责归位（qr.mbt → qr_build/qr_builder/qr_output） |
+| **S9 性能基准** | [实现方案](./docs/S9-性能基准-实现方案.md) · [评估与优化](./docs/S9-性能基准-实现评估与优化-记录.md) · [实现记录](./docs/S9-性能基准-实现记录.md) | `cmd/bench` 三基准点 + 宿主计时，跨后端/生态对比，收敛 M3 |
+| **S9b 性能优化** | [评估与路线](./docs/S9b-性能优化-评估与路线.md) · [再评估与实施建议](./docs/S9b-性能优化-再评估与实施建议.md) · [O1 实施记录](./docs/S9b-性能优化-O1实施记录.md) | 择优主循环逐热点优化评估与首批落地 |
+| **S9c 层② fast_qr-wasm 对比** | [实现方案](./docs/S9c-性能测试与fast_qr-wasm对比-实现方案.md) · [实现记录](./docs/S9c-性能测试与fast_qr-wasm对比-实现记录.md) · [详细分析](./docs/S9c-性能测试与fast_qr-wasm对比-详细分析.md) | Node 调用 wasm 逐位对齐 + 同口径计时（收口 M3） |
+| **S9d moonbit 生态对比** | [方案](./docs/S9d-与moonbit生态QR包性能对比-方案.md) · [实现记录](./docs/S9d-与moonbit生态QR包性能对比-实现记录.md) · [详细分析](./docs/S9d-与moonbit生态QR包性能对比-详细分析.md) · [moonbitqrcode 快速原因分析](./docs/S9d-moonbitqrcode快速原因与产物对比-分析.md) · [固定 mask0 缺陷与主流对比](./docs/S9d-moonbitqrcode固定mask0缺陷与主流对比.md) | 与 `qrc`/`moonqr`/`moonbitqrcode` 同语言对比 |
+
+</details>
 
 ### 移植参考：fast_qr（Rust v0.14.0）分析
 
-本仓库以 Rust 库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr) 为参考实现。
-以下文档是对该参考库源码的深度分析（分析时检出于环境 `/fast_qr`，不在本仓库内），
-作为移植输入与设计依据：
+本仓库以 Rust 库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr) 为参考实现，
+以下是对该参考库源码的深度分析（检出于环境 `/fast_qr`，不在本仓库内），作为移植输入与设计依据：
 
 | 文档 | 说明 |
 |------|------|
@@ -129,6 +250,11 @@ moon run   cmd/main --target wasm
 | [fast-qr-开发者指南.md](docs/移植参考/fast-qr-开发者指南.md) | 参考库环境、feature 矩阵、CI 与已知注意事项 |
 | [跨语言重写评估.md](docs/移植参考/专有概念/跨语言重写评估.md) | 重写价值判定、候选语言对比与机械翻译+黄金测试路线图 |
 
+> 完整语料另见 `docs/移植参考/` 下的 `模块/` 与 `专有概念/` 子目录（由 `fast-qr-索引.md` 统辖）。
+> 更多「基础框架/实现方案」等高层分析见 [项目基础框架-详细分析.md](./docs/项目基础框架-详细分析.md)。
+
+---
+
 ## 代码放置约定（方案 3：模块根无包，库包在 `lib/`）
 
 本仓库模块根只放元数据（对齐 `moonbitlang/core` 形态），按下列约定放置代码：
@@ -137,65 +263,78 @@ moon run   cmd/main --target wasm
 |-------------|---------|------|
 | 模块配置 | 根目录 `moon.mod` | 声明 `name` / `preferred_target` / `supported_targets`；**根目录不建包**（无 `moon.pkg`） |
 | 库包 | `lib/` + `lib/moon.pkg` | 库源码全部在 `lib/`；公共类型/入口在 `lib/` 根文件，实现子包在 `lib/internal/` |
-| 库入口 | `lib/fast_qr_moonbit.mbt` | 文件名沿用模块名便于识别（目录内可自由命名） |
+| 库入口 | `lib/fast_qr_moonbit.mbt` | 文件名沿用模块名便于识别 |
 | 黑盒测试 | `lib/<模块名>_test.mbt` | **包外**运行，只能访问 `pub` API；用 `@lib` 别名引用本包（别名 = 目录名 `lib`） |
 | 白盒测试 | `lib/<模块名>_wbtest.mbt` | **包内**运行，可直接访问私有实现 |
 | CLI 入口 | `cmd/main/` | `moon.pkg` 需写 `pkgtype(kind: "executable")` |
-| 跨包依赖 | 使用方的 `moon.pkg` | `import { "tryandrun/fast_qr_moonbit/lib" @lib }`；**声明后必须使用**，否则触发 `unused_package` 告警 |
+| 跨包依赖 | 使用方的 `moon.pkg` | `import { "tryandrun/fast_qr_moonbit/lib" @lib }`；声明后必须使用，否则触发 `unused_package` |
 
 > **不要建 `src/`**：MoonBit 无 `src/` 约定；本仓库用 `lib/` 承载库包、`lib/internal/`
 > 承载实现细节（与 core 的 feature 包 + internal 形态一致）。
-> 每个子包目录各带一个 `moon.pkg`；**包名由目录名决定且不可配置**，目录内 `.mbt` 的文件名则可自由命名。
-> 详见 [moonbit-项目目录设置-最佳实践.md](./docs/moonbit-项目目录设置-最佳实践.md)
-> 与 [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md)。
-> 弃用代码统一放各目录的 `deprecated.mbt`。
+> 包名由目录名决定且不可配置；目录内 `.mbt` 文件名则可自由命名。弃用代码放各目录的 `deprecated.mbt`。
+
+---
 
 ## 项目结构
 
 ```
+.
 ├── moon.mod                    # MoonBit 模块配置（模块根不建包）
 ├── lib/                        # 库包（公共 API，lib/moon.pkg）
-│   ├── fast_qr_moonbit.mbt     #   库入口 / 公共 API 总览（真实实现见下列各文件）
-│   ├── ecl/version/mode/mask.mbt  # 公共枚举（ECL/Version/Mode/Mask，.mbti 对外契约）
-│   ├── module.mbt              #   公共 Module / ModuleType（呈现层，位打包语义）
-│   ├── qr.mbt                  #   QRCode 结果容器 + QRCodeError + 访问器（S8 拆后收敛）
-│   ├── qr_build.mbt             #   编排/构造：select_capacity + build_fixed/build（S8 拆出）
-│   ├── qr_builder.mbt           #   公共 QRBuilder 构造器（S8 拆出）
-│   ├── qr_output.mbt            #   QRCode 输出便捷 to_str/print（S8 拆出）
-│   ├── helpers.mbt / svg.mbt / shape.mbt  # 输出层：终端画 + SVG + Shape 枚举
-│   ├── fast_qr_moonbit_test.mbt  # 黑盒测试（包外，@lib）
-│   ├── fast_qr_moonbit_wbtest.mbt # 白盒测试（包内）
+│   ├── fast_qr_moonbit.mbt     #   库入口 / 公共 API 总览
+│   ├── ecl / version / mode / mask.mbt  # 公共枚举（ECL/Version/Mode/Mask）
+│   ├── module.mbt              #   公共 Module / ModuleType（单字节位打包）
+│   ├── qr.mbt                  #   QRCode 结果容器 + QRCodeError + 访问器
+│   ├── qr_build.mbt            #   编排/构造：select_capacity + build_fixed/build
+│   ├── qr_builder.mbt          #   公共 QRBuilder 构造器
+│   ├── qr_output.mbt           #   QRCode 输出便捷 to_str/print
+│   ├── helpers.mbt / svg.mbt / shape.mbt  # 输出层：终端画 + SVG + Shape
+│   ├── *_test.mbt / *_wbtest.mbt          # 黑盒测试 / 白盒测试
 │   └── internal/               #   实现子包（各带 moon.pkg；不反向依赖 lib）
-│       ├── constants/          #     常量表 hardcode + 容量/元数据表 capacity
-│       ├── bitstream/          #     位流缓冲 bitbuffer（CompactQR）
-│       ├── reedsolomon/        #     GF(256) 除法 division 与交织 structure
-│       ├── data_encoding/      #     三模式编码 encode + 自动回退
+│       ├── constants/          #     常量表 + 容量/元数据表
+│       ├── bitstream/          #     位流缓冲（CompactQR）
+│       ├── reedsolomon/        #     GF(256) 除法 + 交织
+│       ├── data_encoding/      #     三模式编码 + 自动回退
 │       └── matrix/             #     module/matrix/placement/datamasking/score
-│       # 职责与 roadmap 批次（B1-B11）见 docs/moonbit-实现布局与文件职责.md
-├── cmd/main/                   # CLI 可执行入口（import { ".../lib" @lib }）
-│   ├── main.mbt
-│   └── moon.pkg
-├── cmd/bench/                  # 性能三基准点基准可执行包（S9 层① / 层② dump 导出，见 docs/S9-…/S9c-…）
-│   ├── main.mbt                #   V03H/V10H/V40H 循环 build + checksum；--dump <点> 导出值全集矩阵
-│   └── moon.pkg
-├── docs/                       # 项目文档（工程/布局 + 移植参考/fast_qr 语料）
+├── cmd/main/                   # CLI 可执行入口（演示终端画 + SVG）
+├── cmd/bench/                  # 性能三基准点基准（S9，含 --dump 值全集导出）
+├── docs/                       # 项目文档（见上文「文档索引」）
+├── scripts/                    # 构建与开发辅助脚本（见下节）
+├── .githooks/                  # 可选 Git 钩子（需自行启用）
+├── .cnb.yml                    # 云原生构建（CNB CI）配置
 ├── AGENTS.md                   # AI 协作代理指南（单一真实文件）
-├── scripts/                    # 构建与开发辅助脚本
-│   ├── setup-moonbit.sh        #   安装 MoonBit 工具链并校验（.cnb.yml 各阶段调用）
-│   ├── setup-rust.sh           #   安装 Rust 工具链（rsproxy 镜像，供 fast_qr 参考对比，可选）
-│   ├── fmt-check.sh            #   格式门禁（moon fmt --check）
-│   ├── check.sh                #   静态检查门禁（moon check --deny-warn）
-│   ├── test.sh                 #   单元测试
-│   ├── build-and-run.sh        #   多后端(wasm-gc/wasm)构建回归
-│   ├── bench.sh                #   层①宿主计时（wasm-gc/wasm 多次取最小，S9）
-│   ├── setup-fast-qr-wasm-env.sh # 层②环境：rust wasm32 target + wasm-bindgen-cli 0.2.100（幂等，S9c）
-│   ├── build-fast-qr-wasm.sh   #   层②构建：fast_qr v0.14.0 qr_with → nodejs wasm 包（S9c）
-│   ├── bench-layer2.sh         #   层②一键：Node.js 调用 wasm 对比（对齐 + 计时，S9c）
-│   ├── wasm-compare.mjs        #   层② Node 驱动：fast_qr 直调 + moonrun 子进程（S9c）
-│   └── snapshot_gen_s6.rs      #   参考快照生成辅助（Rust，S6 用，不入构建）
-├── .githooks/                  # 可选 Git 钩子（需自行启用，见其 README）
-├── .cnb.yml                    # 云原生构建配置
-├── .codebuddy/                 # CodeBuddy 自定义命令
-├── README.md                   # 本文件（项目说明；moon.mod 的 readme）
+├── README.md                   # 本文件（moon.mod 的 readme）
 └── LICENSE                     # Apache-2.0
 ```
+
+各文件职责的详细说明见 [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md)。
+
+---
+
+## 开发与 CI
+
+- **本地校验**：`scripts/` 提供可复用的分阶段脚本（安装工具链、fmt 门禁、静态检查、
+  单测、多后端构建回归、性能基准），均由 `.cnb.yml` 在 CI（push）中按序调用。
+- **代码门禁**：`moon fmt --check` + `moon check --deny-warn` + `moon test` + 双后端
+  `wasm-gc`/`wasm` release 回归（`js` 已移除，不加 `native` 阶段——需系统 C 编译器）。
+- **性能基准**：`bash scripts/bench.sh`（层①跨后端）；层② fast_qr-wasm 对比见
+  [S9c 实现记录](./docs/S9c-性能测试与fast_qr-wasm对比-实现记录.md)。
+- **Git 钩子（可选）**：`git config core.hooksPath .githooks`（个人本地配置，仓库不代设）。
+- **编码 / 提交规范**：见 [AGENTS.md](./AGENTS.md)（密钥安全、MoonBit 布局、文档死链零容忍等硬性约定）。
+
+常用脚本一览：
+
+| 脚本 | 作用 |
+|------|------|
+| `setup-moonbit.sh` | 安装 MoonBit 工具链并校验 |
+| `fmt-check.sh` / `check.sh` / `test.sh` | 格式门禁 / 静态检查门禁 / 单元测试 |
+| `build-and-run.sh` | 双后端（wasm-gc/wasm）构建 + 运行 + 测试回归 |
+| `bench.sh` | S9 层① 宿主计时（多次取最小） |
+| `bench-layer2.sh` | S9c 层② Node 调用 wasm 与 fast_qr 对比 |
+| `setup-rust.sh` | 安装 Rust 工具链（rsproxy 镜像，供 fast_qr 参考对比，可选） |
+
+---
+
+## License
+
+[Apache-2.0](./LICENSE)
