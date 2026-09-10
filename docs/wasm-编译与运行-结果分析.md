@@ -134,6 +134,13 @@ Total tests: 1, passed: 1, failed: 0.
 | `wasm-gc` | 804 B | 440 B |
 | `js` | 293 B | — |
 
+> ⚠️ **本表是「骨架阶段」数字**（库仅文档注释、CLI 仅一行 `println`），不代表当前产物。
+> **当前完整实现的产物体积**见
+> [S9g 本项目 wasm 产物体积-确认与修正](./S9g-本项目wasm产物体积-确认与修正.md)：
+> `cmd/bench` `wasm-gc` raw **47912 B** / `-Oz` **36296 B**（`wasm` 侧 81666 / 53745 B）；
+> `cmd/main` `wasm-gc` raw **44308 B** / `-Oz` **33709 B**。
+> 可用 `bash scripts/bench-size.sh` 一条命令复跑。
+
 ### 5.2 计算性能微基准
 
 当前骨架只有一行 `println`，无法反映 QR 负载特征。因此在 `/tmp/bench`
