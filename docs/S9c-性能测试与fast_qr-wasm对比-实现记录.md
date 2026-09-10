@@ -5,6 +5,12 @@
 > fast_qr v0.14.0 `qr_with` wasm-bindgen nodejs 产物（Node 进程内直调）+ MoonBit `cmd/bench --target wasm`
 > 产物（`moonrun` 子进程，Node 统一采集/计时），三基准点**逐位对齐零差异 + 计时数字**，**收口 roadmap M3**。
 > 日期：2026-09-06　｜　前置：S9c 方案已合入 main（测试 109 基线，工作区干净）。
+>
+> **⚠️ 后续修订（S9e，issue #50）**：本记录 §3 计时口径为「fast_qr 侧 Node 进程内直调 + MoonBit 侧
+> `moonrun` **子进程**整程」——两侧**不同宿主形态**，MoonBit 侧被多计进程启动（实测 12–20%）。S9e 已把
+> 两侧统一为**同一 Node 进程内**调用并重测，见
+> [S9e-性能测试统一Node调用-实现记录.md](./S9e-性能测试统一Node调用-实现记录.md)。本记录的对齐结论
+> （sha256 零差异、D17/D19 协议）**依然有效**，仅计时口径以 S9e 为准。
 
 ---
 

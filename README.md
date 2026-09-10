@@ -186,14 +186,19 @@ moon run   cmd/main --target wasm
 **① 层① 跨后端（同源码互证）**：`wasm-gc` 全程比 `wasm` 快约 **1.2–1.4×**，两后端
 `TOTAL_CHECKSUM` 完全一致。见 [S9 实现记录](./docs/S9-性能基准-实现记录.md)。
 
-**② 层② vs Rust 参考 fast_qr-wasm32**（Node 进程内直调 vs moonrun 子进程；下表为**剔启动的边际
-单次 build**，逐位对齐 sha256 零差异，见 [S9c 详细分析](./docs/S9c-性能测试与fast_qr-wasm对比-详细分析.md)）：
+**② 层② vs Rust 参考 fast_qr-wasm32**：自 **S9e 起两侧统一为「同一 Node 进程内」调用**（此前
+fast_qr 进程内 / MoonBit `moonrun` 子进程，MoonBit 侧被多计 12–20% 进程启动）。
+下表为**单次 build**，逐位对齐 sha256 零差异（见 [S9e 实现记录](./docs/S9e-性能测试统一Node调用-实现记录.md)）：
 
-| 点 | 模块数 | 本仓库 MoonBit(wasm) 边际 | fast_qr-wasm32 边际 | fast/ours | 每模块成本 ours / fast |
-|----|------:|--------------------------:|--------------------:|----------:|------------------------:|
-| V03H | 841 | 0.304 ms | 0.061 ms | 0.20×（慢≈5×） | 0.362 / 0.073 µs |
-| V10H | 3249 | 1.162 ms | 0.335 ms | 0.29×（慢≈3.5×） | 0.358 / 0.103 µs |
-| V40H | 31329 | 9.007 ms | 3.185 ms | 0.35×（慢≈2.8×） | 0.287 / 0.102 µs |
+| 点 | 模块数 | 本仓库 MoonBit(wasm) 单次(B 纯边际) | fast_qr-wasm32 单次 | fast/ours | 每模块成本 ours / fast |
+|----|------:|-----------------------------------:|--------------------:|----------:|------------------------:|
+| V03H | 841 | 0.314 ms | 0.085 ms | 0.27×（慢≈3.7×） | 0.374 / 0.101 µs |
+| V10H | 3249 | 1.257 ms | 0.401 ms | 0.32×（慢≈3.1×） | 0.387 / 0.123 µs |
+| V40H | 31329 | 9.66 ms | 3.554 ms | 0.37×（慢≈2.7×） | 0.308 / 0.113 µs |
+
+> 两口径并列（S9e §4）：**A** 每次都新建 wasm Instance（与 fast_qr「一次调用」严格同形、含 Node 托管
+> 固定项 ≈83µs/次）fast/ours = 0.18/0.27/0.33×；**B** 单实例摊薄（纯算法边际）如上表。
+> 旧 S9c 口径（MoonBit 侧含子进程启动）为 0.20/0.29/0.35× —— 量级结论一致，S9e 只是把尺子统一干净。
 
 **③ 同语言 vs moonbit 生态**（moonrun 同宿主、整程最小/N；见 [S9d 详细分析](./docs/S9d-与moonbit生态QR包性能对比-详细分析.md)）：
 同尺寸、同语义（强制 V + ECL H + **自动择优** + 完整 Format/版本）可比子集 = 本仓库 vs `moonqr`，
@@ -203,7 +208,7 @@ moon run   cmd/main --target wasm
   且只自动小版本（0.046ms = 跳过择优的**下限**，不代表完整质量）；`qrc` 自动版本疑似容量单位 bug、
   强制路径无 mask/Format（低值不代表完整 QR 成本）。
 
-> **评估结论**：① 相对 Rust 参考 fast_qr 的 ~2.8–5.0× 差距集中在「8 轮择优主循环」且可优化收窄；
+> **评估结论**：① 相对 Rust 参考 fast_qr 的 ~2.7–3.7×（S9e 统一口径）差距集中在「8 轮择优主循环」且可优化收窄；
 > ② 相对 moonbit 生态完整实现（moonqr）本仓库**不落后且领先 2.5–4.1×**，完整「自动择优 + 可强制 ECL +
 > 多版本」实现尚少、本库有生态价值；③ 数字仅作选型/迭代基线，不对齐追平 fast_qr 作硬承诺。
 
@@ -276,6 +281,7 @@ moon run   cmd/main --target wasm
 | **S9b 性能优化** | [评估与路线](./docs/S9b-性能优化-评估与路线.md) · [再评估与实施建议](./docs/S9b-性能优化-再评估与实施建议.md) · [O1 实施记录](./docs/S9b-性能优化-O1实施记录.md) | 择优主循环逐热点优化评估与首批落地 |
 | **S9c 层② fast_qr-wasm 对比** | [实现方案](./docs/S9c-性能测试与fast_qr-wasm对比-实现方案.md) · [实现记录](./docs/S9c-性能测试与fast_qr-wasm对比-实现记录.md) · [详细分析](./docs/S9c-性能测试与fast_qr-wasm对比-详细分析.md) | Node 调用 wasm 逐位对齐 + 同口径计时（收口 M3） |
 | **S9d moonbit 生态对比** | [方案](./docs/S9d-与moonbit生态QR包性能对比-方案.md) · [实现记录](./docs/S9d-与moonbit生态QR包性能对比-实现记录.md) · [详细分析](./docs/S9d-与moonbit生态QR包性能对比-详细分析.md) · [moonbitqrcode 快速原因分析](./docs/S9d-moonbitqrcode快速原因与产物对比-分析.md) · [固定 mask0 缺陷与主流对比](./docs/S9d-moonbitqrcode固定mask0缺陷与主流对比.md) | 与 `qrc`/`moonqr`/`moonbitqrcode` 同语言对比 |
+| **S9e 统一 Node 调用** | [实现方案](./docs/S9e-性能测试统一Node调用-实现方案.md) · [实现记录](./docs/S9e-性能测试统一Node调用-实现记录.md) | 两侧统一 Node 进程内调用 MoonBit/fast_qr wasm，重测并分析（issue #50） |
 
 </details>
 
@@ -360,7 +366,8 @@ moon run   cmd/main --target wasm
 - **代码门禁**：`moon fmt --check` + `moon check --deny-warn` + `moon test` + 双后端
   `wasm-gc`/`wasm` release 回归（`js` 已移除，不加 `native` 阶段——需系统 C 编译器）。
 - **性能基准**：`bash scripts/bench.sh`（层①跨后端）；层② fast_qr-wasm 对比见
-  [S9c 实现记录](./docs/S9c-性能测试与fast_qr-wasm对比-实现记录.md)。
+  `bash scripts/bench-layer2.sh`（**S9e 起两侧统一 Node 进程内调用**，见
+  [S9e 实现记录](./docs/S9e-性能测试统一Node调用-实现记录.md)）。
 - **Git 钩子（可选）**：`git config core.hooksPath .githooks`（个人本地配置，仓库不代设）。
 - **编码 / 提交规范**：见 [AGENTS.md](./AGENTS.md)（密钥安全、MoonBit 布局、文档死链零容忍等硬性约定）。
 
@@ -372,7 +379,11 @@ moon run   cmd/main --target wasm
 | `fmt-check.sh` / `check.sh` / `test.sh` | 格式门禁 / 静态检查门禁 / 单元测试 |
 | `build-and-run.sh` | 双后端（wasm-gc/wasm）构建 + 运行 + 测试回归 |
 | `bench.sh` | S9 层① 宿主计时（多次取最小） |
-| `bench-layer2.sh` | S9c 层② Node 调用 wasm 与 fast_qr 对比 |
+| `bench-layer2.sh` | 层② Node（S9e：**同一进程内**）调用 wasm 与 fast_qr 对比 |
+| `moonbit-wasm-runner.mjs` | Node 进程内托管 MoonBit WASI 产物的运行器（S9e 统一宿主） |
+| `wasm-compare.mjs` | 层② 对比驱动：逐位对齐 + A/B 双口径计时（S9e 统一 Node 调用） |
+| `build-fast-qr-wasm.sh` | 构建 fast_qr v0.14.0 `qr_with` nodejs 产物（外部检出，不入库） |
+| `setup-fast-qr-wasm-env.sh` | 层②环境：rust wasm32 target + gcc + 预编译 wasm-bindgen-cli（幂等） |
 | `setup-rust.sh` | 安装 Rust 工具链（rsproxy 镜像，供 fast_qr 参考对比，可选） |
 
 ---
