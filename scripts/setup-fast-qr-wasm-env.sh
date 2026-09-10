@@ -8,7 +8,10 @@
 # 要点：
 #   - Rust 工具链走既有 scripts/setup-rust.sh（rsproxy stable + sparse 镜像，不入 push CI）。
 #   - wasm-bindgen CLI 版本钉 Cargo.lock 的 wasm-bindgen=0.2.100（ABI 匹配）；用官方 GitHub release
-#     预编译 x86_64-linux-musl 二进制，免 C 编译器 / 免 cargo install。
+#     预编译 x86_64-linux-musl 二进制，免 cargo install。
+#   - **但 wasm-bindgen 依赖的 host 构建脚本/过程宏（wasm-bindgen-shared、proc-macro2 等）仍需系统
+#     链接器 cc/gcc**（预编译 CLI 只省 CLI 本体）。缺 cc 时 cargo build 会报 `linker 'cc' not found`；
+#     Debian/Ubuntu 用 `apt-get install -y gcc` 即可。
 #   - 全程不接入 .cnb.yml push CI（同 setup-rust.sh：外部参考构建，拖慢 CI）。
 #
 # 用法: bash scripts/setup-fast-qr-wasm-env.sh
@@ -28,7 +31,18 @@ export PATH="$HOME/.cargo/bin:$PATH"
 # 2) wasm32-unknown-unknown 目标（幂等）
 rustup target add wasm32-unknown-unknown
 
-# 3) wasm-bindgen CLI（幂等，版本须 = Cargo.lock 的 wasm-bindgen）
+# 3) 系统 C 编译器（wasm-bindgen 宿主宏/构建脚本所需；缺则 cargo build 报 linker 'cc' not found）
+if ! command -v cc >/dev/null 2>&1 && ! command -v gcc >/dev/null 2>&1; then
+  echo ">>> cc/gcc missing; wasm-bindgen host build scripts need a C linker."
+  if command -v apt-get >/dev/null 2>&1; then
+    echo ">>> installing gcc via apt-get (may need root) ..."
+    apt-get update -qq && apt-get install -y -qq gcc
+  else
+    echo ">>> !! please install a C toolchain (gcc/cc) manually before building fast_qr-wasm."
+  fi
+fi
+
+# 4) wasm-bindgen CLI（幂等，版本须 = Cargo.lock 的 wasm-bindgen）
 if command -v wasm-bindgen >/dev/null 2>&1 &&
   [[ "$(wasm-bindgen --version 2>/dev/null || true)" == *"$WB_VERSION"* ]]; then
   echo ">>> wasm-bindgen $(wasm-bindgen --version) already on PATH."

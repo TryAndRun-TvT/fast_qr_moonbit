@@ -288,7 +288,16 @@ nodejs 包，写 `scripts/wasm-compare.mjs`（MoonBit 侧经 `moonrun` 子进程
 
 ---
 
-## 7. 参考
+## 7. 后续修订（S9e，issue #50）
+
+本方案 §3.3 D18 的 MoonBit 侧「`moonrun` 子进程」是当时的降级路径（`node:wasi` spike 未通过）。
+后续 issue #50 指出两侧**并非统一通过 Node 调用**，S9e 已用**裸 `WebAssembly.Instance` + 自写
+`__moonbit_fs_unstable` shim**（复刻 moonrun 的 `externref` opaque 句柄 argv 协议）实现
+**同一 Node 进程内**调用并重测，见 [S9e-性能测试统一Node调用-实现方案.md](./S9e-性能测试统一Node调用-实现方案.md)。
+
+---
+
+## 8. 参考
 
 - S9 系列：S9 [实现方案](./S9-性能基准-实现方案.md)（PR #42）、[评估记录](./S9-性能基准-实现评估与优化-记录.md)
   （PR #44，§2.4「KEEP_LAST 33 vs 65 无差别」）、[实现记录](./S9-性能基准-实现记录.md)（PR #45，§3/§4 预留层②）、
