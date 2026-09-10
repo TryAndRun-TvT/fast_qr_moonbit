@@ -8,18 +8,26 @@
 
 ---
 
-## 0. 一句话结论
+> ### ⚠️ 修订（2026-09-10，本次复审）
+> 本文初版的 ⑤ 同功能锚点行取到了**被 wasm-bindgen 污染**的裸探针（58632 B），
+> 由此得出的 **「0.92×（MoonBit 更小）」是错的**；同时本文**漏掉了本仓库默认后端 `wasm-gc`**
+> （`moon.mod: preferred_target = "wasm-gc"`），只量了 `wasm`(WASI) 侧。
+> 两处均已修正，并已在脚本层加**探针导入面自检**防止再次踩坑。
+> 修正后的完整结论另见 [S9g 本项目 wasm 产物体积-确认与修正](./S9g-本项目wasm产物体积-确认与修正.md)。
+
+## 0. 一句话结论（已按修正后数字更新）
 
 - **体积口径已统一**：新增 `scripts/wasm-size.mjs` + `scripts/bench-size.sh`，两侧按**同一套规则**出
   五档（raw / 剥 custom / `-Oz` / wasm+胶水 / 同功能锚点）+ **hello-only 基线分解**，
-  并带三侧**语义护栏**（改写后产物必须与原始产物逐字节同结果）。
-- **raw 直接相除不可比**：81666 vs 61514 B（1.33×）——Rust 侧多 8038 B 元数据、MoonBit 侧把运行时编在 code 段。
-- **同规则下体量同档**：
+  并带**四组语义护栏**（含新增的 `wasm-gc` 通道）。
+- **raw 直接相除不可比**：81666 vs 61510 B（1.33×）——Rust 侧多 8034 B 元数据、MoonBit 侧把运行时编在 code 段。
+- **同规则下（`wasm`/WASI 侧）**：
   - `-Oz`：**53745 vs 49956 B = 1.08×**
-  - 计入 fast_qr 宿主胶水（8217 B）：**58173 B → 0.92×**
-  - 同功能锚点（都无胶水、都自带运行时）：fast_qr 裸探针 **58632 B** vs MoonBit bench **53745 B = 0.92×**
+  - 计入 fast_qr 宿主胶水（8217 B）：**58173 B → 0.92×**（这一条口径正确、数字未变）
+  - 同功能锚点（都无胶水、都自带运行时）：fast_qr 裸探针 **45687 B** vs MoonBit bench **53745 B = 1.18×**
+    —— **修正**：初版写 58632 B / 0.92×，那是被 wasm-bindgen 污染的探针（见 §3.1 / §5③）。
 - **差距的来源被分解清楚**：hello-only 基线 MoonBit **2095 B** vs Rust **20052 B**（9.57×），
-  即**运行时地板差 ≈18 KB**；QR 业务净增 MoonBit +51.6 KB vs fast_qr +38.6 KB（同量级）。
+  即**运行时地板差 ≈18 KB**；QR 业务净增 MoonBit +51.6 KB vs fast_qr +25.6 KB（同量级）。
 
 ---
 
@@ -32,6 +40,7 @@
 | 3 | fast_qr 侧探针（外部检出副本，不入库） | `src/bin/s9f_size_probe.rs`（真实 QR 路径、无胶水）+ `src/bin/s9f_hello_probe.rs`（hello-only 地板） | 单文件零导入、`-Oz` 前后语义一致 | ✅ |
 | 4 | MoonBit 侧基线探针（临时模块，不入库） | `$FAST_QR_WASM_DIR/moonbit_hello_probe/`（一行 `println`） | 量出 MoonBit 运行时地板 | ✅ |
 | 5 | 重跑 | 本容器执行（`bash scripts/bench-size.sh`） | §3/§4 表 | ✅ |
+| 5b | **修订（本次）** | 补 `wasm-gc` 默认后端通道 + 探针导入面自检；修正 ⑤ 锚点与全文结论 | §0 修订注记 / §3.1b / §5⑦⑧ | ✅ |
 | 6 | 收尾回归 | fmt/check/test + 双后端 + 默认 checksum | §6 | ✅ |
 | 7 | 文档治理 | S9f 方案 + 本记录 + README/索引/脚本表回链 | 无死链 | ✅ |
 
@@ -99,10 +108,13 @@ bash scripts/bench-size.sh --no-build      # 产物就绪时只量测
 
 | 档位 | MoonBit bench (B) | fast_qr_bg (B) | ours / fast_qr |
 |------|------------------:|---------------:|---------------:|
-| ① raw 原始产物 | 81666 | 61514 | 1.33× |
+| ① raw 原始产物 | 81666 | 61510 | 1.33× |
 | ② 剥 custom 段 | 81544 | 53476 | 1.52× |
 | ③ `-Oz` | 53745 | 49956 | **1.08×** |
 | ④ `-Oz` + 宿主胶水 | 53745（无胶水） | 58173 | **0.92×** |
+
+> 上表为 **`wasm`(WASI) 兜底后端**口径。本仓库**默认分发形态是 `wasm-gc`**，
+> 其同规则对照见 §3.1b —— raw 47912 B / `-Oz` **36296 B**（对 fast_qr **0.73×**、含胶水 **0.62×**）。
 
 ### 3.1 同功能锚点（⑤，无胶水单文件）
 
@@ -110,22 +122,43 @@ bash scripts/bench-size.sh --no-build      # 产物就绪时只量测
 |------|--------:|----------:|------|
 | MoonBit `cmd/bench` bench.wasm | 81666 | **53745** | 三基准点 + `--dump` + checksum |
 | MoonBit `cmd/main` main.wasm | 75949 | 51043 | 演示 CLI（终端画 + SVG） |
-| fast_qr 裸探针 `s9f_size_probe` | 59444 | **45687** | 真实 QR 路径、无胶水、零导入 |
+| fast_qr 裸探针 `s9f_size_probe` | 59440 | **45687** | 真实 QR 路径、无胶水、零导入 |
 
-> ⚠️ 探针数字有**一条陷阱**：若在**启用 wasm-bindgen 的检出副本**里构建，Cargo 会把 wasm-bindgen 强制链进来
-> （探针体积涨到 74454 B / `-Oz` 58632 B，且带 `__wbindgen_*` 导入）。本仓库脚本先普通构建、再补一次
-> `--no-default-features` 构建，保证探针是**零导入单文件**（= 上表 45687 B 那行）。
-> 若某次跑出 58632 B，说明拿到了「被 wasm-bindgen 污染」的探针，需重跑 `bash scripts/bench-size.sh`。
+→ 锚点结论（`-Oz`）：fast_qr 45687 B vs MoonBit bench 53745 B = **1.18×**（MoonBit 略大）。
+
+> ⚠️ 探针数字的**陷阱**（初版就是踩在这里，得出了 0.92× 的错误结论）：
+> 若在**启用 `wasm-bindgen` feature 的检出副本**里构建，Cargo 会把 wasm-bindgen 强制链进**同 crate 的全部 target**
+> （含 `bin`），探针体积从 59440 B 涨到 **74454 B**、`-Oz` 从 45687 B 涨到 **58632 B**，且带 `__wbindgen_*` 导入。
+> **处置（已加固为硬失败）**：构建改用 `--no-default-features`，随后用 **Node 读取 `WebAssembly.Module.imports` 自检导入面必须为 0**，
+> 非 0 即脚本报错退出 —— 不再靠「人工看数字像不像」。
+>
+> ### 3.1b `wasm-gc`（默认后端）同规则对照 —— 本次补测
+>
+> | 档位 | MoonBit bench (wasm-gc) (B) | fast_qr_bg (B) | ours / fast_qr |
+> |------|----------------------------:|---------------:|---------------:|
+> | ① raw | **47912** | 61510 | 0.78× |
+> | ② 剥 custom | 47790 | 53476 | 0.89× |
+> | ③ `-Oz`（可运行档） | **36296** | 49956 | **0.73×** |
+> | ④ `-Oz` + 宿主胶水 | 36296（无胶水） | 58173 | **0.62×** |
+>
+> - 优化档用 `moon-wasm-opt --all-features --disable-custom-descriptors -Oz`：
+>   `--all-features` 会开 custom-descriptors(RTT)，其 `exact` heap type / nullref 常量在 **Node 24 与 moonrun 上都编译不过**；
+>   关掉它即得**可被真实宿主加载**的体积最小档（实测 moonrun 可运行且 `--dump` 逐字节一致）。
+> - 跨后端：`wasm-gc` 比 `wasm`(WASI) 小 **32.5%**（36296 vs 53745 B）。
+> - 另一档：`cmd/main`(wasm-gc) raw 44308 B / `-Oz` 33709 B。
 
 ### 3.2 基线分解（⑤b）
 
 | 侧 | hello-only（`-Oz`） | 真实 QR 命令（`-Oz`） | 业务净增 |
 |----|--------------------:|----------------------:|---------:|
-| MoonBit | **2095 B**（一行 `println`） | 53745 B（`cmd/bench`） | **+51650 B** |
+| MoonBit `wasm`(WASI) | **2095 B**（一行 `println`） | 53745 B（`cmd/bench`） | **+51650 B** |
+| MoonBit `wasm-gc`（默认） | **263 B**（一行 `println`） | 36296 B（`cmd/bench`） | **+36033 B** |
 | fast_qr | **20052 B**（一行 `println!`） | 45687 B（裸探针） | **+25635 B** |
 
-- **运行时地板**：MoonBit 2095 B vs Rust 20052 B → **9.57×**（Rust 自带 core/alloc/fmt/panic）。
-- **业务净增**：MoonBit +51.6 KB vs fast_qr +25.6 KB —— 同量级，MoonBit 略高（含三基准点 argv/`--dump`/checksum 路径）。
+- **运行时地板**：`wasm-gc` **263 B** ≈ Rust **20052 B** 的 **1/76**；`wasm`(WASI) **2095 B** ≈ Rust 的 **1/10**。
+  → 自带运行时地板不是 MoonBit 的负担，反而是它的**优势项**（Rust 自带 core/alloc/fmt/panic）。
+- **业务净增**：`wasm-gc` +36.0 KB / `wasm` +51.6 KB / fast_qr +25.6 KB —— 同量级；
+  MoonBit 略高，因其还带三基准点 argv/`--dump`/checksum 路径与更宽的公共面（`SvgBuilder`/`to_str`）。
 
 ---
 
@@ -133,16 +166,19 @@ bash scripts/bench-size.sh --no-build      # 产物就绪时只量测
 
 | 差异来源 | 量级 | 说明 |
 |----------|-----:|------|
-| 元数据（custom 段） | fast_qr 多 ≈7.9 KB | `name` 段是 wasm-bindgen 注入的符号名；MoonBit 几乎不带 |
+| 元数据（custom 段） | fast_qr 多 8034 B | `name` 段是 wasm-bindgen 注入的符号名；MoonBit 仅 122 B |
 | 宿主胶水 | fast_qr 多 8217 B | `fast_qr.js`；MoonBit 侧 argv 由宿主（moonrun / runner）提供，不计入产物 |
-| 运行时地板 | Rust 多 ≈18 KB | hello-only 基线：2095 vs 20052 B |
-| QR 业务代码 | 同量级 | 净增 +51.6 KB vs +25.6 KB（MoonBit 功能面更宽：`--dump`/checksum/argv） |
+| 运行时地板 | **Rust 多 ≈18 KB**（对 `wasm-gc` 多 ≈19.8 KB） | hello-only：`wasm-gc` 263 B / `wasm` 2095 B / Rust 20052 B |
+| QR 业务代码 | 同量级 | 净增 +36.0 KB（gc）/ +51.6 KB（wasi）vs +25.6 KB（fast_qr） |
 
-**结论**：
+**结论（修正后）**：
 
-1. 把包装拉平（剥 custom / 同一优化器 / 同形锚点）后，**两侧 wasm 体量同档**（0.92×–1.08×）；
-2. 「谁更小」高度依赖**怎么算**：raw 是 1.33×（MoonBit 大），带宽口径是 0.92×（MoonBit 小）；
-3. **该结论应写成「口径 + 区间」，而不是单一数字** —— 这正是 issue #50 要的「同一把尺子」。
+1. 把包装拉平（剥 custom / 同一优化器 / 同形锚点）后，**两侧 wasm 体量同档**（0.73×–1.18×，取决于口径）；
+2. 「谁更小」高度依赖**怎么算**：raw 是 1.33×（MoonBit 的 `wasm` 侧大）；
+   但**默认后端 `wasm-gc`** 在**所有口径下都更小**（raw 0.78×、`-Oz` 0.73×、含胶水 0.62×）；
+3. **该结论必须写成「后端 + 口径 + 数字」三元组**，而不是一个孤立比值 —— 这正是 issue #50 要的「同一把尺子」；
+4. **本次修正两处**：⑤ 锚点初版取了被污染的探针（→ 0.92× 实为 **1.18×**）；
+   且初版**整体漏掉默认后端 `wasm-gc`**（只用 `wasm`/WASI 侧代表本项目）。
 
 ---
 
@@ -156,6 +192,8 @@ bash scripts/bench-size.sh --no-build      # 产物就绪时只量测
 | ④ | fast_qr 胶水后产物无法 `WebAssembly.Instance` | `fast_qr_bg.wasm` 无 `_start`，且导入 `__wbindgen_*` | 语义护栏改走「JS 胶水 + `qr_with` 三矩阵哈希」；拷到临时目录换 wasm 文件、胶水不动 |
 | ⑤ | 体积对比里 MoonBit 侧取哪份产物 | `cmd/bench` 有 `wasm`/`wasm-gc` 两份 | 与层② 性能对比（S9e）**取同一份 `wasm` 产物**，保证「性能 + 体积」两条线可互为参照 |
 | ⑥ | `--no-build` 只跑量测时报错 | 探针缺失但仍要护栏 | 脚本在 `--no-build` 下**自动补编探针**（幂等），不要求重跑全流程 |
+| ⑦ | **⑤ 锚点初版结论反了**（写 0.92×，实为 1.18×） | `cargo build`（默认 features）已把 `wasm-bindgen` 链入探针，体积 58632 B 而非 45687 B | 加 `--no-default-features` + **导入面自检硬失败**（见 §3.1 注）；并回填本次修订 |
+| ⑧ | **整篇漏掉默认后端 `wasm-gc`** | 沿 S9e 性能口径取 `wasm`(WASI) 侧产物，未回到 `moon.mod` 的 `preferred_target` | 脚本新增 `--moon-gc-*` 通道与 ⑤-gc 段；`wasm-gc` 优化需 `--disable-custom-descriptors` 才可被宿主加载 |
 
 ---
 
@@ -185,11 +223,14 @@ lib 公共 `.mbti` 零漂移（仅 `scripts/` + `docs/` 改动）。
 
 1. **问题**：体积此前没有统一口径，raw 相除得到的是「包装差」而不是「体量差」。
 2. **统一**：`scripts/wasm-size.mjs` + `scripts/bench-size.sh` —— 五档同规则 + hello-only 基线分解 + 三侧语义护栏。
-3. **重测**：raw 1.33×、`-Oz` 1.08×、含胶水 0.92×、同功能锚点 0.92×；
+3. **重测**（`wasm`/WASI 侧）：raw 1.33×、`-Oz` 1.08×、含胶水 0.92×、同功能锚点 **1.18×**；
+   **`wasm-gc`（默认后端）**：raw 0.78×、`-Oz` **0.73×**、含胶水 **0.62×**；
    地板差 ≈18 KB（Rust 高）、业务净增同量级 → **总体量同档，差在运行时地板与宿主胶水选择**。
 4. **护栏**：不改 lib/快照/`cmd/bench` 默认行为；109 全绿；两侧探针都在外部检出副本、不入库。
 
-**后续（可选）**：若后续启用 `wasm-gc` 作为主分发形态，可补一版 `wasm-gc` 体积列（需先解决 Node 端加载）；
+**后续（本次已做）**：`wasm-gc` 体积列**已补齐**（§3.1b）—— 它不是「将来可选」，而是**当前默认分发形态**；
+脚本已支持 `--moon-gc-*` 通道，`moon-wasm-opt` 需 `--disable-custom-descriptors` 才能产出可被宿主加载的最优档。
+剩余可选：若宿主端补上 `exact heap type` 支持，可再量「开 custom-descriptors」的更小档。
 S9b 的性能优化落地后可同批复跑 `bench-layer2.sh` + `bench-size.sh`，观察「性能—体积」双边收窄。
 
 ---

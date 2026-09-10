@@ -25,6 +25,7 @@
 - [文档索引](#文档索引)
 - [性能测试脚本公开评审说明](./docs/性能测试脚本-公开评审说明.md)
 - [体积对比脚本公开评审说明](./docs/性能测试脚本-公开评审说明.md#7-产物体积对比s9f)
+- [本项目 wasm 产物体积（S9g）](./docs/S9g-本项目wasm产物体积-确认与修正.md)
 - [代码放置约定](#代码放置约定方案-3模块根无包库包在-lib)
 - [项目结构](#项目结构)
 - [开发与 CI](#开发与-ci)
@@ -163,19 +164,36 @@ moon build cmd/main --target wasm --release
 moon run   cmd/main --target wasm
 ```
 
-产物位置与体积（release，`cmd/main` 骨架）：
+产物位置与体积（release，**完整实现**）：
 
-| 后端 | 产物 | 体积 | 特点 |
-|------|------|-----:|------|
-| **`wasm-gc`**（默认） | `_build/wasm-gc/release/build/cmd/main/main.wasm` | **440 B** | 仅 1 个 `spectest.print_char` 导入，宿主集成成本最低 |
-| `wasm` | `_build/wasm/release/build/cmd/main/main.wasm` | 2598 B | 符合 WASI preview1，可被 node / wasmtime 等标准宿主加载 |
+| 产物 | 后端 | raw | 剥 `custom` 段 | `-Oz`（可加载档） |
+|------|------|---:|---------------:|------------------:|
+| `cmd/bench`（三基准点，含 `--dump`） | **`wasm-gc`**（默认） | **47912 B**（46.8 KiB） | 47790 B | **36296 B**（35.4 KiB） |
+| `cmd/bench` | `wasm`（WASI） | 81666 B（79.8 KiB） | 81544 B | 53745 B（52.5 KiB） |
+| `cmd/main`（CLI：字符画 + SVG） | **`wasm-gc`**（默认） | **44308 B**（43.3 KiB） | — | **33709 B** |
+| `cmd/main` | `wasm`（WASI） | 75949 B（74.2 KiB） | — | 51043 B |
 
-默认选 `wasm-gc` 的依据：体积比 `wasm` 小 **83%**、计算密集基准快约 **33%**。
-详细分析见 [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md)。
+**库运行时地板**（一行 `println` 的最小可执行包）：`wasm-gc` **263 B** / `wasm` **2095 B**
+→ 本库 QR 业务代码净增 **约 +33–36 KB**（`wasm-gc`）。
+`wasm-gc` 比 `wasm` 小 **32.5%**（`-Oz`），且宿主集成成本最低（无 memory 导出、对象交给宿主 GC）。
+
+> 默认选 `wasm-gc` 的依据：体积比 `wasm` 小、计算密集基准快约 **33%**、宿主接入最简单。
+> 早期骨架阶段的 -83% 对照见 [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md)。
+
+```bash
+# -Oz 体积最优档（默认后端 wasm-gc）：
+#   --all-features 会开 custom-descriptors(RTT)，其 exact heap type 在 Node/moonrun 上编译不过；
+#   --disable-custom-descriptors 才产出「可被真实宿主加载」的最优档。
+moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
+  --all-features --disable-custom-descriptors -Oz -o main.min.wasm   # 33709 B
+```
 
 > 与 Rust 参考 fast_qr 的**产物体积对比**（同规则口径）见
-> [S9f 实现记录](./docs/S9f-产物体积对比-实现记录.md)：`-Oz` 后 53745 vs 49956 B ≈ 1.08×，
-> 含宿主胶水 0.92×；复跑 `bash scripts/bench-size.sh`。
+> [S9g 确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) 与
+> [S9f 实现记录](./docs/S9f-产物体积对比-实现记录.md)：
+> 默认后端 `wasm-gc` 在每种口径下都更小（`-Oz` **0.73×**、含胶水 **0.62×**）；
+> `wasm`(WASI) 侧与 fast_qr 同档（`-Oz` 1.08×）。
+> 复跑 `bash scripts/bench-size.sh`（一条命令出全表 + 语义护栏）。
 
 ---
 
@@ -209,12 +227,13 @@ fast_qr 进程内 / MoonBit `moonrun` 子进程，MoonBit 侧被多计 12–20% 
 同尺寸、同语义（强制 V + ECL H + **自动择优** + 完整 Format/版本）可比子集 = 本仓库 vs `moonqr`，
 本仓库全程快 **2.5–4.1×**（V03H 0.318 vs 0.805、V40H 9.46 vs 38.29ms/单次）。
 
-**④ 产物体积对比**（S9f，同规则口径）：两侧 wasm **体量同档**，但「谁更小」取决于口径 ——
-raw 相除不可比（81666 vs 61514 B = 1.33×，一侧含 8 KB 元数据、另一侧含 wasm-bindgen 注入 shim）；
-统一到「剥 custom + 同一优化器 `-Oz`」后 **53745 vs 49956 B = 1.08×**，把 fast_qr 宿主胶水（8217 B）也计进来
-则 **0.92×**；同功能锚点（两侧都无胶水单文件、都自带运行时）**0.92×**。
-差距主要来自**运行时地板**：hello-only 基线 MoonBit **2095 B** vs Rust **20052 B**（9.6×），
-QR 业务净增同量级（+51.6 KB vs +25.6 KB）。见 [S9f 实现记录](./docs/S9f-产物体积对比-实现记录.md)。
+**④ 产物体积对比**（S9f/S9g，同规则口径）：**默认后端 `wasm-gc` 在每种口径下都比 fast_qr 小** ——
+raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**（36296 vs 49956 B）、
+含 fast_qr 宿主胶水（8217 B）**0.62×**。
+`wasm`(WASI) 兜底侧与 fast_qr **同档**：`-Oz` 1.08×、同功能锚点 1.18×（后者曾被污染探针算成 0.92×，已修正）。
+差距主因是**运行时地板**：hello-only 基线 `wasm-gc` **263 B** / `wasm` 2095 B vs Rust **20052 B**。
+见 [S9g 确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) ·
+[S9f 实现记录](./docs/S9f-产物体积对比-实现记录.md)。
 
 - `qrc` / `moonbitqrcode` **不可同口径对齐**（仅参考口径）：`moonbitqrcode` lib 固定 mask0、仅 L/M/Q
   且只自动小版本（0.046ms = 跳过择优的**下限**，不代表完整质量）；`qrc` 自动版本疑似容量单位 bug、
@@ -262,6 +281,7 @@ QR 业务净增同量级（+51.6 KB vs +25.6 KB）。见 [S9f 实现记录](./do
 | [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md) | wasm 编译/运行全过程、产物结构、多后端对比与选型 |
 | [rust-环境配置脚本与fast_qr对比-setup.md](./docs/rust-环境配置脚本与fast_qr对比-setup.md) | Rust 参考环境配置（`scripts/setup-rust.sh`）+ fast_qr 对比用法 |
 | [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md) | 性能测试脚本位置、参数口径与可复现路径（公开评审/审计入口） |
+| [S9g-本项目wasm产物体积-确认与修正.md](./docs/S9g-本项目wasm产物体积-确认与修正.md) | **本项目 wasm 产物体积**（`wasm-gc`/`wasm` 双后端的 raw / 剥 custom / `-Oz`）+ 与 fast_qr 同口径对比 |
 
 ### 面向维护者 / 架构文档
 
@@ -296,6 +316,7 @@ QR 业务净增同量级（+51.6 KB vs +25.6 KB）。见 [S9f 实现记录](./do
 | **S9d moonbit 生态对比** | [方案](./docs/S9d-与moonbit生态QR包性能对比-方案.md) · [实现记录](./docs/S9d-与moonbit生态QR包性能对比-实现记录.md) · [详细分析](./docs/S9d-与moonbit生态QR包性能对比-详细分析.md) · [moonbitqrcode 快速原因分析](./docs/S9d-moonbitqrcode快速原因与产物对比-分析.md) · [固定 mask0 缺陷与主流对比](./docs/S9d-moonbitqrcode固定mask0缺陷与主流对比.md) | 与 `qrc`/`moonqr`/`moonbitqrcode` 同语言对比 |
 | **S9e 统一 Node 调用** | [实现方案](./docs/S9e-性能测试统一Node调用-实现方案.md) · [实现记录](./docs/S9e-性能测试统一Node调用-实现记录.md) | 两侧统一 Node 进程内调用 MoonBit/fast_qr wasm，重测并分析（issue #50） |
 | **S9f 产物体积对比** | [实现方案](./docs/S9f-产物体积对比-实现方案.md) · [实现记录](./docs/S9f-产物体积对比-实现记录.md) | 同规则口径量测两侧 wasm 体积（五档 + 基线分解 + 语义护栏，issue #50） |
+| **S9g 体积确认与修正** | [确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) | 补默认后端 `wasm-gc` 全套体积；修正 ⑤ 锚点污染与全文结论（issue #50 复审） |
 
 </details>
 
@@ -382,9 +403,10 @@ QR 业务净增同量级（+51.6 KB vs +25.6 KB）。见 [S9f 实现记录](./do
 - **性能基准**：`bash scripts/bench.sh`（层①跨后端）；层② fast_qr-wasm 对比见
   `bash scripts/bench-layer2.sh`（**S9e 起两侧统一 Node 进程内调用**，见
   [S9e 实现记录](./docs/S9e-性能测试统一Node调用-实现记录.md)）。
-- **体积基准**：`bash scripts/bench-size.sh`（**S9f 同规则口径**：raw / 剥 custom / `-Oz` / wasm+胶水 /
-  同功能锚点 + hello-only 基线分解，带语义护栏；见
-  [S9f 实现记录](./docs/S9f-产物体积对比-实现记录.md)）。
+- **体积基准**：`bash scripts/bench-size.sh`（**S9f/S9g 同规则口径**：raw / 剥 custom / `-Oz` / wasm+胶水 /
+  同功能锚点 + hello-only 基线分解，**双后端**（`wasm-gc` 默认 + `wasm` 兜底）各出一列，
+  带四组语义护栏 + 探针导入面自检；见
+  [S9g 确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md)）。
 - **Git 钩子（可选）**：`git config core.hooksPath .githooks`（个人本地配置，仓库不代设）。
 - **编码 / 提交规范**：见 [AGENTS.md](./AGENTS.md)（密钥安全、MoonBit 布局、文档死链零容忍等硬性约定）。
 
@@ -399,8 +421,8 @@ QR 业务净增同量级（+51.6 KB vs +25.6 KB）。见 [S9f 实现记录](./do
 | `bench-layer2.sh` | 层② Node（S9e：**同一进程内**）调用 wasm 与 fast_qr 对比 |
 | `moonbit-wasm-runner.mjs` | Node 进程内托管 MoonBit WASI 产物的运行器（S9e 统一宿主） |
 | `wasm-compare.mjs` | 层② 对比驱动：逐位对齐 + A/B 双口径计时（S9e 统一 Node 调用） |
-| `bench-size.sh` | 层② 产物**体积**对比入口（S9f 同规则口径 + 语义护栏 + 基线分解） |
-| `wasm-size.mjs` | 体积对比驱动：五档量测 + 段解析 + 语义护栏 + markdown/JSON（S9f） |
+| `bench-size.sh` | 产物**体积**对比入口（S9f/S9g 同规则口径 + 双后端 + 语义护栏 + 探针自检 + 基线分解） |
+| `wasm-size.mjs` | 体积对比驱动：五档量测 + 段解析 + 语义护栏 + markdown/JSON（S9f/S9g，含 `wasm-gc` 通道） |
 | `build-fast-qr-wasm.sh` | 构建 fast_qr v0.14.0 `qr_with` nodejs 产物（外部检出，不入库） |
 | `setup-fast-qr-wasm-env.sh` | 层②环境：rust wasm32 target + gcc + 预编译 wasm-bindgen-cli（幂等） |
 | `setup-rust.sh` | 安装 Rust 工具链（rsproxy 镜像，供 fast_qr 参考对比，可选） |

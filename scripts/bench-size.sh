@@ -35,22 +35,60 @@ HELLO_WASM="$TARGET_DIR/s9f_hello_probe.wasm"
 MOON_HELLO_WASM="${MOON_HELLO_WASM:-$ROOT/moonbit_hello_probe/hello.wasm}"
 MOON_BENCH_WASM="${MOON_BENCH_WASM:-$PWD/_build/wasm/release/build/cmd/bench/bench.wasm}"
 MOON_MAIN_WASM="${MOON_MAIN_WASM:-$PWD/_build/wasm/release/build/cmd/main/main.wasm}"
+# **默认后端** wasm-gc 通道（本仓库实际分发形态，moon.mod: preferred_target = "wasm-gc"）
+MOON_GC_BENCH_WASM="${MOON_GC_BENCH_WASM:-$PWD/_build/wasm-gc/release/build/cmd/bench/bench.wasm}"
+MOON_GC_MAIN_WASM="${MOON_GC_MAIN_WASM:-$PWD/_build/wasm-gc/release/build/cmd/main/main.wasm}"
+MOON_GC_HELLO_WASM="${MOON_GC_HELLO_WASM:-$ROOT/moonbit_hello_probe/hello-gc.wasm}"
 MOON_WASM_OPT="${MOON_WASM_OPT:-$HOME/.moon/bin/moon-wasm-opt}"
+MOONRUN="${MOONRUN:-$(command -v moonrun || echo "$HOME/.moon/bin/moonrun")}"
 
 if [[ "${1:-}" != "--no-build" ]]; then
   echo "=== [1/4] fast_qr-wasm 环境 ==="
   bash "$SCRIPT_DIR/setup-fast-qr-wasm-env.sh"
   echo "=== [2/4] 构建 fast_qr qr_with nodejs 产物 ==="
   bash "$SCRIPT_DIR/build-fast-qr-wasm.sh"
-  echo "=== [3/4] MoonBit cmd/bench + cmd/main (--target wasm --release) ==="
+  echo "=== [3/4] MoonBit cmd/bench + cmd/main（wasm 兜底 + wasm-gc 默认后端）==="
   moon build cmd/bench --target wasm --release
   moon build cmd/main --target wasm --release
+  moon build cmd/bench --target wasm-gc --release
+  moon build cmd/main --target wasm-gc --release
 fi
 
 # 体积探针（幂等，外部检出副本 / 临时模块，均不入库）：
 #   - s9f_size_probe：无胶水单文件锚点，与 MoonBit cmd/bench 同形（真实调用 QR 核心路径）；
 #   - s9f_hello_probe：hello-only 基线，度量两侧「运行时地板」。
+# 探针导入面自检：`0 imports` = 干净单文件；非 0 = 被 wasm-bindgen 污染（历史坑，见 S9f 记录 §3.1/§5③）。
+# 返回 0 表示干净；返回 1 表示脏或缺失。
+probe_is_clean() {
+  node - "$TARGET_DIR/s9f_size_probe.wasm" "$TARGET_DIR/s9f_hello_probe.wasm" << 'CHECK_EOF'
+const fs = require('node:fs');
+let bad = false;
+for (const f of process.argv.slice(2)) {
+  if (!fs.existsSync(f)) { bad = true; console.error(`!! 探针缺失: ${f}`); continue; }
+  const m = new WebAssembly.Module(fs.readFileSync(f));
+  const imports = WebAssembly.Module.imports(m);
+  const size = fs.statSync(f).size;
+  if (imports.length !== 0) {
+    console.error(`!! ${f.split('/').pop()} = ${size} B 有 ${imports.length} 个导入（首个 ${imports[0].module}.${imports[0].name}）—— 已被 wasm-bindgen 污染`);
+    bad = true;
+  } else {
+    console.log(`>>> 探针自检 OK: ${f.split('/').pop()} = ${size} B, 0 imports`);
+  }
+}
+process.exit(bad ? 1 : 0);
+CHECK_EOF
+}
+
+# 需要编译探针的条件：缺失 **或** 现存产物已被污染（后者是「同名 bin 被覆盖」的历史坑，不能只看文件存在性）。
+NEED_PROBE_BUILD=0
 if [[ ! -f "$PROBE_WASM" || ! -f "$HELLO_WASM" ]]; then
+  NEED_PROBE_BUILD=1
+elif ! probe_is_clean > /dev/null 2>&1; then
+  echo ">>> 检测到现存探针被 wasm-bindgen 污染，强制以 --no-default-features 重编 ..."
+  NEED_PROBE_BUILD=1
+fi
+
+if [[ "$NEED_PROBE_BUILD" == "1" ]]; then
   echo "=== [3b/4] 编译 fast_qr 体积探针（外部检出副本，不入库）==="
   if [[ ! -d "$SRC/.git" ]]; then
     echo ">>> !! fast_qr 检出缺失，请先跑（不带 --no-build）: bash scripts/bench-size.sh" >&2
@@ -99,11 +137,24 @@ fn main() {
     println!("{}", s9f_hello_probe());
 }
 HELLO_EOF
-  (cd "$SRC" && cargo build --release --target wasm32-unknown-unknown --bin s9f_size_probe --bin s9f_hello_probe)
-  # 清理：探针必须是「无胶水单文件」，若因检出副本启用 wasm-bindgen 使其被强制链入，
-  # 重新发一次（cargo 会按当前 feature 组合重编，这里直接用 --no-default-features 再 build 一次）。
+  # 探针必须是「无胶水单文件」：检出副本一旦启用 `wasm-bindgen` feature，Cargo 会把 wasm-bindgen
+  # 强制链进**同 crate 的全部 target**（含 bin），探针体积从 59440 B 涨到 74454 B 并带
+  # `__wbindgen_*` 导入 —— 这会直接污染「同功能锚点」口径（历史坑，见 S9f 记录 §3.1/§5③）。
+  #
+  # ⚠️ 陷阱的坑底：Cargo 把两种 feature 组合的**同名 bin 产物放在同一路径**（`target/<triple>/release/`），
+  # 谁后编谁覆盖。先前「先普通后 --no-default-features」的写法在**增量缓存命中**时不生效
+  # （feature 组合各自有 hash，cargo 可能只重链后者而把前者 hash 的产物视为最新 → 文件仍是脏的）。
+  # 因此这里**把产物先删掉再编**，确保磁盘上留下的就是 `--no-default-features` 的干净产物。
+  rm -f "$TARGET_DIR/s9f_size_probe.wasm" "$TARGET_DIR/s9f_hello_probe.wasm"
   (cd "$SRC" && cargo build --release --target wasm32-unknown-unknown --no-default-features \
-      --bin s9f_size_probe --bin s9f_hello_probe) || true
+      --bin s9f_size_probe --bin s9f_hello_probe)
+  # 自检：探针导入面必须为 0（零导入 = 无胶水单文件）；否则报错而不是悄悄出错误数字。
+fi
+
+# 无论是否重编，最终都必须自检通过（脏则直接失败，不输出被污染的数字）。
+if ! probe_is_clean; then
+  echo ">>> !! 探针自检失败：拒绝基于被 wasm-bindgen 污染的探针输出体积表。" >&2
+  exit 1
 fi
 
 # MoonBit empty 基线（hello-only）探针：临时模块（不入库），用于「运行时地板」对照。
@@ -121,8 +172,11 @@ supported_targets = "+wasm"
 MMOD_EOF
   echo 'pkgtype(kind: "executable")' > "$ROOT/moonbit_hello_probe/cmd/hello/moon.pkg"
   printf '///|\nfn main {\n  println("hello")\n}\n' > "$ROOT/moonbit_hello_probe/cmd/hello/main.mbt"
-  (cd "$ROOT/moonbit_hello_probe" && moon build cmd/hello --target wasm --release)
+  # 两个后端都编：wasm(WASI) 作对照，wasm-gc 才是默认分发形态的地板
+  sed -i 's/supported_targets = "+wasm"/supported_targets = "+wasm+wasm-gc"/' "$ROOT/moonbit_hello_probe/moon.mod" 2>/dev/null || true
+  (cd "$ROOT/moonbit_hello_probe" && moon build cmd/hello --target wasm --release && moon build cmd/hello --target wasm-gc --release)
   cp "$ROOT/moonbit_hello_probe/_build/wasm/release/build/cmd/hello/hello.wasm" "$MOON_HELLO_WASM"
+  cp "$ROOT/moonbit_hello_probe/_build/wasm-gc/release/build/cmd/hello/hello.wasm" "$MOON_GC_HELLO_WASM"
 fi
 
 echo ""
@@ -136,4 +190,8 @@ node "$SCRIPT_DIR/wasm-size.mjs" \
   --fast-probe-wasm "$PROBE_WASM" \
   --fast-hello-wasm "$HELLO_WASM" \
   --moon-hello-wasm "$MOON_HELLO_WASM" \
+  --moon-gc-wasm "$MOON_GC_BENCH_WASM" \
+  --moon-gc-main-wasm "$MOON_GC_MAIN_WASM" \
+  --moon-gc-hello-wasm "$MOON_GC_HELLO_WASM" \
+  --moonrun "$MOONRUN" \
   --wasm-opt "$MOON_WASM_OPT"
