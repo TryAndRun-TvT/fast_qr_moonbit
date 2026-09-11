@@ -15,7 +15,7 @@
 /// 维度顺序：mode 序号(Numeric/Alphanumeric/Byte) → ecl 序号(L/M/Q/H) → version 序号(V01..V40)。
 
 ///|
-let capacity_table : Array[Array[Array[Int]]] = [
+let capacity_table : ReadOnlyArray[ReadOnlyArray[ReadOnlyArray[Int]]] = [
   [ // mode 0 = Numeric
     [ // ecl 0 = L
       41, 77, 127, 187, 255, 322, 370, 461, 552, 652, 772, 883, 1022, 1101, 1250,
@@ -91,7 +91,7 @@ let capacity_table : Array[Array[Array[Int]]] = [
 /// （那应查 capacity_table/data_codewords）。
 
 ///|
-let max_bytes_table : Array[Int] = [
+let max_bytes_table : ReadOnlyArray[Int] = [
   26, 44, 70, 100, 134, 172, 196, 242, 292, 346, 404, 466, 532, 581, 655, 733, 815,
   901, 991, 1085, 1156, 1258, 1364, 1474, 1588, 1706, 1828, 1921, 2051, 2185, 2323,
   2465, 2611, 2761, 2876, 3034, 3196, 3362, 3532, 3706,
@@ -102,7 +102,7 @@ let max_bytes_table : Array[Int] = [
 /// reedsolomon.structure 依赖（实现记录 §3.3/§4.1）。
 
 ///|
-let data_codewords_table : Array[Array[Int]] = [
+let data_codewords_table : ReadOnlyArray[ReadOnlyArray[Int]] = [
   [ // ecl 0 = L
     19, 34, 55, 80, 108, 136, 156, 194, 232, 274, 324, 370, 428, 461, 523, 589, 647,
     721, 795, 861, 932, 1006, 1094, 1174, 1276, 1370, 1468, 1531, 1631, 1735, 1843,
@@ -129,7 +129,7 @@ let data_codewords_table : Array[Array[Int]] = [
 /// version_information[version]：版本信息字（V7 及以上非零；V1-V6 为 0）。
 
 ///|
-let information_table : Array[Int] = [
+let information_table : ReadOnlyArray[Int] = [
   0, 0, 0, 0, 0, 0, 31892, 34236, 39577, 42195, 48118, 51042, 55367, 58893, 63784,
   68472, 70749, 76311, 79154, 84390, 87683, 92361, 96236, 102084, 102881, 110507,
   110734, 117786, 119615, 126325, 127568, 133589, 136944, 141498, 145311, 150283,
@@ -140,7 +140,7 @@ let information_table : Array[Int] = [
 /// missing_bits[version]：末端缺失填充比特数（四档 0/3/4/7）。
 
 ///|
-let missing_bits_table : Array[Int] = [
+let missing_bits_table : ReadOnlyArray[Int] = [
   0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ]
@@ -149,7 +149,7 @@ let missing_bits_table : Array[Int] = [
 /// alignment_grid[version]：对齐图案坐标（V1 为空；随版本增长最多 7 点，首点固定 6）。
 
 ///|
-let alignment_grid_table : Array[Array[Int]] = [
+let alignment_grid_table : ReadOnlyArray[ReadOnlyArray[Int]] = [
   [], // V01
   [6, 18], // V02
   [6, 22], // V03
@@ -260,12 +260,13 @@ pub fn information(version_idx : Int) -> Int {
 
 ///|
 /// 对齐图案坐标（每版本一行，首坐标固定 6）。供 S4 放置对齐图案。
-pub fn alignment_grid(version_idx : Int) -> Array[Int] {
+/// 返回只读视图（表本身即 ReadOnlyArray，无需拷贝）。
+pub fn alignment_grid(version_idx : Int) -> ReadOnlyArray[Int] {
   alignment_grid_table[if version_idx < 0 || version_idx > 39 {
     39
   } else {
     version_idx
-  }].copy()
+  }]
 }
 
 ///|

@@ -8,7 +8,7 @@
 > ① 审计「移除 `wasm`(WASI)/`js`、仅 `wasm-gc`」是否收敛干净；
 > ② 对三份方案做**批判性复评**——找漏洞、去重复、收敛为**单一优先级清单**。
 >
-> 日期：2026-09-12　｜　环境：`moon 0.1.20260904`、**仅 `wasm-gc` release**、109 测试
+> 日期：2026-09-12　｜　环境：`moon 0.1.20260904`、**仅 `wasm-gc` release**、全量单测（审计时 109，P0/P2 落地后 111）
 > ｜　范围：**审计 + 评估 + 文档修订；未改任何入库代码**（证据均为只读复跑：`moon fmt --check`、
 > `moon check --deny-warn`、`moon test --target wasm-gc`、lint、core 源码、`supported_targets` 实测）。
 >
@@ -38,6 +38,10 @@
 5. **结论方向不变、口径更保守**：V40 现实 **≈3.2–3.9ms**（`fast/ours ≈0.8–0.95×`）；
    **不承诺追平 V03**。S9m 的「ReadOnlyArray 不是性能杠杆」成立，且其 RS 占比应更保守——
    `pipe`(encode+RS) 才占 2.5%，**RS 单项更低**。
+6. **已按本清单落地 P0 + P2 + P2b(N4)**（2026-09-12，见 §6）：V40 单次 auto 实测
+   **5.97→4.42ms（−26%）**、V10 **−24%**、V03 **−4%**，输出**逐位不变**（`TOTAL_CHECKSUM`/快照全同）；
+   111 测试全绿。**ReadOnlyArray（T-R1/T-R2/T-R4）亦已落地**（§6.5，类型对齐、收益低于测量分辨率）；
+   P1 受阻于公共契约、P2b(N2)/P3/T-R5 仍待做。
 
 ---
 
@@ -154,17 +158,20 @@ Caused by:
 **明确不做**：`T-R3`（`QRCode.data` 只读化，性能≈0）；O1-a（就地翻转免 copy，S9b 已否决）；
 「追平 V03」（固定成本约束，非目标）；为 ≈0.5% 的 RS 项单独立项。
 
+> **落地状态（2026-09-12）**：**P0 / P2 / P2b(N4) / P4 的 T-R1·T-R2·T-R4 已实施**（§6.1–§6.5）；
+> **P1 受阻于公共契约**（`data().length()==QR_MAX_MODULES` 被测试断言，实为 P1a=P1b）；P2b(N2)/P3/T-R5 待做。
+
 ---
 
 ## 4. 落地与验收（**wasm-gc only**）
 
 每项独立提交，统一门禁：
 
-1. `moon fmt --check` / `moon check --deny-warn` / `moon test --target wasm-gc` **109 全绿**（本地已复核）；
+1. `moon fmt --check` / `moon check --deny-warn` / `moon test --target wasm-gc` 全绿（P0/P2 落地后为 **111**）；
 2. 快照逐位 diff 零差异（择优 mask 不变）+ `cmd/bench` `TOTAL_CHECKSUM` 不变；
 3. 层② `bash scripts/bench-layer2.sh` 同尺子复跑（`wasm-gc` vs fast_qr-wasm32，Node 进程内）；
 4. **组合实测**：P0/P2/P3 任两项以上同批落地时，先做**合并探针**再回填收益（H5），禁止算术相加；
-5. `T-R1/T-R2` 改表容器后，`division` 余数须**逐位不变**（109 测试 + checksum 兜底）。
+5. `T-R1/T-R2` 改表容器后，`division` 余数须**逐位不变**（全量单测 + checksum 兜底）。
 
 > **历史口径**：不再有「双后端 checksum 互证」；跨后端护栏（wasm-gc vs wasm）随 `wasm` 移除退场，
 > 只保留「Node shim vs `moonrun` 跨宿主一致」。
@@ -175,14 +182,82 @@ Caused by:
 
 ```bash
 export PATH="$HOME/.moon/bin:$PATH"
-moon fmt --check && moon check --deny-warn && moon test --target wasm-gc   # 109 全绿
+moon fmt --check && moon check --deny-warn && moon test --target wasm-gc   # 111 全绿
 moon check --warn-list "+prefer_readonly_array"                            # 恰好 4 处命中
 moon build lib --target native --release                                   # 预期被 supported_targets 拒绝
 ```
 
 ---
 
-## 6. 参考
+## 6. 落地记录（2026-09-12：P0 + P2 + P2b-N4）
+
+> 实施遵循 §3 顺序与 §4 门禁；**输出逐位不变**由 `TOTAL_CHECKSUM` 与快照逐位 diff 兜底。
+
+### 6.1 已落地改动
+
+| 项 | 改动 | 位置 |
+|----|------|------|
+| **P0** | `apply_mask` 由「逐格 `match`+取模」改为 **8 个特化循环**：0–4 号用步长几何生成候选格，5–7 号按 x 周期 6 逐行只算 6 个余数步进；保留 `mask_at` 与越界通用回退 | `lib/internal/matrix/datamasking.mbt` |
+| **P2** | `line_rows/line_cols` **去闭包**；列评分改「先收进复用缓冲、再连续扫描」（对照 `score.rs:150-175`） | `lib/internal/matrix/score.mbt` |
+| **P2b(N4)** | **N4 暗格计数并入行趟**（`line_scan_buf` 同时返回 dark），`score` 不再单独全矩阵扫 | `lib/internal/matrix/score.mbt` |
+
+新增护栏测试：特化 `apply_mask` 与逐格 `mask_at` 参考**逐位对拍**（8 掩码 × 6 尺寸 × 混合类型）；
+`score` 四规则**分解不变式**（N4 并入后总分＝分量之和）。测试 109 → **111 全绿**。
+
+### 6.2 受控 A/B（wasm-gc，`cmd/bench`，宿主 wall time R=3 取最小）
+
+| 点 | N | baseline | +P0/P2 | +P2b(N4) | 总降幅 | `TOTAL_CHECKSUM` |
+|----|--:|---------:|-------:|---------:|-------:|------------------|
+| V03H | 8000 | 1.672s | 1.649s | **1.602s** | **−4.2%** | 328000（三项一致）|
+| V10H | 1500 | 1.192s | 1.109s | **0.924s** | **−22.5%** | 121500（三项一致）|
+| V40H | 300 | 1.852s | 1.664s | **1.386s** | **−25.2%** | 69000（三项一致）|
+
+边际（扣宿主固定项）：V40 **5.97→4.42ms**、V10 0.755→0.576ms、V03 0.202→0.193ms；
+其中 V40 基线与 [S9k §2.1](./S9k-性能瓶颈与理论上限评估.md) 的 5.90ms 吻合。
+**三项 checksum 与基线完全相同 ⇒ 择优结果与矩阵逐位不变**（非近似改写的直接证据）。
+
+> 读法：V40/V10 收益大 = 命中 `score`/`apply_mask` 主导（S9k 68%/11%）；V03 收益小 = 其主导项是
+> `wrap` 容器（44%，属 P1，未动）。与 [S9k](./S9k-性能瓶颈与理论上限评估.md) 成本模型一致。
+
+### 6.3 复评更新（实施后才明确）
+
+- **P1a 无法按原描述落地**：`qr.data().length() == QR_MAX_MODULES` 由
+  `lib/fast_qr_moonbit_test.mbt:46`、`lib/fast_qr_moonbit_wbtest.mbt:111` 断言，且 `data` 是 `pub(all)`；
+  **不动公共契约就无法省掉恒 31329 槽的分配**——即 P1a 与 P1b 实为同一决策，须先做公共 API 评审（未实施）。
+- **P2b 本轮只合并 N4**：N2(`score_squares`) 仍为独立趟；将其并入行对扫描的收益与风险须单独设计。
+- **P3 仍未动**：介质窄化必须**先做 `Array[Int]`/`FixedArray[Byte]`/`Bytes` 三向微基准**（H4），
+  且不得再引用 P2 的 1.26×（H1）。
+- **P4 / `T-R1/T-R2` 已随 ReadOnlyArray 落地**（§6.5）：`pipe`(encode+RS) 仅 2.5%，整 build 收益
+  低于测量分辨率，与 S9m 预测一致；T-R5（RS 分配复用）仍待做。
+
+### 6.4 下一步
+
+1. P2b(N2 合并) 或 `score_squares` 局部优化（须保留四规则分解护栏）；
+2. P3 三向微基准，确认正收益再定重构；
+3. P1 公共 `QRCode.data` 容器语义评审（决定是否允许 `length=size²`）；
+4. T-R5 RS 工作区复用（受 `pipe` 2.5% 封顶，低优先）。
+
+### 6.5 ReadOnlyArray 落地（2026-09-12：T-R1 / T-R2 / T-R4）
+
+| 项 | 改动 | 位置 |
+|----|------|------|
+| **T-R1** | `log_table`/`antilog_table` → `ReadOnlyArray[Byte]`（热路径查找表） | `lib/internal/reedsolomon/reedsolomon.mbt` |
+| **T-R2** | **全部常量表**只读化（`capacity_table`、`data_codewords_table`、`alignment_grid_table`、`ecc_to_groups_table`、`generator_polys`、`generator_index`、`format_information_table`、`percent_score_table`、`max_bytes/information/missing_bits`）+ `keep_last` + 局部只读字面量 `offsets`/`pad`（含测试 `mods`/`bits`/`sizes`） | `lib/internal/{constants,matrix,bitstream}` |
+| **顺带收益** | `get_polynomial`/`alignment_grid` 改**零拷贝只读视图**（免每次 `.copy()` 分配）；`division` 的 `by` 参数收窄为 `ReadOnlyArray[Byte]` | 同上 |
+| **T-R4** | `moon.mod` 加 `warnings = "+prefer_readonly_array"`（lint 防回归；用临时探针实测生效） | `moon.mod` |
+
+**验证**：111 测试全绿；`TOTAL_CHECKSUM` 三点与基线一致；`QR_MIN_CHECKSUM=283`（文档定值）；
+lib 公共 `.mbti` **零漂移**（变更全部在 internal 层）；`prefer_readonly_array` lint **零命中**。
+
+**性能读数（诚实口径）**：整 build 受控对比 **低于测量分辨率**——V03/V10/V40 差异 +5.5%/+1.5%/+2.6%，
+但 **V03 全 build 仅 2 个 RS 块、几乎不触 `division`**：若真为表改动回归，V40（81 块）应受冲击最大而非
+V03——方向自相矛盾，判定为 [S9h](./S9h-层②性能复测异常归因-Node版本与宿主漂移.md) 宿主漂移噪声。
+与 S9m §0 预测一致：**≈0.4–0.5% 的语义/类型对齐项，不是性能杠杆**；本轮价值 = 类型正确性 +
+不可变性入类型 + 零拷贝访问器 + lint 防回归。
+
+---
+
+## 7. 参考
 
 - 成本分解：[S9k](./S9k-性能瓶颈与理论上限评估.md)（K1–K5、五段分解）
 - 参考实现与受控实验：[S9l](./S9l-参考fast_qr高性能实现分析.md)（P0–P4）

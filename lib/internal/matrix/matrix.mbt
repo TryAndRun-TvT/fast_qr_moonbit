@@ -56,7 +56,7 @@ fn draw_finder(m : Array[Int], size : Int, oy : Int, ox : Int) -> Unit {
 fn create_matrix_pattern(m : Array[Int], size : Int) -> Unit {
   let n = size
   let k = 7
-  let offsets = [(0, 0), (n - k, 0), (0, n - k)]
+  let offsets : ReadOnlyArray[(Int, Int)] = [(0, 0), (n - k, 0), (0, n - k)]
   let mut i = 0
   while i < 3 {
     let (oy, ox) = offsets[i]

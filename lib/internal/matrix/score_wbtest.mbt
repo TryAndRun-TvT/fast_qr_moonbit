@@ -66,7 +66,7 @@ test "score_pattern: 11 位窗口命中类 finder 计 40" {
   let m = data_light(size)
   // 用「行首 4 浅色 + 目标 1011101」的浅后图案也可由行内真实暗亮构成：
   // 这里直接构造 11 位 = 00001011101（暗=1）置于第 0 行。
-  let bits = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1]
+  let bits : ReadOnlyArray[Int] = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1]
   let mut j = 0
   while j < 11 {
     m[j] = pack(bits[j], module_type_data)
@@ -82,6 +82,27 @@ test "score_pattern: 11 位窗口命中类 finder 计 40" {
 test "score_dark: 暗比 0% 查表得 90" {
   let m = data_light(21)
   assert_eq(score_dark(m, 21), 90)
+}
+
+///|
+/// S9n P2b：N4 暗格计数并入行趟后，`score` 仍**严格等于**四规则分量之和。
+/// 用混合明暗/类型的矩阵，防聚合口径漂移。
+test "score 分解：N4 并入行趟后仍等于四规则之和" {
+  let size = 21
+  let m = Array::make(size * size, pack(0, module_type_data))
+  let mut i = 0
+  while i < size * size {
+    let t = (i * 5 + 1) % 9
+    let t2 = if t > 7 { module_type_data } else { t }
+    m[i] = pack((i * 3 + i / size) & 1, t2)
+    i += 1
+  }
+  let total = score(m, size)
+  let parts = score_line(m, size) +
+    score_pattern(m, size) +
+    score_squares(m, size) +
+    score_dark(m, size)
+  assert_eq(total, parts)
 }
 
 ///|

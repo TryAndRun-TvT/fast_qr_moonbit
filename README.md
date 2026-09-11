@@ -3,7 +3,7 @@
 > 基于 [MoonBit](https://www.moonbitlang.cn/) 的高性能二维码（QR Code）生成库。
 > 纯 MoonBit 实现、无外部依赖，逐位对齐 Rust 参考库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr)。
 
-**项目状态**：功能对齐收口（M0–M3 里程碑 ✅），109 单测 + 快照全绿，仅 `wasm-gc` 后端回归通过。
+**项目状态**：功能对齐收口（M0–M3 里程碑 ✅），111 单测 + 快照全绿，仅 `wasm-gc` 后端回归通过。
 
 `moon run cmd/main` 的真实输出（内容 `https://example.com/`）：
 
@@ -298,6 +298,14 @@ V40H 单次 auto 约 **68% 在 8 轮 `score`**（N1+N3 行/列 ≈37%、N2 ≈16
 上界 ≈0.10–0.12 ms（fast/ours 0.30×→≈0.5–0.6×，**仍慢约 1.5–2×、不追平**）。
 历史路线与已否决项（T1/O1-a 就地翻转）见 [S9b 性能优化](./docs/S9b-性能优化.md)。
 
+**已落地优化（2026-09-12，明细见 [S9n §6](./docs/S9n-优化方案复评与wasm-gc收敛审计.md)）**：按上述优先级实施
+**P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b N4 并入行趟**——`wasm-gc` 受控 A/B（`cmd/bench`）实测
+V40H 单次 auto **5.97→4.42 ms（−26%）**、V10H **−24%**、V03H **−4%**，且 `TOTAL_CHECKSUM` 三项与基线
+**完全相同**（输出逐位不变，111 测试全绿）。**ReadOnlyArray（T-R1/T-R2/T-R4）亦已落地**：RS/常量查找表
+与局部只读字面量全部只读化、`get_polynomial` 等改零拷贝只读视图、`moon.mod` 启用
+`prefer_readonly_array` lint 防回归——整 build 收益低于测量分辨率（符合 S9m「类型对齐、非性能杠杆」预测）。
+容器 P1 受阻于 `QRCode.data` 固定容量公共契约（须 API 评审）；P2b(N2)/P3/T-R5 待做。
+
 > 性能数字仅作选型与迭代基线，不代表对 fast_qr 的追赶承诺；逐条口径见 S9 系列文档。
 
 ---
@@ -354,7 +362,7 @@ V40H 单次 auto 约 **68% 在 8 轮 `score`**（N1+N3 行/列 ≈37%、N2 ≈16
 | **S9k 性能瓶颈与理论上限** | [差分分解·优化上限·理论模型](./docs/S9k-性能瓶颈与理论上限评估.md) | 进程级差分把 auto build 拆为 5 段：V40 瓶颈=8轮 score(68%)、V03=wrap 容器(44%)；理论上限≈fast_qr 同模型（V40≈3.0ms） |
 | **S9l 参考 fast_qr 高性能分析** | [上游精读·受控实验·优化映射](./docs/S9l-参考fast_qr高性能实现分析.md) | 逐文件拆解 fast_qr 快在哪：掩码特化实测 **5×**、容器对象税 **10×**、字节+切片评分 **1.26×**；给出 P0–P4 落地与叠加预期 |
 | **S9m ReadOnlyArray 适用性** | [官方定位·表示事实·受控实验](./docs/S9m-ReadOnlyArray适用性评估.md) | `ReadOnlyArray`=FixedArray 零成本封装、官方指定的**字面量查找表**类型；救不了 score/wrap 两瓶颈；真实 `division` 实测 **≈1.25×**（真实块长，整 build ≈0.4–0.5%） |
-| **S9n 复评与 wasm-gc 收敛审计** | [收敛审计·漏洞复评·统一优先级](./docs/S9n-优化方案复评与wasm-gc收敛审计.md) | 审计 wasm-gc 收敛遗漏；复评 K/P/T-R 三套编号的**重复计数/介质混杂/基线互串**等 6 漏洞；收敛为**单一优先级清单** + `supported_targets` 硬边界 |
+| **S9n 复评与 wasm-gc 收敛审计** | [收敛审计·漏洞复评·统一优先级·落地记录](./docs/S9n-优化方案复评与wasm-gc收敛审计.md) | 审计 wasm-gc 收敛遗漏；复评 K/P/T-R 三套编号的**重复计数/介质混杂/基线互串**等 6 漏洞；收敛为**单一优先级清单** + `supported_targets` 硬边界；含 P0/P2/P2b 与 ReadOnlyArray **落地记录**（V40 −26%） |
 
 </details>
 

@@ -9,7 +9,7 @@
 
 ///|
 /// 保留低 `k` 位掩码：`KEEP_LAST[k] = (1<<k) - 1`（k = 0..=31，适配 32 位 Int）。
-let keep_last : Array[Int] = [
+let keep_last : ReadOnlyArray[Int] = [
   0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383, 32767, 65535,
   131071, 262143, 524287, 1048575, 2097151, 4194303, 8388607, 16777215, 33554431,
   67108863, 134217727, 268435455, 536870911, 1073741823, 2147483647,
@@ -126,7 +126,10 @@ pub fn CompactQR::push_bits(self : CompactQR, bits : Int, len : Int) -> Unit {
 ///|
 /// 用 `[236, 17]` 交替填充剩余空间。前置条件：`len % 8 == 0`。
 pub fn CompactQR::fill(self : CompactQR) -> Unit {
-  let pad = [(0b1110_1100).to_byte(), (0b0001_0001).to_byte()]
+  let pad : ReadOnlyArray[Byte] = [
+    (0b1110_1100).to_byte(),
+    (0b0001_0001).to_byte(),
+  ]
   let mut i = 0
   let total_bytes = (self.data.length() * 8 - self.len) / 8
   while i < total_bytes {

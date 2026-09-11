@@ -62,3 +62,52 @@ test "apply_mask 只翻转 Data 类、不动功能图案明暗" {
     fail("y=0 Data 在 mask1 下应翻为亮")
   }
 }
+
+///|
+/// S9n P0：特化 `apply_mask` 与「逐格 `mask_at` 判定」参考实现**逐位等价**
+/// （8 掩码 × 多尺寸 × Data/非 Data 混合矩阵）。防止步长/余数几何写错。
+test "apply_mask 特化与逐格参考逐位等价" {
+  let sizes : ReadOnlyArray[Int] = [21, 25, 29, 45, 57, 177]
+  let mut si = 0
+  while si < sizes.length() {
+    let size = sizes[si]
+    // 混合类型矩阵：按 (i*7+3)%9 分配类型号，覆盖 Data(0) 与 7 种功能图案，明暗交错
+    let m = Array::make(size * size, pack(0, module_type_data))
+    let mut i = 0
+    while i < size * size {
+      let t = (i * 7 + 3) % 9
+      let t2 = if t > 7 { module_type_data } else { t }
+      m[i] = pack(i & 1, t2)
+      i += 1
+    }
+    let mut k = 0
+    while k < 8 {
+      let got = apply_mask(m, size, k)
+      // 参考实现：逐格 is_data_byte && mask_at → toggle
+      let want = m.copy()
+      let mut y = 0
+      while y < size {
+        let mut x = 0
+        while x < size {
+          let idx = y * size + x
+          if is_data_byte(want[idx]) && mask_at(x, y, k) {
+            want[idx] = toggle_value(want[idx])
+          }
+          x += 1
+        }
+        y += 1
+      }
+      let mut j = 0
+      while j < size * size {
+        if got[j] != want[j] {
+          fail(
+            "特化 apply_mask 与参考不一致：size=\{size} mask=\{k} idx=\{j}",
+          )
+        }
+        j += 1
+      }
+      k += 1
+    }
+    si += 1
+  }
+}

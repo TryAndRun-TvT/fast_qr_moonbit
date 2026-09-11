@@ -22,4 +22,9 @@ preferred_target = "wasm-gc"
 
 supported_targets = "+wasm-gc"
 
+// 启用「只读数组字面量」lint（S9m T-R4）：只读字面量提示改用 ReadOnlyArray，防回归。
+// 现仓库已零命中（RS 表/常量表/局部字面量均已只读化，见 docs/S9m/S9n）。
+
+warnings = "+prefer_readonly_array"
+
 description = "Fast QR code generator library written in MoonBit"

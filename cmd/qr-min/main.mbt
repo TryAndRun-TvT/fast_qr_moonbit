@@ -12,7 +12,7 @@
 ///       结果被真实消费，无死代码消除风险；除 `println`（与 hello 地板同面）外零宿主依赖。
 ///
 /// 用法：`moon run cmd/qr-min`（无参数、不读 argv）。
-/// 语义护栏：两后端输出恒为 `QR_MIN_CHECKSUM=283`（跨后端/跨优化档必须一致）。
+/// 语义护栏：moonrun（wasm-gc，唯一后端）输出恒为 `QR_MIN_CHECKSUM=283`（跨优化档必须一致）。
 
 ///|
 /// 三基准点各 build 一次的校验总量（消费每次 Result，防死代码消除；口径同 cmd/bench 单点采样）。

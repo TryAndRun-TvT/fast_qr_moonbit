@@ -14,7 +14,7 @@
 /// LOG[e] = α^e 的域值（e 为 α 指数，0..255）。
 
 ///|
-let log_table : Array[Byte] = [
+let log_table : ReadOnlyArray[Byte] = [
   (1).to_byte(),
   (2).to_byte(),
   (4).to_byte(),
@@ -277,7 +277,7 @@ let log_table : Array[Byte] = [
 /// ANTILOG[x] = x 的 α 对数指数（x 为域值，0..255）。
 
 ///|
-let antilog_table : Array[Byte] = [
+let antilog_table : ReadOnlyArray[Byte] = [
   (175).to_byte(),
   (0).to_byte(),
   (1).to_byte(),
@@ -543,7 +543,7 @@ let antilog_table : Array[Byte] = [
 /// 前置：data.length() + by.length() <= 256。
 
 ///|
-pub fn division(data : Array[Byte], by : Array[Byte]) -> Array[Byte] {
+pub fn division(data : Array[Byte], by : ReadOnlyArray[Byte]) -> Array[Byte] {
   let buf = Array::make(255, b'\x00')
   let start = 256 - data.length() - by.length()
   let mut i = 0

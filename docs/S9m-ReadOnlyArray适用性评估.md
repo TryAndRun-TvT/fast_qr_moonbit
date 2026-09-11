@@ -185,6 +185,13 @@ fn[T] unsafe_reinterpret_from_fixed_array(arr : FixedArray[T]) -> ReadOnlyArray[
 > **建议**：T-R1/T-R2 **作为类型对齐**低优先落地（不单列为性能里程碑）；T-R5 是 RS 侧更本质的杠杆，
 > 但两者都**不应占据优化主线**——主线仍是 S9l **P0 掩码特化 / P1 容器 / P2 评分**。
 
+> **落地记录（2026-09-12，见 [S9n §6.5](./S9n-优化方案复评与wasm-gc收敛审计.md)）**：**T-R1/T-R2/T-R4 已实施**——
+> RS 两表、全部常量表与局部只读字面量（`offsets`/`pad`/测试 `mods`/`bits`/`sizes`）改为 `ReadOnlyArray`；
+> `get_polynomial`/`alignment_grid` 改**零拷贝只读视图**（免 `.copy()` 分配）；`moon.mod` 启用
+> `prefer_readonly_array` lint（实测生效、当前零命中）。验证：111 测试 + `TOTAL_CHECKSUM` 三点一致 +
+> `QR_MIN_CHECKSUM=283` + lib 公共 `.mbti` 零漂移；整 build 收益**低于测量分辨率**（本文预测的
+> ≈0.4–0.5% 语义/体积对齐，非性能杠杆）。T-R3 维持不做；T-R5 待做。
+
 ### 明确不做
 
 - **不**用 `ReadOnlyArray` 重构工作矩阵/评分/掩码（与 S9l 实测方向相悖）；
@@ -196,7 +203,7 @@ fn[T] unsafe_reinterpret_from_fixed_array(arr : FixedArray[T]) -> ReadOnlyArray[
 
 ## 6. 验收与复现
 
-- 门禁：快照逐位 diff、109 测试全绿、`TOTAL_CHECKSUM`、层② sha256（见 [S9b §5/§6](./S9b-性能优化.md)）。
+- 门禁：快照逐位 diff、全量单测全绿、`TOTAL_CHECKSUM`、层② sha256（见 [S9b §5/§6](./S9b-性能优化.md)）。
 - 复现（**不出库**；探针 `lib/probe/`，`pkgtype(executable)`，import `internal/{constants,reedsolomon}`）：
   1. A/B：先测基线 `moon run lib/probe --release --target wasm-gc -- real 400000 15`；再把
      `reedsolomon.mbt` 两表标注改 `ReadOnlyArray[Byte]` 重测；测毕 `git checkout` 还原。

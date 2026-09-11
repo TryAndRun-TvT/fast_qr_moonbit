@@ -35,7 +35,7 @@ test "module_toggle" {
 ///|
 test "module_each_type" {
   // 构造各类型模块，校验类型号与位布局一致（类型号写 bit1-3）
-  let mods = [
+  let mods : ReadOnlyArray[Module] = [
     Module::data(true),
     Module::finder_pattern(true),
     Module::alignment(true),

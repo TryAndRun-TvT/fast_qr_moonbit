@@ -14,7 +14,7 @@
 /// 源码以 u32 位打包，此处解码为四元组直接存储。
 
 ///|
-let ecc_to_groups_table : Array[Array[(Int, Int, Int, Int)]] = [
+let ecc_to_groups_table : ReadOnlyArray[ReadOnlyArray[(Int, Int, Int, Int)]] = [
   [ // ecl 0 = L
     (1, 19, 0, 0), // V01
     (1, 34, 0, 0), // V02
@@ -190,7 +190,7 @@ let ecc_to_groups_table : Array[Array[(Int, Int, Int, Int)]] = [
 /// 每条首元素 0，按 α 指数存储。
 
 ///|
-let generator_polys : Array[Array[Byte]] = [
+let generator_polys : ReadOnlyArray[ReadOnlyArray[Byte]] = [
   [ // 度 0，长 1
     (0).to_byte(),
   ],
@@ -756,7 +756,7 @@ let generator_polys : Array[Array[Byte]] = [
 /// 由 (max_bytes - data_codewords) / 分组总数 求得，与源码 get_polynomial 分组一致。
 
 ///|
-let generator_index : Array[Array[Int]] = [
+let generator_index : ReadOnlyArray[ReadOnlyArray[Int]] = [
   [ // ecl 0 = L
     7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28,
     28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
@@ -779,7 +779,7 @@ let generator_index : Array[Array[Int]] = [
 /// format_information[ecl][mask]：15 位格式信息字。S5 用。
 
 ///|
-let format_information_table : Array[Array[Int]] = [
+let format_information_table : ReadOnlyArray[ReadOnlyArray[Int]] = [
   [ // ecl 0 = L
     30660, 29427, 32170, 30877, 26159, 25368, 27713, 26998,
   ],
@@ -810,14 +810,15 @@ pub fn ecc_to_groups(ecl_idx : Int, version_idx : Int) -> (Int, Int, Int, Int) {
 }
 
 ///|
-/// 生成多项式：get_polynomial(version_idx, ecl_idx) -> 生成多项式（拷贝）。
+/// 生成多项式：get_polynomial(version_idx, ecl_idx) -> 生成多项式（只读视图）。
 /// 入参顺序 (version, ecl) 对齐源码。供 reedsolomon.division/structure 用。
+/// 表本身为 ReadOnlyArray，返回其元素即零拷贝只读视图（调用方只读）。
 
 ///|
-pub fn get_polynomial(version_idx : Int, ecl_idx : Int) -> Array[Byte] {
+pub fn get_polynomial(version_idx : Int, ecl_idx : Int) -> ReadOnlyArray[Byte] {
   let v = if version_idx < 0 || version_idx > 39 { 39 } else { version_idx }
   let e = if ecl_idx < 0 || ecl_idx > 3 { 3 } else { ecl_idx }
-  generator_polys[generator_index[e][v]].copy()
+  generator_polys[generator_index[e][v]]
 }
 
 ///|
@@ -835,7 +836,7 @@ pub fn format_information(ecl_idx : Int, mask_idx : Int) -> Int {
 /// 对应参考 fast_qr v0.14.0 `hardcode.rs:406 PERCENT_SCORE`（roadmap 铁律：脚本提取、禁止手抄）。
 /// 每偏离 50% 一档（5% 步长）给固定惩罚分；percent 取整为 `暗模块数*100 // 总模块数`（0..=99）。
 /// S5 落：N4 `score_dark` 查此表。
-pub let percent_score_table : Array[Int] = [
+pub let percent_score_table : ReadOnlyArray[Int] = [
   90, 90, 90, 90, 90, 80, 80, 80, 80, 80, 70, 70, 70, 70, 70, 60, 60, 60, 60, 60,
   50, 50, 50, 50, 50, 40, 40, 40, 40, 40, 30, 30, 30, 30, 30, 20, 20, 20, 20, 20,
   10, 10, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 10, 10, 10, 10, 20, 20, 20,
