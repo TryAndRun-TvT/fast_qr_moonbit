@@ -1,5 +1,7 @@
 # S9g · 本项目 wasm 产物体积 · 确认与修正
 
+> ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
+
 > 本文直接回答 issue #50 复审提出的问题：**「本项目 wasm 产物体积到底多大」**，
 > 并修正 [S9f](./S9f-产物体积对比.md) 初版的两处口径错误。
 > 日期：2026-09-10　｜　工具链：`moon 0.1.20260904`、Node `v24.20.0`、`moon-wasm-opt`（Binaryen 125）
@@ -50,8 +52,8 @@ S9f 初版只量了 **`wasm`(WASI) 侧**产物，原因是「与 S9e 性能对�
 但 `moon.mod` 明确写着：
 
 ```toml
-preferred_target = "wasm-gc"        # 默认后端 = wasm-gc
-supported_targets = "+wasm+wasm-gc" # wasm 是兼容兜底
+preferred_target = "wasm-gc"   # 默认且唯一后端 = wasm-gc
+supported_targets = "+wasm-gc" # wasm(WASI)/js 已移除
 ```
 
 `README`、`AGENTS.md` 也一致声明「`wasm-gc` 主推（体积小 83%、快约 33%）」。
@@ -262,6 +264,6 @@ bash scripts/bench-size.sh --no-build   # 产物就绪时只量测（探针缺�
 - 后续：[S9i 纯库调用体积探针与库实际体积](./S9i-纯库调用体积探针与库实际体积.md)（补「库实际体积」口径并修正 ⑤ 锚点不对称）
 - 同尺子：[S9e 性能统一 Node 调用](./S9e-性能测试统一Node调用.md)
 - 早期三后端体积对照（骨架阶段）：[wasm-编译与运行-结果分析](./wasm-编译与运行-结果分析.md) §5.1
-- 本仓库实码：`scripts/wasm-size.mjs`、`scripts/bench-size.sh`、`scripts/moonbit-wasm-runner.mjs`、`cmd/bench/main.mbt`（未改）
+- 本仓库实码：`scripts/wasm-size.mjs`、`scripts/bench-size.sh`、`原 wasm/WASI Node 运行器`、`cmd/bench/main.mbt`（未改）
 - 环境：moon 0.1.20260904、Node v24.20.0、moon-wasm-opt（Binaryen 125）、
   fast_qr v0.14.0（`53e8c99`）+ wasm-bindgen 0.2.100（外部检出副本，探针不入库）

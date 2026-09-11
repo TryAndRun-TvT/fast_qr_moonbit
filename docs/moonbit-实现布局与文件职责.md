@@ -259,7 +259,7 @@ Error: failed when checking project
 | 修正注释 | `fast_qr_moonbit_test.mbt` | 「包内黑盒」→ 准确的黑盒（包外）说明，补充包别名用法（当时为 `@fast_qr_moonbit`；方案 3 后改 `lib/` 内、别名 `@lib`） |
 | 新增 | `fast_qr_moonbit_wbtest.mbt` | 补齐官方布局中的白盒测试文件 |
 | 补充注释 | `cmd/main/moon.pkg` | 记录待启用的 `import` 写法与 `unused_package` 风险 |
-| 新增配置 | `moon.mod` | `supported_targets = "+wasm+wasm-gc+js"` |
+| 新增配置 | `moon.mod` | `supported_targets = "+wasm+wasm-gc+js"`（后续已收敛为 `+wasm-gc`；`js`、`wasm`(WASI) 均已移除） |
 | 格式化 | 全部 | 执行 `moon fmt`，`moon fmt --check` 通过 |
 
 #### 3.2 配置与文档
@@ -284,9 +284,7 @@ export PATH="$HOME/.moon/bin:$PATH"
 moon fmt --check   # 通过
 moon check         # Finished, 0 warnings 0 errors
 moon test          # Total tests: 2, passed: 2, failed: 0
-moon run cmd/main --target wasm      # 正常输出
-moon run cmd/main --target wasm-gc   # 正常输出
-moon run cmd/main --target js        # 正常输出
+moon run cmd/main --target wasm-gc   # 正常输出（当时另有 wasm/js；现仅 wasm-gc）
 ```
 
 测试数由 1 增至 2（黑盒 + 白盒）。

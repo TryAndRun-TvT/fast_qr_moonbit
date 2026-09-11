@@ -153,16 +153,15 @@ fast_qr 侧探针是外部检出副本里的临时 `bin`（不入库）；MoonBi
 
 ```bash
 export PATH="$HOME/.moon/bin:$HOME/.cargo/bin:$PATH"
-bash scripts/bench-size.sh              # 全流程（含 cmd/qr-min 双后端构建 + 五组护栏）
+bash scripts/bench-size.sh              # 全流程（含 cmd/qr-min wasm-gc 构建 + 五组护栏）
 bash scripts/bench-size.sh --no-build   # 产物就绪时只量测
 ```
 
-单测探针本体（两后端输出必须同为 `QR_MIN_CHECKSUM=283`）：
+单测探针本体（输出必须为 `QR_MIN_CHECKSUM=283`）：
 
 ```bash
 export PATH="$HOME/.moon/bin:$PATH"
-moon run cmd/qr-min                                  # 默认后端 wasm-gc
-moon run cmd/qr-min --target wasm                    # 兼容后端 wasm(WASI)
+moon run cmd/qr-min                                  # 唯一后端 wasm-gc
 ```
 
 ---

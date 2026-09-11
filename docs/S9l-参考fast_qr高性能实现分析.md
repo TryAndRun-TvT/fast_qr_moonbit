@@ -192,7 +192,9 @@ V40 `0.400 vs 0.040ms`（**≈10×**）、V10 `0.027 vs 0.008`、V03 `0.007 vs 0
 ## 4. 本项目如何参考该实现优化（分级落地）
 
 > 每项**不得改变输出/择优结果**；逐项独立提交，验收沿用 [S9b §5/§6](./S9b-性能优化.md) 与
-> [S9k §6](./S9k-性能瓶颈与理论上限评估.md)：快照逐位 diff + 109 测试 + 双后端 checksum + 层② sha256 + 同尺子复跑。
+> [S9k §6](./S9k-性能瓶颈与理论上限评估.md)：快照逐位 diff + 109 测试 + `TOTAL_CHECKSUM` + 层② sha256 + 同尺子复跑。
+> **复评修订（[S9n](./S9n-优化方案复评与wasm-gc收敛审计.md)）**：P0/P2/P3 存在介质混杂与收益重复计数，
+> 组合落地前须做合并探针，本表收益不得算术相加。
 
 ### P0 — 掩码特化（收益最大、风险低、改动集中）
 
@@ -263,8 +265,8 @@ V40 `0.400 vs 0.040ms`（**≈10×**）、V10 `0.027 vs 0.008`、V03 `0.007 vs 0
 
 ## 6. 验收与复现
 
-- 门禁沿用 [S9b §5/§6](./S9b-性能优化.md)：快照逐位 diff、109 全绿、双后端 `TOTAL_CHECKSUM`、
-  层② sha256、`bench-layer2.sh` 同尺子复跑。
+- 门禁沿用 [S9b §5/§6](./S9b-性能优化.md)：快照逐位 diff、109 全绿、`TOTAL_CHECKSUM`、
+  层② sha256、`bench-layer2.sh` 同尺子复跑（**仅 `wasm-gc`**；`wasm`(WASI) 已移除）。
 - 临时探针复现（**不出库**）：放 `lib/probe/`（`internal/*` 受可见性规则保护，只能在 `lib/` 子树 import），
   `moon.pkg` 声明 `pkgtype(kind:"executable")` + import `internal/{constants,data_encoding,reedsolomon,matrix}`。
   - **MoonBit 的 `Bytes` 无公开 setter**，定长可写缓冲用 `FixedArray[Byte]`（`FixedArray::make/set`、`blit_to`）。

@@ -18,8 +18,8 @@ keywords = [ "qr", "qrcode", "fast-qr" ]
 preferred_target = "wasm-gc"
 
 // 显式声明实际支持的后端（native 需系统 C 编译器，当前不纳入）；
-// wasm(WASI) 为兼容兜底，仅作历史记录，不参与对外对比
+// wasm(WASI)、js 后端均已按项目决策移除，只保留 wasm-gc
 
-supported_targets = "+wasm+wasm-gc"
+supported_targets = "+wasm-gc"
 
 description = "Fast QR code generator library written in MoonBit"

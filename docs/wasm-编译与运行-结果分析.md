@@ -1,5 +1,7 @@
 # Wasm 编译与运行 · 结果分析
 
+> ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
+
 > 本文记录把 `fast_qr_moonbit` 当前代码（骨架阶段）编译为 WebAssembly 并运行的全过程、
 > 产物结构分析、多后端对比数据，以及由此得出的结论与后续建议。
 >
@@ -34,15 +36,16 @@
 
 > **分析当时**的 `moon.mod` 配置：`preferred_target = "wasm"`，未声明 `supported_targets`
 > （默认支持全部后端）。现均已变更 —— `preferred_target = "wasm-gc"`、
-> `supported_targets = "+wasm+wasm-gc"`（`js` 后端已按后续决策移除，见头部修订注记；原始分析见 §7.1）。
+> `supported_targets = "+wasm-gc"`（`js` 与 `wasm`(WASI) 后端均已按后续决策移除，见头部修订注记；原始分析见 §7.1）。
 > Feature flags：`rr_moon_mod, rr_moon_pkg`（新版 TOML 配置格式）。
 
 > ---
 >
 > **修订注记（后续评审）**：本文记录的是早期骨架阶段对 `wasm`/`wasm-gc`/`js` 三后端的
-> 多后端对比分析（js 曾作为 npm/浏览器直出通道纳入候选）。经后续评审决策，**`js` 后端已移除**，
-> 仓库当前只保留 `wasm-gc`（默认）/ `wasm`（WASI 兜底）双后端，`moon.mod`/CI/脚本已同步收敛。
-> 文中 js 产物体积、微基准等对比数据仍保留作历史参考，不再代表当前产物形态。
+> 多后端对比分析（js 曾作为 npm/浏览器直出通道纳入候选）。经后续评审决策，**`js` 与
+> `wasm`(WASI) 后端均已移除**，仓库当前只保留 `wasm-gc`（默认且唯一后端），
+> `moon.mod`/CI/脚本已同步收敛。文中 `wasm`/js 产物体积、微基准等对比数据仍保留作历史参考，
+> 不再代表当前产物形态。
 >
 > ---
 
@@ -227,7 +230,7 @@ Failed with 2 warnings, 2 errors.
 
 > 现状：`.cnb.yml` 已补 `fmt-check` 与 `build-and-run` 阶段，`check`/`test` 也已加 `--deny-warn`。
 > 当前流水线为：setup → `moon fmt --check` → `moon check --deny-warn` → `moon test`
-> → 遍历 `wasm-gc`/`wasm`/`js` 做 `--release` 构建+运行+测试。下方为原始问题描述与建议。
+> → 遍历 `wasm-gc` 做 `--release` 构建+运行+测试（`wasm`/`js` 后端已移除）。下方为原始问题描述与建议。
 
 问题原描述：push 流水线只执行 `moon check` + `moon test`（走默认 `preferred_target = wasm`），
 未验证 `moon build`、未做 release 产物与 `wasm-gc` 回归。建议补充：
@@ -248,8 +251,8 @@ Failed with 2 warnings, 2 errors.
 - `moon info` 会生成 `pkg.generated.mbti` / `cmd/main/pkg.generated.mbti`（构建产物）。
   本次已将 `*.mbti` 追加进 `.gitignore`，避免误入库。
 - `moon.mod` 未声明 `supported_targets` —— **已修复**，当时为
-  `supported_targets = "+wasm+wasm-gc+js"`；后经评审**移除 `js`** 收敛为 `"+wasm+wasm-gc"`
-  （保留双后端，`native` 因缺 C 编译器不纳入）。
+  `supported_targets = "+wasm+wasm-gc+js"`；后经评审**移除 `js`** 收敛为 `"+wasm+wasm-gc"`，
+  再**移除 `wasm`(WASI)** 收敛为 `"+wasm-gc"`（`native` 因缺 C 编译器不纳入）。
 
 ---
 
@@ -277,10 +280,10 @@ Failed with 2 warnings, 2 errors.
 | P0 | 修正测试文件注释（§6.2） | **已完成** |
 | P0 | 测试从 `assert_true(true)` 升级为真实断言 | 待办（依赖上一条公共 API） |
 | P1 | CI 增加 release 构建 + `wasm-gc` 运行阶段（§6.4） | **已完成**（`fmt-check` + `build-and-run`） |
-| P1 | `moon.mod` 显式声明 `supported_targets`（§6.5） | **已完成**（`+wasm+wasm-gc+js`，后评审**移除 js** 收敛为 `+wasm+wasm-gc`） |
+| P1 | `moon.mod` 显式声明 `supported_targets`（§6.5） | **已完成**（`+wasm+wasm-gc+js` → 移除 `js`、`wasm`(WASI) 后收敛为 `+wasm-gc`） |
 | P1 | `preferred_target` 切换为 `wasm-gc`（§7.1.3） | **已完成** |
 | P2 | 实现后重跑 §5.2 微基准（改用真实 QR 生成路径），复核后端选型 | 待办 |
-| P2 | 评估产物以 npm 包形式分发（`js`）与 WASI CLI 分发（`wasm`）的双通道 | 待办 |
+| P2 | ~~评估产物以 npm 包形式分发（`js`）与 WASI CLI 分发（`wasm`）的双通道~~（`js`/`wasm` 后端已移除，不再适用） | 已取消 |
 
 ---
 

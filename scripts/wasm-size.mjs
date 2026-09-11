@@ -1,19 +1,18 @@
 #!/usr/bin/env node
 // S9f 产物体积对比驱动：**统一口径**量测 MoonBit 与 fast_qr 两侧 wasm 产物体积。
 //
-// 【后端角色约定】（S9j 起全局统一，避免「比的是哪个后端」歧义）：
-//   - wasm-gc = 主推/默认后端，**对外对比口径**（`moon-gc-*` 通道 + `cmd/qr-min` 纯库调用探针，S9i）；
-//   - wasm(WASI) = 兼容兜底后端，仍量测输出但**仅作历史记录**，不参与对外对比。
+// 【后端约定】：MoonBit 侧只保留 `wasm-gc`（主推/默认，唯一后端，**对外对比口径**：
+//   `moon-gc-*` 通道 + `cmd/qr-min` 纯库调用探针，S9i）；WASI 后端已移除，不再量测。
 //
 // 背景（承接 issue #50 的「同尺子」要求）：
 //   S9e 把两侧的**性能**计时统一到了「同一 Node 进程内」；体积对比同样不能「拿文件大小直接对撞」——
 //   两侧产物的**导出面 / 依赖 / 宿主胶水**都不同，必须先把口径摆清楚再比：
 //
-//   | 维度 | 本仓库 MoonBit wasm | fast_qr v0.14.0 wasm32 |
+//   | 维度 | 本仓库 MoonBit wasm-gc | fast_qr v0.14.0 wasm32 |
 //   |------|--------------------|------------------------|
 //   | 入口 | `_start`（`cmd/bench` 可执行包，argv 驱动） | `qr_with`/`qr` 库导出（wasm-bindgen 胶水调用） |
 //   | 依赖 | 自带 MoonBit 运行时（分配/字符串/格式）；GC 侧交给宿主 | 自带 Rust core/alloc/format + 依赖 `__wbindgen_placeholder__` 胶水 shim |
-//   | 宿主胶水 | 无（宿主 runner 直接跑 `_start`） | `fast_qr.js`（wasm-bindgen 生成，≈8.2 KB） |
+//   | 宿主胶水 | 无（`moonrun` 直接跑 `_start`） | `fast_qr.js`（wasm-bindgen 生成，≈8.2 KB） |
 //
 //   本脚本给**同规则五档 + 两个锚点**：
 //     ① raw                —— 构建产物原样字节数。
@@ -27,46 +26,39 @@
 //                             MoonBit `cmd/bench`（同为「无胶水单文件 + 打印」）**同形**对撞。
 //                             这是唯一能回答「排除胶水/依赖面差异后，谁更小」的口径。
 //   + 锚点 A：`cmd/main`（CLI 演示，另一档「无胶水单文件」场景）
-//   + 锚点 B：能级参考 —— 两侧一次调用需回传的数据量不同（MoonBit `--dump` 出文本矩阵 0.9–31.5 KB；
-//             fast_qr `qr_with` 出 0.8–31.3 KB 原始字节矩阵）与模块数平方同阶，属算法固有、非实现差异。
 //
 // 正确性护栏：所有字节级改写（strip/no-custom/-Oz）都在 Node 进程内重新跑一遍并比对语义——
-//   MoonBit 侧 `--dump` 文本逐字节；fast_qr 侧 `qr_with` 三矩阵哈希（胶水后产物无 `_start`）。
+//   MoonBit(wasm-gc) 侧经 `moonrun` 跑 `--dump` 文本逐字节；fast_qr 侧 `qr_with` 三矩阵哈希。
 //   不一致即退出码 1：体积优化不得悄悄改语义（对齐 S9e §4 的 sha256 口径）。
 //
 // 用法:
 //   node scripts/wasm-size.mjs \
-//     --moon-wasm <bench.wasm> --fast-wasm <pkg/fast_qr_bg.wasm> [--fast-js <pkg/fast_qr.js>] \
+//     --moon-gc-wasm <bench.wasm> --fast-wasm <pkg/fast_qr_bg.wasm> [--fast-js <pkg/fast_qr.js>] \
 //     [--fast-raw-wasm <.../fast_qr.wasm>] [--fast-probe-wasm <.../s9f_size_probe.wasm>] \
-//     [--moon-main-wasm <cmd/main/main.wasm>] [--moon-qrmin-wasm <cmd/qr-min/qr-min.wasm>] \
-//     [--moon-gc-qrmin-wasm <.../qr-min.wasm>] [--wasm-opt <moon-wasm-opt>] [--json]
+//     [--moon-gc-main-wasm <cmd/main/main.wasm>] [--moon-gc-qrmin-wasm <.../qr-min.wasm>] \
+//     [--wasm-opt <moon-wasm-opt>] [--json]
 //   （bash 包装见 scripts/bench-size.sh）
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { loadMoonWasm } from './moonbit-wasm-runner.mjs';
 
 // ---- 参数解析 ----
 function arg(name, fallback) {
   const i = process.argv.indexOf(name);
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
 }
-const MOON_WASM = arg('--moon-wasm', process.env.MOON_BENCH_WASM || null);
-const MOON_MAIN_WASM = arg('--moon-main-wasm', process.env.MOON_MAIN_WASM || null);
 const FAST_WASM = arg('--fast-wasm', process.env.FAST_QR_BG_WASM || null);
 const FAST_JS = arg('--fast-js', process.env.FAST_QR_JS || null);
 const FAST_RAW_WASM = arg('--fast-raw-wasm', process.env.FAST_QR_RAW_WASM || null);
 const FAST_PROBE_WASM = arg('--fast-probe-wasm', process.env.FAST_QR_PROBE_WASM || null);
 const FAST_HELLO_WASM = arg('--fast-hello-wasm', process.env.FAST_QR_HELLO_WASM || null);
-const MOON_HELLO_WASM = arg('--moon-hello-wasm', process.env.MOON_HELLO_WASM || null);
-// --- wasm-gc（**默认后端**）通道 ---
+// --- wasm-gc（**默认/唯一后端**）通道 ---
 const MOON_GC_WASM = arg('--moon-gc-wasm', process.env.MOON_GC_BENCH_WASM || null);
 const MOON_GC_MAIN_WASM = arg('--moon-gc-main-wasm', process.env.MOON_GC_MAIN_WASM || null);
 const MOON_GC_HELLO_WASM = arg('--moon-gc-hello-wasm', process.env.MOON_GC_HELLO_WASM || null);
 // --- S9i 纯库调用体积探针（cmd/qr-min：仅 QR 核心生成管线，无 argv/--dump/输出层外壳）通道 ---
-const MOON_QRMIN_WASM = arg('--moon-qrmin-wasm', process.env.MOON_QRMIN_WASM || null);
 const MOON_GC_QRMIN_WASM = arg('--moon-gc-qrmin-wasm', process.env.MOON_GC_QRMIN_WASM || null);
 const MOONRUN = arg('--moonrun', process.env.MOONRUN || null);
 const PROBE_SYMBOL = process.env.FAST_QR_PROBE_SYMBOL || 's9f_size_probe';
@@ -75,9 +67,8 @@ const REPS = Number(arg('--reps', '3'));
 const AS_JSON = process.argv.includes('--json');
 const INPUT = 'https://example.com/';
 const POINTS = ['V03', 'V10', 'V40'];
-const POINT_LABEL = { V03: 'V03H', V10: 'V10H', V40: 'V40H' };
-if (!MOON_WASM || !FAST_WASM) {
-  console.error('usage: node wasm-size.mjs --moon-wasm <bench.wasm> --fast-wasm <fast_qr_bg.wasm>');
+if (!MOON_GC_WASM || !FAST_WASM) {
+  console.error('usage: node wasm-size.mjs --moon-gc-wasm <bench.wasm> --fast-wasm <fast_qr_bg.wasm>');
   process.exit(2);
 }
 
@@ -199,9 +190,8 @@ function optimizeGc(file, outFile) {
 }
 
 /// wasm-gc 产物**没有** `__moonbit_fs_unstable`（无 argv/字符串读回），但 `_start` 仍在；
-/// 且 `moonbit-wasm-runner.mjs` 的 WASI shim 与 wasm-gc 导入面不兼容。
-/// 因此走 `moonrun`（MoonBit 官方运行时，本仓库既有依赖）作为**进程内不可用时的官方宿主**：
-/// 逐字节比对 `--dump` 三基准点输出。这是「改写后语义不变」的护栏。
+/// 进程内的 WASI shim 与 wasm-gc 导入面不兼容，因此走 `moonrun`（MoonBit 官方运行时，
+/// 本仓库既有依赖）作为**进程内不可用时的官方宿主**：逐字节比对 `--dump` 三基准点输出。
 function moonrunDigest(file) {
   const hash = createHash('sha256');
   for (const pt of POINTS) {
@@ -217,11 +207,6 @@ function moonrunDigest(file) {
 }
 
 // ---- 语义护栏 ----
-/// MoonBit 侧：`--dump` 三基准点文本，逐字节比对（`_start` 可执行包，可在 Node 进程内重跑）。
-function moonDumpDigest(file) {
-  const mod = loadMoonWasm(file);
-  return sha(POINTS.map((pt) => mod.run(['--dump', pt]).stdout).join('\u0000'));
-}
 /// fast_qr 侧：胶水后产物无 `_start`，改用 JS 胶水 + `qr_with` 出三矩阵哈希（拷到临时目录换 wasm 文件）。
 function fastQrWithDigest(wasmFile, pkgDir) {
   const dir = pkgDir || path.dirname(FAST_WASM);
@@ -254,14 +239,6 @@ function rawProbeDigest(file, symbol) {
   if (typeof f !== 'function') return null;
   return sha([0, 1, 2].map((s) => String(f(s))).join(','));
 }
-/// 单次调用「要搬上宿主/自带」的数据量（两侧都按最小 JSON 数组计，结构开销相同）。
-/// MoonBit `--dump` 出可读文本矩阵（含头行与换行）；fast_qr `qr_with` 出 0.8–31.3 KB 原始字节矩阵。
-function payloadBytes() {
-  const moon = loadMoonWasm(MOON_WASM);
-  const out = {};
-  for (const pt of POINTS) out[pt] = moon.run(['--dump', pt]).stdout.length;
-  return out;
-}
 
 function guard(cond, tag) {
   if (!cond) {
@@ -272,43 +249,21 @@ function guard(cond, tag) {
 
 // ---- 主体 ----
 const tmp = fs.mkdtempSync('/tmp/s9f-size-');
-const moon = measure('MoonBit bench.wasm', MOON_WASM);
-const moonMain = MOON_MAIN_WASM && fs.existsSync(MOON_MAIN_WASM) ? measure('MoonBit cmd/main main.wasm', MOON_MAIN_WASM) : null;
-const moonQrmin =
-  MOON_QRMIN_WASM && fs.existsSync(MOON_QRMIN_WASM) ? measure('MoonBit cmd/qr-min qr-min.wasm', MOON_QRMIN_WASM) : null;
 const fast = measure('fast_qr_bg.wasm', FAST_WASM);
 const probe = FAST_PROBE_WASM && fs.existsSync(FAST_PROBE_WASM) ? measure('fast_qr 裸探针 wasm', FAST_PROBE_WASM) : null;
 const fastHello = FAST_HELLO_WASM && fs.existsSync(FAST_HELLO_WASM) ? measure('fast_qr 基线探针（hello）', FAST_HELLO_WASM) : null;
-const moonHello = MOON_HELLO_WASM && fs.existsSync(MOON_HELLO_WASM) ? measure('MoonBit 基线探针（hello）', MOON_HELLO_WASM) : null;
 
-const moonNoCustomFile = path.join(tmp, 'moon.nocustom.wasm');
-fs.writeFileSync(moonNoCustomFile, stripCustomSections(fs.readFileSync(MOON_WASM)));
 const fastNoCustomFile = path.join(tmp, 'fast.nocustom.wasm');
 fs.writeFileSync(fastNoCustomFile, stripCustomSections(fs.readFileSync(FAST_WASM)));
 
-const moonOptFile = path.join(tmp, 'moon.opt.wasm');
 const fastOptFile = path.join(tmp, 'fast.opt.wasm');
 const probeOptFile = path.join(tmp, 'probe.opt.wasm');
 const fastHelloOptFile = path.join(tmp, 'fasthello.opt.wasm');
-const moonHelloOptFile = path.join(tmp, 'moonhello.opt.wasm');
-const moonMainOptFile = path.join(tmp, 'moonmain.opt.wasm');
-const moonOpt = optimize(MOON_WASM, moonOptFile);
 const fastOpt = optimize(FAST_WASM, fastOptFile, { rust: true });
 const probeOpt = probe ? optimize(FAST_PROBE_WASM, probeOptFile, { rust: true }) : null;
 const fastHelloOpt = fastHello ? optimize(FAST_HELLO_WASM, fastHelloOptFile, { rust: true }) : null;
-const moonHelloOpt = moonHello ? optimize(MOON_HELLO_WASM, moonHelloOptFile) : null;
-const moonMainOpt = moonMain ? optimize(MOON_MAIN_WASM, moonMainOptFile) : null;
-const moonQrminOptFile = path.join(tmp, 'moonqrmin.opt.wasm');
-const moonQrminOpt = moonQrmin ? optimize(MOON_QRMIN_WASM, moonQrminOptFile) : null;
-// 探针不读 argv（--dump 等参数被忽略，输出恒为一行 QR_MIN_CHECKSUM），
-// 复用 moonDumpDigest（跑 3 次拼接取 sha）即可作「改写前后逐字节一致」护栏。
-const gMoonQrminBase = moonQrmin ? moonDumpDigest(MOON_QRMIN_WASM) : null;
-guard(moonQrminOpt !== null ? moonDumpDigest(moonQrminOptFile) === gMoonQrminBase : true, 'MoonBit qr-min wasm-opt -Oz');
 
 // 护栏
-const gMoonBase = moonDumpDigest(MOON_WASM);
-guard(moonDumpDigest(moonNoCustomFile) === gMoonBase, 'MoonBit no-custom');
-guard(moonOpt !== null ? moonDumpDigest(moonOptFile) === gMoonBase : true, 'MoonBit wasm-opt -Oz');
 const gFastBase = fastQrWithDigest(FAST_WASM);
 guard(gFastBase !== null ? fastQrWithDigest(fastNoCustomFile) === gFastBase : true, 'fast_qr no-custom');
 guard(fastOpt !== null ? fastQrWithDigest(fastOptFile) === gFastBase : true, 'fast_qr wasm-opt -Oz');
@@ -317,7 +272,7 @@ guard(probeOpt !== null ? rawProbeDigest(probeOptFile, PROBE_SYMBOL) === gProbeB
 const gHelloBase = fastHello ? rawProbeDigest(FAST_HELLO_WASM, 's9f_hello_probe') : null;
 guard(fastHelloOpt !== null ? rawProbeDigest(fastHelloOptFile, 's9f_hello_probe') === gHelloBase : true, 'fast_qr 基线探针 -Oz');
 
-// ---- wasm-gc（默认后端）量测 + 护栏 ----
+// ---- wasm-gc（默认/唯一后端）量测 + 护栏 ----
 const gc = MOON_GC_WASM && fs.existsSync(MOON_GC_WASM) ? measure('MoonBit bench.wasm (wasm-gc)', MOON_GC_WASM) : null;
 const gcMain =
   MOON_GC_MAIN_WASM && fs.existsSync(MOON_GC_MAIN_WASM) ? measure('MoonBit cmd/main main.wasm (wasm-gc)', MOON_GC_MAIN_WASM) : null;
@@ -358,25 +313,20 @@ if (gcQrmin) {
 
 const jsGlue = FAST_JS && fs.existsSync(FAST_JS) ? fs.readFileSync(FAST_JS).length : null;
 const fastRawWasm = FAST_RAW_WASM && fs.existsSync(FAST_RAW_WASM) ? fs.readFileSync(FAST_RAW_WASM).length : null;
-const payload = payloadBytes();
 
 // ---- 输出 ----
 if (AS_JSON) {
   console.log(
     JSON.stringify(
       {
-        moon: { raw: moon.raw, noCustom: moon.noCustom, opt: moonOpt, custom: moon.custom },
-        moonMain: moonMain ? { raw: moonMain.raw, opt: moonMainOpt } : null,
-        moonQrmin: moonQrmin ? { raw: moonQrmin.raw, opt: moonQrminOpt } : null,
         moonGc: gc ? { raw: gc.raw, noCustom: gcNoCustom, opt: gcOpt, custom: gc.custom } : null,
         moonGcMain: gcMain ? { raw: gcMain.raw, opt: gcMainOpt } : null,
         moonGcQrmin: gcQrmin ? { raw: gcQrmin.raw, opt: gcQrminOpt } : null,
         moonGcHelloBaseline: gcHelloOpt,
         fast: { raw: fast.raw, noCustom: fast.noCustom, opt: fastOpt, custom: fast.custom, jsGlue, rawWasmBeforeBindgen: fastRawWasm },
         probe: probe ? { raw: probe.raw, opt: probeOpt } : null,
-        helloBaseline: { moon: moonHelloOpt, fast: fastHelloOpt },
-        payload,
-        guards: { moon: gMoonBase, fast: gFastBase, probe: gProbeBase, moonQrmin: gMoonQrminBase, moonGcQrmin: gGcQrminBase },
+        helloBaseline: { fast: fastHelloOpt },
+        guards: { fast: gFastBase, probe: gProbeBase, moonGcQrmin: gGcQrminBase },
       },
       null,
       2
@@ -391,41 +341,21 @@ console.log('> 承接 issue #50 的「同一把尺子」：S9e 统一了**性能
 console.log('> ① raw 原始产物 ② 剥 custom 段 ③ `moon-wasm-opt --all-features -Oz`（两侧同一优化器）');
 console.log('> ④ 单次调用需搬上宿主的字节（wasm + 胶水） ⑤ 同功能锚点（无胶水单文件）。');
 console.log('> 所有改写档位均已过语义护栏（`--dump` / `qr_with` / 导出符号比对）。');
+console.log('> MoonBit 侧统一为 `wasm-gc`（默认/唯一后端），经 `moonrun` 加载运行。');
 console.log('');
 console.log('## 产物与宿主面');
 console.log('');
 console.log('| 侧 | 产物 | 入口 | 运行时 | 宿主胶水 |');
 console.log('|----|------|------|--------|---------|');
-console.log(`| 本仓库 MoonBit（\`cmd/bench\`） | \`bench.wasm\` | \`_start\`（argv 驱动） | 自带 MoonBit 运行时 | 无（宿主 runner 直跑 \`_start\`） |`);
+console.log(`| 本仓库 MoonBit（\`cmd/bench\`，wasm-gc） | \`bench.wasm\` | \`_start\`（argv 驱动） | 自带 MoonBit 运行时 + 宿主 GC | 无（\`moonrun\` 直跑 \`_start\`） |`);
 console.log(`| fast_qr v0.14.0（wasm-bindgen nodejs） | \`fast_qr_bg.wasm\` + \`fast_qr.js\` | \`qr_with\` 库导出 | Rust core/alloc/format | \`fast_qr.js\` ${jsGlue === null ? '（未提供）' : jsGlue + ' B'} |`);
 console.log('');
 
-console.log('## 一、对照表（同规则口径）');
-console.log('');
-console.log('| 档位 | MoonBit bench (B) | fast_qr_bg (B) | ours / fast_qr |');
-console.log('|------|------------------:|---------------:|---------------:|');
-console.log(`| ① raw 原始产物 | ${moon.raw} | ${fast.raw} | ${ratio(moon.raw, fast.raw)} |`);
-console.log(`| ② 剥 custom 段 | ${moon.noCustom} | ${fast.noCustom} | ${ratio(moon.noCustom, fast.noCustom)} |`);
-console.log(`| ③ wasm-opt -Oz | ${moonOpt ?? 'n/a'} | ${fastOpt ?? 'n/a'} | ${moonOpt && fastOpt ? ratio(moonOpt, fastOpt) : 'n/a'} |`);
-console.log(`| ④ 单次调用 wasm+胶水（-Oz） | ${moonOpt ?? 'n/a'}（无胶水） | ${moonOpt && fastOpt && jsGlue !== null ? fastOpt + jsGlue : 'n/a'} | ${moonOpt && fastOpt && jsGlue !== null ? ratio(moonOpt, fastOpt + jsGlue) : 'n/a'} |`);
-console.log('');
-console.log('### ⑤ 同功能锚点（无胶水单文件，最公平）');
-console.log('');
-console.log('| 锚点 | raw (B) | -Oz (B) | 说明 |');
-console.log('|------|--------:|--------:|------|');
-console.log(`| MoonBit \`cmd/bench\` bench.wasm | ${moon.raw} | ${moonOpt ?? 'n/a'} | 三基准点 + \`--dump\` + checksum |`);
-if (moonMain) console.log(`| MoonBit \`cmd/main\` main.wasm | ${moonMain.raw} | ${moonMainOpt ?? 'n/a'} | 演示 CLI（终端画 + SVG） |`);
-if (moonQrmin)
-  console.log(
-    `| MoonBit \`cmd/qr-min\`（纯库调用探针） | ${moonQrmin.raw} | ${moonQrminOpt ?? 'n/a'} | 仅 QR 核心生成管线，无 argv/--dump/输出层外壳（S9i） |`
-  );
-if (probe) console.log(`| fast_qr 裸探针（\`${PROBE_SYMBOL}\`） | ${probe.raw} | ${probeOpt ?? 'n/a'} | 强制 ECL/版本 + mask 择优 + 返回矩阵长度，无胶水 |`);
-console.log('');
 if (gc) {
-  console.log('### ⑤-gc 默认后端口径（`wasm-gc`，**本仓库实际分发形态**）');
+  console.log('## 一、对照表（同规则口径，`wasm-gc` = **本仓库实际分发形态**）');
   console.log('');
   console.log('> `moon.mod`: `preferred_target = \"wasm-gc\"`。`wasm-gc` 把对象/字符串交给**宿主 GC**，');
-  console.log('> 自带运行时远小于 WASI 侧，因此这才是本库对外承诺的产物档位。');
+  console.log('> 自带运行时远小于自管运行时，因此这才是本库对外承诺的产物档位。');
   console.log('> 优化档用 `moon-wasm-opt --all-features --disable-custom-descriptors -Oz`：');
   console.log('> `--all-features` 会打开 custom-descriptors(RTT)，其 `exact` heap type 在 Node 24 与 moonrun 上**都编译不过**，');
   console.log('> 关掉后即得「可被真实宿主加载」的体积最小档。');
@@ -438,14 +368,13 @@ if (gc) {
   console.log(`| ④ 单次调用 wasm+胶水（-Oz） | ${gcOpt ?? 'n/a'}（无胶水） | ${gcOpt && fastOpt && jsGlue !== null ? fastOpt + jsGlue : 'n/a'} | ${gcOpt && fastOpt && jsGlue !== null ? ratio(gcOpt, fastOpt + jsGlue) : 'n/a'} |`);
   console.log('');
   if (gcMain) console.log(`- 另一档场景：MoonBit \`cmd/main\`(wasm-gc) raw ${gcMain.raw} B / \`-Oz\` ${gcMainOpt} B。`);
-  if (gc && gcOpt && moonOpt) {
-    console.log(`- 同仓库跨后端：\`wasm-gc\` 比 \`wasm\`(WASI) 小 **${(100 * (1 - gcOpt / moonOpt)).toFixed(1)}%**（-Oz：${gcOpt} vs ${moonOpt} B）。`);
-  }
-  if (gc && probeOpt) {
-    console.log(`- 对 fast_qr 裸探针（同口径 ③）：${ratio(gcOpt, probeOpt) === undefined ? '' : `ours / fast = **${ratio(gcOpt, probeOpt)}**`}（两侧都无胶水；fast_qr 侧已剥 wasm-bindgen 胶水面）。`);
+  if (gcOpt && probeOpt) {
+    console.log(`- 对 fast_qr 裸探针（同口径 ③）：ours / fast = **${ratio(gcOpt, probeOpt)}**（两侧都无胶水；fast_qr 侧已剥 wasm-bindgen 胶水面）。`);
   }
   console.log('');
-  console.log('| 锚点（-Oz，同口径） | (B) |');
+  console.log('### 同功能锚点（-Oz，同口径）');
+  console.log('');
+  console.log('| 锚点 | (B) |');
   console.log('|--------------------|----:|');
   console.log(`| MoonBit \`cmd/bench\` (wasm-gc) | ${gcOpt ?? 'n/a'} |`);
   if (gcMain) console.log(`| MoonBit \`cmd/main\` (wasm-gc) | ${gcMainOpt} |`);
@@ -469,92 +398,46 @@ if (gc) {
     }
   }
   if (gcHelloOpt && fastHelloOpt && gcOpt) {
-    console.log(`- **wasm-gc 运行时地板**：hello-only \`-Oz\` 仅 **${gcHelloOpt} B**（WASI 侧 ${moonHelloOpt} B），`);
+    console.log(`- **wasm-gc 运行时地板**：hello-only \`-Oz\` 仅 **${gcHelloOpt} B**（Rust 侧 ${fastHelloOpt} B），`);
     console.log(`  即 \`wasm-gc\` 把「运行时地板」压到 ~0.3 KB；此时 QR 业务净增 = ${gcOpt} − ${gcHelloOpt} = **+${gcOpt - gcHelloOpt} B**。`);
   }
 }
 console.log('');
-if (probe && moonOpt) {
-  console.log(`- 锚点对比（-Oz）：fast_qr 裸探针 ${probeOpt} B vs MoonBit bench ${moonOpt} B → ours / fast = **${ratio(moonOpt, probeOpt)}**（两侧都无胶水、都自带运行时）。`);
-}
-if (fastHello && moonHello) {
-  console.log('');
-  console.log('### ⑤b 体积基线分解（同规则两极：hello-only → 真实 QR 命令）');
-  console.log('');
-  console.log('| 侧 | ① hello-only 基线 | ② 真实 QR 命令 | 业务净增 |');
-  console.log('|----|------------------:|---------------:|---------:|');
-  console.log(`| MoonBit（-Oz） | ${moonHelloOpt} B（\`println\` 一行） | ${moonOpt} B（\`cmd/bench\`） | +${moonOpt - moonHelloOpt} B |`);
-  if (moonQrminOpt)
-    console.log(
-      `| MoonBit 纯库调用（-Oz） | ${moonHelloOpt} B（\`println\` 一行） | ${moonQrminOpt} B（\`cmd/qr-min\`） | +${moonQrminOpt - moonHelloOpt} B |`
-    );
-  console.log(`| fast_qr（-Oz） | ${fastHelloOpt} B（一行 \`println!\`） | ${probeOpt} B（裸探针） | +${probeOpt - fastHelloOpt} B |`);
-  console.log('');
-  console.log(`- **运行时地板**（hello-only）：MoonBit ${moonHelloOpt} B vs Rust ${fastHelloOpt} B —— 差距 ${ratio(fastHelloOpt, moonHelloOpt)}，来自 Rust 自带 core/alloc/fmt 与 panic 机制。`);
-  console.log(`- **业务净增**：MoonBit 真实 QR 路径 +${moonOpt - moonHelloOpt} B vs fast_qr +${probeOpt - fastHelloOpt} B。`);
-  console.log('> 即：两侧总体积差里，大部分是**各自运行时/宿主面的地板差**，QR 业务代码本身的净增量同量级。');
-}
 console.log(`- 参照：fast_qr 胶水前库 wasm（cargo 直出）${fastRawWasm ?? 'n/a'} B（对照用，含 resvg 关闭后的完整库面）。`);
 console.log('');
 
 console.log('## 二、custom 段构成（为什么 raw 档别直接对撞）');
 console.log('');
-console.log(`- MoonBit bench：custom ${moon.custom} B（${pct(moon.custom, moon.raw)}）→ ${moon.customNames.join(', ')}`);
+console.log(`- MoonBit(wasm-gc) bench：custom ${gc ? gc.custom : 'n/a'} B（${gc ? pct(gc.custom, gc.raw) : 'n/a'}）→ ${gc ? gc.customNames.join(', ') : 'n/a'}`);
 console.log(`- fast_qr_bg：custom ${fast.custom} B（${pct(fast.custom, fast.raw)}）→ ${fast.customNames.join(', ')}`);
 console.log('');
 console.log('> Rust 侧 `name` 段（wasm-bindgen 的符号名，7.7 KB 级）+ `target_features` 属**元数据**；');
-console.log('> MoonBit 侧几乎不带 custom 段（122 B）。剥掉后两侧才算同口径。');
+console.log('> MoonBit 侧几乎不带 custom 段。剥掉后两侧才算同口径。');
 console.log('');
 
-console.log('## 三、能级参考：单次调用需回传的数据量（非实现差异）');
-console.log('');
-console.log('| 点 | MoonBit `--dump` 文本矩阵 (B) | fast_qr `qr_with` 字节矩阵 (B) | 差值来源 |');
-console.log('|----|------------------------------:|------------------------------:|---------|');
-const modules = { V03: 841, V10: 3249, V40: 31329 };
-for (const pt of POINTS) {
-  console.log(`| ${POINT_LABEL[pt]} | ${payload[pt]} | ${modules[pt]} | MoonBit 出可读文本（含头行 + 换行），fast_qr 出原始字节 |`);
-}
-console.log('');
-console.log('> 两者都与模块数同阶（O(size²)），差在载体（文本 vs 字节）；属算法固有量，不应计入产物体积差。');
-console.log('');
-
-console.log('## 四、结论');
+console.log('## 三、结论');
 console.log('');
 if (gc && gcOpt) {
-  console.log(`0. **本仓库实际分发形态是 \`wasm-gc\`（默认后端）**：raw ${gc.raw} B、剥 custom ${gcNoCustom} B、\`-Oz\` **${gcOpt} B**（可被 Node/moonrun 真实加载运行）。`);
+  console.log(`1. **本仓库实际分发形态是 \`wasm-gc\`（默认/唯一后端）**：raw ${gc.raw} B、剥 custom ${gcNoCustom} B、\`-Oz\` **${gcOpt} B**（可被 Node/moonrun 真实加载运行）。`);
   console.log(`   对比 fast_qr \`-Oz\` ${fastOpt} B → **${ratio(gcOpt, fastOpt)}**；计入 fast_qr 胶水 ${jsGlue} B → **${ratio(gcOpt, fastOpt + jsGlue)}**。`);
   if (gcHelloOpt && fastHelloOpt) {
     console.log(`   运行时地板：\`wasm-gc\` hello-only **${gcHelloOpt} B** vs Rust **${fastHelloOpt} B**（Rust 高 ${(fastHelloOpt / gcHelloOpt).toFixed(1)}×），`);
     console.log(`   QR 业务净增 ${gcOpt - gcHelloOpt} B vs fast_qr ${probeOpt - fastHelloOpt} B。`);
+    console.log(`   → 两侧总体积差里，大部分是**各自运行时/宿主面的地板差**，QR 业务代码本身的净增量同量级。`);
   }
 }
-
-console.log(`1. **raw 档不可比**：raw ${moon.raw} vs ${fast.raw} B（${ratio(moon.raw, fast.raw)}）——Rust 侧多 ${fast.custom} B 元数据（name/target_features），MoonBit 侧则把运行时编在 code 段里。拿两个 .wasm 直接除，等于拿两种不同包装比。`);
-if (moonOpt && fastOpt) {
-  console.log(`2. **同规则（③ / ④）差异很小**：\`-Oz\` 后 ${moonOpt} vs ${fastOpt} B = **${ratio(moonOpt, fastOpt)}**；把 fast_qr 宿主胶水（${jsGlue} B）计进来，单次调用 \`wasm+胶水\` 为 ${ratio(moonOpt, fastOpt + jsGlue)}（MoonBit 侧无胶水）。`);
-}
-if (probe && moonOpt) {
-  console.log(`3. **同功能锚点（⑤，无胶水单文件）**：fast_qr 裸探针 ${probeOpt} B vs MoonBit bench ${moonOpt} B = **${ratio(moonOpt, probeOpt)}**——两侧都无胶水、都自带运行时，最接近同形。`);
-}
-if (fastHello && moonHello) {
-  console.log(`4. **地板 vs 业务（⑤b）**：hello-only 基线 MoonBit ${moonHelloOpt} B vs Rust ${fastHelloOpt} B（${ratio(fastHelloOpt, moonHelloOpt)}）——Rust 自带 core/alloc/fmt/panic 的地板比 MoonBit 高一个量级；扣掉地板后，真实 QR 路径净增 MoonBit +${moonOpt - moonHelloOpt} B vs fast_qr +${probeOpt - fastHelloOpt} B。`);
-  console.log(`   → **总体积差主要来自两侧「运行时地板 + 宿主面」的选择差异，而非 QR 算法实现差**；且 MoonBit bench 还多带 \`--dump\` 文本导出与三基准点 argv/checksum 路径。`);
-}
-if (moonMain) console.log(`5. **另一档场景（CLI）**：MoonBit \`cmd/main\` -Oz ${moonMainOpt} B，量级与 bench 同档。`);
 if (gcQrminOpt && probeOpt) {
   console.log(
-    `6. **库实际体积（S9i 纯库调用口径）**：\`cmd/qr-min\`(wasm-gc) -Oz **${gcQrminOpt} B**，扣 hello 地板后 QR 核心净增 **+${gcHelloOpt ? gcQrminOpt - gcHelloOpt : 'n/a'} B**；对称锚点 vs fast_qr 裸探针 ${probeOpt} B = **${ratio(gcQrminOpt, probeOpt)}**。`
+    `2. **库实际体积（S9i 纯库调用口径）**：\`cmd/qr-min\`(wasm-gc) -Oz **${gcQrminOpt} B**，扣 hello 地板后 QR 核心净增 **+${gcHelloOpt ? gcQrminOpt - gcHelloOpt : 'n/a'} B**；对称锚点 vs fast_qr 裸探针 ${probeOpt} B = **${ratio(gcQrminOpt, probeOpt)}**。`
   );
   console.log(
     `   命令形态不能代表库体积：bench/main 与 qr-min 的差值即各自外壳（argv/迭代/--dump、终端画+SVG）的成本，随宿主集成场景裁剪。`
   );
 }
 console.log('');
-console.log('## 五、语义护栏（改写后 vs 原始，逐字节）');
+console.log('## 四、语义护栏（改写后 vs 原始，逐字节）');
 console.log('');
-console.log(`- MoonBit \`--dump\` 三基准点文本：no-custom / -Oz **一致** sha256[:16]=${gMoonBase}`);
 console.log(`- fast_qr \`qr_with\` 三矩阵：no-custom / -Oz **一致** sha256[:16]=${gFastBase}`);
 if (gProbeBase) console.log(`- fast_qr 裸探针导出符号输出：raw/-Oz **一致** sha256[:16]=${gProbeBase}`);
-console.log('');
 if (gGcBase) console.log(`- MoonBit(wasm-gc) \`--dump\` 三基准点文本（moonrun 宿主）：raw / no-custom / -Oz **一致** sha256[:16]=${gGcBase}`);
 console.log('> 复跑：`bash scripts/bench-size.sh`（内部 `node scripts/wasm-size.mjs`）；数字随工具链/产物版本可重测。');

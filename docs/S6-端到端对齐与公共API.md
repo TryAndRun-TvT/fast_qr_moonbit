@@ -31,9 +31,8 @@ S6 有两块交付，均属 **M2「功能对齐」收口**（roadmap §4.4）：
    setter + `build`），对齐 fast_qr `lib.rs:75-80` 导出面（`pub use crate::qr::{QRBuilder, QRCode}`），
    让既有底层 `QRCode::build`/`build_fixed` 收敛为一个对外惯用的 builder 入口。
 
-S6 **不含**输出层（`to_str` 终端画 / SVG → **S7/B11**），**不含** wasm 绑定导出面收口（当前 `moon.mod`
-  仅 `+wasm+wasm-gc`、无 `wasm-bindgen` 对应物，wasm 导出面是否随 S6 或单列需在实现时按 `.cnb.yml`/
-  AGENTS 决策确认——本方案默认将 wasm 导出面列为 S6 尾部的可选项，见 §7）。
+S6 **不含**输出层（`to_str` 终端画 / SVG → **S7/B11**），**不含** wasm 绑定导出面收口（当时 `moon.mod`
+  仅 `+wasm+wasm-gc`、无 `wasm-bindgen` 对应物；现后端已收敛为 `+wasm-gc`，`js`/`wasm`(WASI) 均已移除）。
 
 ---
 

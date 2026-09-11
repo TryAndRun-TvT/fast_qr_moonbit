@@ -1,5 +1,7 @@
 # S9c · 性能测试与 fast_qr-wasm 对比
 
+> ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
+
 > 本文件由原 S9c-性能测试与fast_qr-wasm对比-实现方案 / S9c-性能测试与fast_qr-wasm对比-实现记录 / S9c-性能测试与fast_qr-wasm对比-详细分析 于 2026-09-11 合并而成（文档整合，见 roadmap M3 收口后整理）。
 > 内容除标题降级与本头部外未改写；各部分头部的承接/修订注记原样保留。
 
@@ -21,7 +23,7 @@
 > **2026-09-06 实现后修订**（落地见 本文件「实现记录」部分）：
 > ① 原「免 C 编译器」表述不成立——wasm-bindgen 依赖的 **host 构建脚本/过程宏需系统链接器 cc/gcc**，
 > 环境脚本实际含 gcc 安装（本容器 apt 装 gcc 14.2.0）；预编译 wasm-bindgen-cli 只省去编译 CLI 本体。
-> ② MoonBit 侧**采用 moonrun 子进程**（`scripts/wasm-compare.mjs` 内 execFileSync，Node 统一采集/计时）——
+> ② MoonBit 侧**采用 moonrun 子进程**（`原 wasm/WASI 对比驱动脚本` 内 execFileSync，Node 统一采集/计时）——
 > 「同一 Node 进程实例化 bench.wasm + `__moonbit_fs_unstable` argv 注入」spike 失败（argv 未注入成功、
 > WASI fd_write 绕过 process.stdout 拦截），走 D18 降级路径。
 
@@ -46,7 +48,7 @@ S9 层①的基准载体（`cmd/bench` + `scripts/bench.sh`）已可复跑并记
    wasm 侧（`bool_to_u8`）只输出 **0/1 明暗值**——两套校验和**公式不可跨库互比**（§3.4）。故新增
    `cmd/bench --dump <点>`：一次 build 后导出**值全集规范矩阵**（逐行 '0'/'1'），供 Node 宿主
    `diff`/`sha256` 做逐位对齐；`--dump` 是可选新模式，**默认行为与层①数字完全不变**（82000/32400/9200 可复现）。
-4. **驱动 = 一个 Node 脚本** `scripts/wasm-compare.mjs`（`scripts/bench-layer2.sh` 薄包装）：
+4. **驱动 = 一个 Node 脚本** `原 wasm/WASI 对比驱动脚本`（`scripts/bench-layer2.sh` 薄包装）：
    fast_qr 侧进程内直调计时、MoonBit 侧 `moonrun` 子进程计时（修订注②），`performance.now()`/`hrtime`
    循环计时取多次最小，产出对齐结论 + 对比 markdown 表（§4 清单 #4）。
 5. 回归护栏：不动 lib 公共 API / 快照；层②对齐为**对 S1-S7 既有快照对齐的跨宿主重确认**（非新正确性门槛，
@@ -65,7 +67,7 @@ S9 层①的基准载体（`cmd/bench` + `scripts/bench.sh`）已可复跑并记
 - **盘点层②缺口**（`bench.sh` 占位 vs 三份文档待办）与**参考侧语义核验**（fast_qr benches/wasm.rs 事实，
   §2.2）；
 - **决策 fast_qr 侧 wasm 载体**（D17）、**Node 宿主/计时口径**（D18）与**逐位对齐协议**（D19）；
-- 文件级落地清单：`cmd/bench --dump`、fast_qr 参考侧 patch（外部检出，不入库）、`scripts/wasm-compare.mjs`
+- 文件级落地清单：`cmd/bench --dump`、fast_qr 参考侧 patch（外部检出，不入库）、`原 wasm/WASI 对比驱动脚本`
   驱动、环境脚本扩展、文档治理；
 - 验收策略（§5）：对齐零差异 + 109 测试 + 默认 checksum 不变。
 
@@ -189,7 +191,7 @@ S9b §层②/③ 亦标「待外部环境」。故 M3 收口 = 把层②占位�
   `cmd/bench --target wasm` 产物并调用 `_start`」（argv 经 `__moonbit_fs_unstable` 宿主函数注入）；实现期
   spike 实证**未通过**——① argv 经 7 个 fs_unstable 导入注入失败（程序回到默认三点全跑，说明参数未读到）；
   ② node WASI 的 `fd_write` 直接写进程 fd，**绕过 `process.stdout.write` 拦截**，进程内无法干净捕获输出。
-  故落地为**降级路径（仍统一 Node）**：`wasm-compare.mjs` 内用 `child_process.execFileSync('moonrun', …)`
+  故落地为**降级路径（仍统一 Node）**：`原 wasm/WASI 对比驱动脚本` 内用 `child_process.execFileSync('moonrun', …)`
   （`~/.moon/bin/moonrun` 原生 wasm 运行器，直跑 bench.wasm、启动开销小）跑 MoonBit 侧（同样 R 次取最小，
   Node 内统一采集与输出）；计时口径一致性（R 次取最小、同 Node 时钟、同表输出）不受影响，整程含 moonrun
   进程启动的口径在表注中写明。
@@ -222,7 +224,7 @@ S9b §层②/③ 亦标「待外部环境」。故 M3 收口 = 把层②占位�
 - `scripts/setup-rust.sh`（既有，rsproxy stable + sparse 镜像，不入 push CI）作为 Rust 环境入口；
   层②在其后补：`rustup target add wasm32-unknown-unknown` + 下载解压预编译 `wasm-bindgen-cli 0.2.100`
   到 `~/.cargo/bin`（或 `scripts/.tools`）。建议抽成 `scripts/setup-fast-qr-wasm-env.sh`（幂等）。
-- **新增** `scripts/wasm-compare.mjs`（Node 驱动主体）+ `scripts/bench-layer2.sh`（薄包装：负责检出/构建
+- **新增** `原 wasm/WASI 对比驱动脚本`（Node 驱动主体）+ `scripts/bench-layer2.sh`（薄包装：负责检出/构建
   fast_qr 产物、`moon build cmd/bench --target wasm`、调 node 脚本、汇总 markdown）。与既有 `bench.sh`
   解耦：层①（bash time / moon run）与层②（Node 调用 wasm）各自独立可跑、便于排错。
 - 与 `setup-rust.sh` 一致：**不接入 `.cnb.yml` push CI**。
@@ -242,7 +244,7 @@ S9b §层②/③ 亦标「待外部环境」。故 M3 收口 = 把层②占位�
 | 1 | `cmd/bench/main.mbt`（小改，加模式） | 新增可选参数 `--dump <点>`：对指定点 build 一次并按 §3.4 协议导出值全集矩阵；argv 解析加分支；**默认路径行为零改动** | `moon run cmd/bench --release -- V40` 输出与 PR #45 记录一致（checksum=9200 等）；`--dump V03H` 输出 `QR_MATRIX V03H size=29` + 29 行 |
 | 2 | fast_qr 检出（外部，钉 `53e8c99`）patch `wasm.rs` + 构建 | `wasm.rs` 加 `qr_with(content, ecl, version)`；`cargo build --release --target wasm32-unknown-unknown --features wasm-bindgen`；`wasm-bindgen --target nodejs --out-dir pkg` | `node -e "const w=require('./pkg/fast_qr.js'); console.log(w.qr_with('https://example.com/', w.ECL.H, w.Version.V40).length)"` 输出 31329 |
 | 3 | `scripts/setup-fast-qr-wasm-env.sh`（新，幂等） | `bash scripts/setup-rust.sh`（未装时）→ `rustup target add wasm32-unknown-unknown` → 下载解压 wasm-bindgen-cli 0.2.100 预编译到 PATH | 重跑幂等；`wasm-bindgen --version` = 0.2.100；`rustup target list --installed` 含目标 |
-| 4 | `scripts/wasm-compare.mjs` + `scripts/bench-layer2.sh`（新） | Node 驱动：① fast_qr 侧进程内循环调 `qr_with`（三基准点 × N，累加消费 + `performance.now` 计时，R 次取最小）；② MoonBit 侧经 `moonrun` 子进程跑 `cmd/bench --target wasm` 产物（同脚本同时钟计时，R 取最小，修订注②）；③ 两侧 `--dump`/`qr_with` 矩阵文本 `diff` + `sha256`；④ 输出 markdown（点/迭代/两测最小耗时/相对倍率/对齐结果） | 一条命令产出对齐结论 + 计时表；R/迭代可参数化；与 bench.sh 层①口径一致（多次取最小、剔冷启动） |
+| 4 | `原 wasm/WASI 对比驱动脚本` + `scripts/bench-layer2.sh`（新） | Node 驱动：① fast_qr 侧进程内循环调 `qr_with`（三基准点 × N，累加消费 + `performance.now` 计时，R 次取最小）；② MoonBit 侧经 `moonrun` 子进程跑 `cmd/bench --target wasm` 产物（同脚本同时钟计时，R 取最小，修订注②）；③ 两侧 `--dump`/`qr_with` 矩阵文本 `diff` + `sha256`；④ 输出 markdown（点/迭代/两测最小耗时/相对倍率/对齐结果） | 一条命令产出对齐结论 + 计时表；R/迭代可参数化；与 bench.sh 层①口径一致（多次取最小、剔冷启动） |
 | 5 | 层②跑测 | 本容器实施：对齐 diff 零差异 + 计时数字 | §5 验收 |
 | 6 | `docs/本文件「实现记录」部分（实现阶段生成） | 记录两侧产物链、Node 驱动用法、spike 结论（`_start` 可调性或降级）、对齐结果、计时表；M3 标记收口 | 数字透明、口径说清、可复现 |
 | 7 | `README.md` / roadmap | 「文档」表补本文与未来实现记录行；roadmap M3 补「层②方案见 S9c」 | 无死链 |
@@ -283,12 +285,12 @@ S9b §层②/③ 亦标「待外部环境」。故 M3 收口 = 把层②占位�
    产物（D17，Node 直调返回矩阵；env 用 stable + target + 预编译 cli 0.2.100 + 系统 gcc）；两侧由
    **同一 Node 脚本**驱动——fast_qr 侧 in-process 调用，MoonBit 侧 **moonrun 子进程**（`_start` 同进程
    spike 未过，走降级，修订注②）（D18）；新增 `cmd/bench --dump` 值全集规范矩阵做逐位对齐（D19，绕开
-   byte() 含类型位导致的公式不可比）；环境脚本 + `wasm-compare.mjs` 驱动。层②对齐为既有快照对齐的跨宿主
+   byte() 含类型位导致的公式不可比）；环境脚本 + `原 wasm/WASI 对比驱动脚本` 驱动。层②对齐为既有快照对齐的跨宿主
    重确认（预期零差异），增量价值 = Node 同宿主计时数字 + **收口 roadmap M3**（实测已达成，见实现记录）。
 
 **后续（实现阶段首个动作）**：按 §4 顺序先加 `cmd/bench --dump`（默认行为不变），再装 Rust stable +
 `wasm32-unknown-unknown` + 预编译 wasm-bindgen-cli 0.2.100 + 系统 gcc、检出 fast_qr patch `qr_with` 产出
-nodejs 包，写 `scripts/wasm-compare.mjs`（MoonBit 侧经 `moonrun` 子进程驱动）跑出对齐 + 计时，产 S9c
+nodejs 包，写 `原 wasm/WASI 对比驱动脚本`（MoonBit 侧经 `moonrun` 子进程驱动）跑出对齐 + 计时，产 S9c
 实现记录并把 M3 标收口（**已全部落地，见 本文件「实现记录」部分**）。
 
 ---
@@ -358,7 +360,7 @@ nodejs 包，写 `scripts/wasm-compare.mjs`（MoonBit 侧经 `moonrun` 子进程
 | 2 | fast_qr 检出（外部 `$FAST_QR_WASM_DIR`）patch `wasm.rs` + 构建 | `qr_with(content, ecl, version)` 导出；`cargo build --release --target wasm32-unknown-unknown --features wasm-bindgen`；`wasm-bindgen --target nodejs` | `qr_with(…,H,V40)` 长度 = 31329（177²）；ECL.H / Version.V03/V10/V40 键齐全 | ✅ |
 | 3 | `scripts/setup-fast-qr-wasm-env.sh` | 幂等：setup-rust.sh + `rustup target add wasm32-unknown-unknown` + 预编译 wasm-bindgen-cli 0.2.100 | `wasm-bindgen --version`=0.2.100；重跑幂等 | ✅ |
 | 4 | `scripts/build-fast-qr-wasm.sh` | 检出/复用 fast_qr（钉 `53e8c99`）、幂等 patch、构建、node 首验 | 单行 node require + qr_with(V40H) 长度校验通过 | ✅ |
-| 5 | `scripts/wasm-compare.mjs` + `scripts/bench-layer2.sh` | Node 驱动：fast_qr 进程内直调计时 + MoonBit moonrun 子进程计时（R 取最小）+ 逐位对齐 sha256 + markdown 表 | 一条命令产出对齐 + 计时表 | ✅ |
+| 5 | `原 wasm/WASI 对比驱动脚本` + `scripts/bench-layer2.sh` | Node 驱动：fast_qr 进程内直调计时 + MoonBit moonrun 子进程计时（R 取最小）+ 逐位对齐 sha256 + markdown 表 | 一条命令产出对齐 + 计时表 | ✅ |
 | 6 | 层②跑测 | 本容器实施 | §3 表 | ✅ |
 | 7 | 收尾回归 | fmt/check/test + 双后端 release + 默认 checksum | §5 | ✅ |
 | 8 | 文档治理 | 本文 + README/roadmap/S9 记录回链；M3 收口 | 无死链 | ✅ |
@@ -413,11 +415,11 @@ nodejs 包，写 `scripts/wasm-compare.mjs`（MoonBit 侧经 `moonrun` 子进程
   `_start`。失败点：① argv 未注入成功——程序回落到「默认三点全跑」（V03H:2000… 而非 `--dump V03`），
   说明 opaque 句柄协议（#external 类型跨 wasm 边界的表示）未对齐；② WASI `fd_write` 直写进程 fd，
   **绕过 `process.stdout.write` 拦截**，进程内无法干净捕获输出用于对齐 diff。
-- **落地路径**：`wasm-compare.mjs` 内 `child_process.execFileSync('moonrun', [bench.wasm, …args])`。
+- **落地路径**：`原 wasm/WASI 对比驱动脚本` 内 `child_process.execFileSync('moonrun', [bench.wasm, …args])`。
   `moonrun`（`~/.moon/bin/moonrun`）是原生 wasm 运行器，直跑 WASI 产物（不经 moon 调度、启动开销小），
   stdout 天然可捕获，argv 直接透传。MoonBit 侧计时口径 = moonrun 子进程整程（含微启动），R 次取最小。
 
-#### 2.4 Node 驱动（`wasm-compare.mjs`）
+#### 2.4 Node 驱动（`原 wasm/WASI 对比驱动脚本`）
 
 - fast_qr 侧：`require(pkg/fast_qr.js)` 进程内循环调 `qr_with(INPUT, ECL.H, Version.Vxx)` N 次，结果
   **累加消费**（`s += m.length` 防「调用被丢弃」），`performance.now()` 包整循环，R 次取最小。
@@ -469,8 +471,7 @@ bash scripts/bench-layer2.sh --no-build   # 产物已就绪，只跑对比
 bash scripts/setup-fast-qr-wasm-env.sh    # rust wasm32 target + wasm-bindgen-cli 0.2.100（幂等）
 bash scripts/build-fast-qr-wasm.sh        # 检出/复用 fast_qr v0.14.0 + patch qr_with + nodejs 产物
 moon build cmd/bench --target wasm --release
-node scripts/wasm-compare.mjs --fast "$HOME/.cache/fast_qr_wasm/pkg/fast_qr.js" \
-  --moon _build/wasm/release/build/cmd/bench/bench.wasm --reps 3
+# 历史 wasm/WASI 口径（驱动脚本已随后端移除，不再可用）
 ```
 
 产物/检出默认在 `$FAST_QR_WASM_DIR`（`$HOME/.cache/fast_qr_wasm`），可用环境变量覆盖。Rust/层②按既有
@@ -517,7 +518,7 @@ native 环境（可选量级注记）。
 - 方案：本文件「实现方案」部分
   （D17/D18/D19 + 修订注①/②）；S9 [实现记录](./S9-性能基准.md)（层①数字/口径）、
   [评估记录](./S9-性能基准.md)（KEEP_LAST 33 vs 65）、[S9b 优化路线](./S9b-性能优化.md)。
-- 本仓库实码：`cmd/bench/main.mbt`（--dump）、`scripts/bench-layer2.sh`、`scripts/wasm-compare.mjs`、
+- 本仓库实码：`cmd/bench/main.mbt`（--dump）、`scripts/bench-layer2.sh`、`原 wasm/WASI 对比驱动脚本`、
   `scripts/build-fast-qr-wasm.sh`、`scripts/setup-fast-qr-wasm-env.sh`；lib 公共 API 未动。
 - 参考 fast_qr v0.14.0（`53e8c99`）：`benches/qr.rs`、`src/wasm.rs`（bool_to_u8/qr_with patch）、
   `Cargo.lock`（wasm-bindgen 0.2.100）。
@@ -570,8 +571,7 @@ native 环境（可选量级注记）。
 
 ```bash
 bash scripts/bench-layer2.sh            # R=3：环境 → fast_qr 构建 → moon build → Node 对比
-node scripts/wasm-compare.mjs --fast "$HOME/.cache/fast_qr_wasm/pkg/fast_qr.js" \
-  --moon _build/wasm/release/build/cmd/bench/bench.wasm --reps 7   # R=7 复测
+# R=7 历史 wasm/WASI 复测（驱动脚本已随后端移除，不再可用）
 ```
 
 输入 `https://example.com/`（20 字节）、ECL=H、强制版本 V03/V10/V40、mask 自动择优。构建产物幂等复用
@@ -693,7 +693,7 @@ fast_qr 是 Rust 高度优化实现 + `--release` 全优化（LLVM wasm32 后端
 2. **wasm-gc 不参与本对比**：层②主口径为 `wasm`（WASI）产物，因 `wasm-gc` 宿主仅 `moon run`、无对等
    Node 宿主可同进程直调（S9c 方案 §1）。层①跨后端选型见 S9 实现记录 §2。
 3. **消费结果防死代码消除**：`cmd/bench` 循环累加 size/代表性模块字节/元数据序号进 checksum（V03H 默认档
-   checksum=82000），`wasm-compare.mjs` 两侧均消费输出（fast 侧 `s += m.length`），R²≈1 佐证无空循环假象。
+   checksum=82000），`原 wasm/WASI 对比驱动脚本` 两侧均消费输出（fast 侧 `s += m.length`），R²≈1 佐证无空循环假象。
 4. **采样量**：复测 R=3/5/7 三组独立 run；N 扫描每点 4 档 × R=5，串行执行。相对漂移 ≤3%（多数点 <2%），
    结论稳健。
 5. **未动代码**：本记录纯跑测 + 文档，lib/`cmd/bench`/scripts 零改动；快照与 `.mbti` 不受影响。
@@ -721,7 +721,7 @@ fast_qr 是 Rust 高度优化实现 + `--release` 全优化（LLVM wasm32 后端
   本文件「实现记录」部分
 - 层①数字/口径：[S9-性能基准.md](./S9-性能基准.md)；
   优化评估：[S9b-性能优化.md](./S9b-性能优化.md)（O1/O2/O3 与验收口径）
-- 本仓库实码：`cmd/bench/main.mbt`（--dump/checksum）、`scripts/wasm-compare.mjs`（--points/--iters/
+- 本仓库实码：`cmd/bench/main.mbt`（--dump/checksum）、`原 wasm/WASI 对比驱动脚本`（--points/--iters/
   --reps 驱动）、`scripts/bench-layer2.sh`
 - 环境：moon 0.1.20260827、node v22.23.1、rustc 1.98.1、wasm-bindgen 0.2.100、gcc 14.2.0、`moonrun`
 

@@ -1,5 +1,7 @@
 # S9d · 与 moonbit 生态 QR 包性能对比
 
+> ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
+
 > 本文件由原 S9d-与moonbit生态QR包性能对比-方案 / S9d-与moonbit生态QR包性能对比-实现记录 / S9d-与moonbit生态QR包性能对比-详细分析 / S9d-moonbitqrcode快速原因与产物对比-分析 / S9d-moonbitqrcode固定mask0缺陷与主流对比 于 2026-09-11 合并而成（文档整合，见 roadmap M3 收口后整理）。
 > 内容除标题降级与本头部外未改写；各部分头部的承接/修订注记原样保留。
 
@@ -78,12 +80,16 @@ lib），把 3 个包 + 本仓库 `lib` 一起 import 成**单一 wasm 可执行
 
 ### 2. 方案总览（文件级）
 
+> ⚠️ **方案原貌注记（2026-09-12 文档复审）**：下述 4 个仓库内 scripts **最终未入库**——实施时改为
+> 仓库外独立对比模块一步到位（`moon add` 三包 + `main.mbt` 驱动），无需单独的环境/构建/计时脚本。
+> 实际落地方式见本文「实现记录」§1；本节保留为方案阶段的文件规划，**勿据此寻找或创建这些脚本**。
+
 ```
 本仓库新增：
   scripts/setup-moonbit-qr-compare-env.sh   ① 环境：建对比根目录 + moon add 三包 + 校验
   scripts/build-moonbit-qr-compare.sh       ② 构建：把「对比模块」moon build 成 wasm/wasm-gc
   scripts/bench-moonbit-qr.sh               ③ 计时：moonrun 子进程 × 三方 + 本仓库，多次取最小
-  scripts/moonbit-qr-compare.mjs            ③’ 可选 Node 驱动（与 wasm-compare.mjs 同风格）
+  scripts/moonbit-qr-compare.mjs            ③’ 可选 Node 驱动（与 gc-compare.mjs 同风格）
 
 仓库外（$MOONBIT_QR_COMPARE_DIR，默认 ~/.cache/moonbit_qr_compare）：
   moon.mod / moon.pkg                       对比专用小模块（import 本仓库 lib + 3 个外部包）
@@ -140,6 +146,9 @@ lib），把 3 个包 + 本仓库 `lib` 一起 import 成**单一 wasm 可执行
 ---
 
 ### 4. 落地清单与验收
+
+> ⚠️ **方案原貌注记（同 §2）**：清单中的 `scripts/*moonbit-qr*` 各项**未按此落地**（scripts 未入库），
+> 由「实现记录」§1 的仓库外独立模块替代完成；下表状态列保留方案阶段原貌。
 
 | # | 文件/动作 | 内容 | 验收 | 状态 |
 |---|-----------|------|------|------|

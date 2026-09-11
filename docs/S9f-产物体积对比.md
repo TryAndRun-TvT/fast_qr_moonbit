@@ -1,5 +1,7 @@
 # S9f · 产物体积对比
 
+> ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
+
 > 本文件由原 S9f-产物体积对比-实现方案 / S9f-产物体积对比-实现记录 于 2026-09-11 合并而成（文档整合，见 roadmap M3 收口后整理）。
 > 内容除标题降级与本头部外未改写；各部分头部的承接/修订注记原样保留。
 
@@ -110,7 +112,7 @@
 
 | 侧 | 护栏方式 | 判据 |
 |----|---------|------|
-| MoonBit（`_start` 可执行包） | Node 进程内（`scripts/moonbit-wasm-runner.mjs`）跑 `--dump V03/V10/V40`，**逐字节**比对原始产物 | 剥 custom / `-Oz` 后**输出完全一致** |
+| MoonBit（`_start` 可执行包） | Node 进程内（`原 wasm/WASI Node 运行器`）跑 `--dump V03/V10/V40`，**逐字节**比对原始产物 | 剥 custom / `-Oz` 后**输出完全一致** |
 | fast_qr（胶水后产物无 `_start`） | 把改写后 `.wasm` 拷进临时目录（胶水不变），`require` 后 `qr_with` 出三矩阵 → sha256 | 与原始产物哈希**一致** |
 | fast_qr 裸探针 | 直接 `WebAssembly.Instance` 调 `s9f_size_probe(0/1/2)`（最小 shim 兜底） | `-Oz` 前后**一致** |
 
@@ -160,7 +162,7 @@
   [S9c 实现记录](./S9c-性能测试与fast_qr-wasm对比.md)（层②构建链路）、
   [wasm-编译与运行-结果分析](./wasm-编译与运行-结果分析.md)（早期三后端产物体积对照）。
 - 本仓库实码：`cmd/bench/main.mbt`（未改）、`scripts/wasm-size.mjs`、`scripts/bench-size.sh`、
-  `scripts/moonbit-wasm-runner.mjs`、`scripts/build-fast-qr-wasm.sh`。
+  `原 wasm/WASI Node 运行器`、`scripts/build-fast-qr-wasm.sh`。
 - 参考 fast_qr v0.14.0（`53e8c99`）：`src/wasm.rs`（`qr`/`qr_with`）、`Cargo.toml`（`opt-level='s'`+`lto`+`panic=abort`）。
 - 环境：moon 0.1.20260904、node v24.20.0、rust 1.98.1 + wasm32-unknown-unknown、wasm-bindgen 0.2.100、
   gcc 14.2.0（wasm-bindgen 宿主宏所需）、`moon-wasm-opt`（moon 自带 Binaryen）。
@@ -410,7 +412,7 @@ S9b 的性能优化落地后可同批复跑 `bench-layer2.sh` + `bench-size.sh`�
 - 性能侧：[S9e 实现记录](./S9e-性能测试统一Node调用.md)（同尺子性能）、
   [S9c 实现记录](./S9c-性能测试与fast_qr-wasm对比.md)（层②构建链路）。
 - 体积前史：[wasm-编译与运行-结果分析](./wasm-编译与运行-结果分析.md) §4/§5（早期三后端产物体积对照）。
-- 本仓库实码：`scripts/wasm-size.mjs`、`scripts/bench-size.sh`、`scripts/moonbit-wasm-runner.mjs`、
+- 本仓库实码：`scripts/wasm-size.mjs`、`scripts/bench-size.sh`、`原 wasm/WASI Node 运行器`、
   `scripts/build-fast-qr-wasm.sh`、`cmd/bench/main.mbt`（未改）。
 - 参考 fast_qr v0.14.0（`53e8c99`）：`Cargo.toml`（`opt-level='s'` + `lto` + `codegen-units=1` + `panic=abort`）、
   `src/wasm.rs`；探针在外部检出副本 `src/bin/s9f_{size,hello}_probe.rs`（不入库）。

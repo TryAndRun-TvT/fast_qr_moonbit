@@ -1,5 +1,7 @@
 # S9b · 性能优化
 
+> ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端及配套驱动已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与脚本引用仅作历史留存，不再作为对外口径。
+
 > 本文件由原 S9b-性能优化-评估与路线 / S9b-性能优化-再评估与实施建议 / S9b-性能优化-O1实施记录 于 2026-09-11 合并而成（文档整合，见 roadmap M3 收口后整理）。
 > 内容除标题降级与本头部外未改写；各部分头部的承接/修订注记原样保留。
 
@@ -21,7 +23,7 @@
 随版本**超线性放大**——V40H 时占单次 auto 构建成本约 **86%**（≈6.86ms / 单次 7.99ms）。
 非择优管线（encode→structure→matrix→放置→wrap）已相对紧凑、非优先。分优先级给出
 P1（O1-a 就地翻转、O1-b 复用最优轮矩阵）与 P2（O2/O3）路线，验收统一走快照逐位 diff +
-109 测试 + 双后端 checksum。
+109 测试 + wasm-gc checksum。
 
 ---
 
@@ -154,7 +156,7 @@ let masked_out = apply_mask(base, size, best_mask)  // ③ 末尾再一次全量
 
 1. **快照逐位 diff 零差异**：自动择优输出矩阵对既有 S1-S7 参考快照逐位一致（mask 择优结果不变）。
 2. **109 测试全绿**：`moon fmt --check` / `moon check --deny-warn` / `moon test`。
-3. **双后端 checksum 一致**：wasm-gc/wasm 各点 `TOTAL_CHECKSUM` 不变（复用 S9 `cmd/bench`）。
+3. **wasm-gc checksum 一致**：wasm-gc 各点 `TOTAL_CHECKSUM` 不变（复用 S9 `cmd/bench`）。
 4. lib 公共 `.mbti` 零漂移（O1/O2 若只改 internal/matrix 内实现，公共接口不变，天然满足）。
 
 > 目标量级（参考，非承诺）：V40H 单次 auto 由 ≈7.99ms 通过 O1-a 削 8 轮 copy 后望向 ≈3~4ms。
@@ -290,13 +292,13 @@ masked_out = apply_mask(base, best) // 末尾再 1 次整矩阵 copy（第 9 次
   `internal/matrix` 全部文件 + `packed` 语义 + 评分/掩码/放置位运算），属「系数级、改面大」项，须单独
   实验验证（MoonBit Byte 运算是否真的省、wasm 后端收益多少）再决定（§4 T6）。
 
-#### 2.6 后端口径注记（解释为什么不能用 wasm-gc 横向比 fast）
+#### 2.6 后端口径注记（历史：曾只能用 wasm 横向比 fast）
 
-- 层②跨语言对比受宿主约束只能用 `wasm`（WASI）产物：`wasm-gc` 仅 `moon run` 宿主、无 Node 对等宿主可
-  **同进程**直调 fast_qr。而本仓库内部层①（S9 记录）实测 wasm-gc 比 wasm **快约 1.2–1.4×**。
-- 含义：层②表里 MoonBit 的数字是「wasm（较慢后端）」口径；若未来有 wasm-gc 的 Node/宿主通道，本仓库
-  相对 fast_qr 的实测差距会再收窄 ~1.2–1.4×。**这属于口径说明，不改变优化方向**（两后端的择优主循环
-  成本结构相同，优化对两端同效）。
+- 层②跨语言对比最初受宿主约束只能用 `wasm`（WASI）产物：当时 `wasm-gc` 仅 `moon run` 宿主、无 Node
+  对等宿主可 **同进程**直调 fast_qr。`wasm`(WASI) 后端已按项目决策移除；后续 Node v24 已可加载
+  wasm-gc，层②对外口径收敛为 **wasm-gc vs fast_qr**（见 [S9j](./S9j-层②统一Node对比-wasm-gc与fast_qr.md)）。
+- 历史含义：本节表里 MoonBit 的数字是「wasm（较慢后端）」口径，相对 fast_qr 的实测差距约再收窄
+  ~1.2–1.4×。**这属于口径说明，不改变优化方向**（优化对后端同效）。
 
 ---
 
@@ -316,7 +318,7 @@ masked_out = apply_mask(base, best) // 末尾再 1 次整矩阵 copy（第 9 次
 ### 4. 优化候选项评估（含预期量级/风险/影响面）
 
 > 排序 = 预期收益 × 确定性 ÷（风险×影响面）。所有项**不得改变输出明暗/元数据语义**（快照逐位 diff + 109
-> 测试 + 双后端 checksum 兜底，见 §6）。
+> 测试 + wasm-gc checksum 兜底，见 §6）。
 
 #### T1（P1，S9b O1-a）：`apply_mask` 就地翻转，免 8 次整矩阵 copy
 - **做法**：toggle 为自逆（`b ^ 1`，`lib/internal/matrix/module.mbt:73`）。每轮改为「就地 toggle 当前 mask → score →
@@ -327,7 +329,7 @@ masked_out = apply_mask(base, best) // 末尾再 1 次整矩阵 copy（第 9 次
   **V40H marginal +~8%（409 vs 384ms）——否决**：每轮多 1 趟真实判定扫描换掉 1 次 memcpy 净亏；
   copy 非大头、score 多趟扫描才是。改为开放项，主攻方向转 T3（O2 减趟）。
 - **风险**：中（score 对已掩码视图的时序铁律易错）；影响面：`datamasking.mbt` + `placement.mbt` 局部。
-- **自检**：快照零差异 + 双后端 checksum 不变即安全。
+- **自检**：快照零差异 + wasm-gc checksum 不变即安全。
 
 #### T2（P1，S9b O1-b）：复用最优轮矩阵，省末尾第 9 次 copy
 - **做法**：择优循环记住最优轮**已掩码矩阵**，末尾 `masked_out=apply_mask(base,best)` 改为直接把真实
@@ -365,8 +367,8 @@ masked_out = apply_mask(base, best) // 末尾再 1 次整矩阵 copy（第 9 次
   可考虑 build 内部局部复用（如 `create_matrix` 缓冲），单列评估。
 
 #### T8（口径项，非代码）：后端选择与对比通道
-- 层②维持 `wasm` 口径不变（无 Node 对等宿主）；在文档中明示「MoonBit 另快 1.2–1.4× 的 wasm-gc 口径
-  未参与跨库计时」。优化对两后端同效。
+- 层②对外口径已收敛为 `wasm-gc` vs fast_qr（见 [S9j](./S9j-层②统一Node对比-wasm-gc与fast_qr.md)）；
+  `wasm`(WASI) 后端已移除，不再作为对比通道。优化对（原）后端同效。
 
 ---
 
@@ -396,8 +398,8 @@ masked_out = apply_mask(base, best) // 末尾再 1 次整矩阵 copy（第 9 次
 每一步独立提交，须过：
 
 1. **快照逐位 diff 零差异**（mask 择优结果与 S1-S7 参考一致；用既有快照测试）。
-2. **109 测试全绿**：`moon fmt --check` / `moon check --deny-warn` / `moon test`（wasm-gc/wasm）。
-3. **双后端 checksum 不变**：wasm-gc/wasm 各点 `cmd/bench` 的 `TOTAL_CHECKSUM`（82000/32400/9200）。
+2. **109 测试全绿**：`moon fmt --check` / `moon check --deny-warn` / `moon test`（wasm-gc）。
+3. **wasm-gc checksum 不变**：wasm-gc 各点 `cmd/bench` 的 `TOTAL_CHECKSUM`（82000/32400/9200）。
 4. lib 公共 `.mbti` 零漂移（T1-T4 只动 internal/matrix，天然满足；T5 若动 `wrap_packed` 私有函数也满足；
    T6 若动内部介质，需确认 public 类型字段未变）。
 5. **优化前后同一把尺子**：每批落地后用 `bash scripts/bench-layer2.sh` 复跑，对照 S9c 详细分析 §2 的
@@ -444,7 +446,7 @@ masked_out = apply_mask(base, best) // 末尾再 1 次整矩阵 copy（第 9 次
 
 - **T2（O1-b）落地**：把「择优后在 base 上再 `apply_mask` 一次（第 9 次整矩阵 copy）」改为**复用最优轮
   已掩码矩阵**、把真实 Format 直接覆写其上 → 省 1 次整矩阵 copy（V40 = 31329 格 × 4B ≈ 125KB）。
-  语义逐位不变（快照 + 层② sha256 + 双后端 checksum 全绿）。
+  语义逐位不变（快照 + 层② sha256 + wasm-gc checksum 全绿）。
 - **T1（O1-a 就地翻转）实测否决**：按建议实现「就地 toggle → score → 再 toggle 还原」后，
   V40H marginal **变慢约 8%**（slope 9.007→9.77 ms，整程 384→409ms）——原因见 §3。
   已回退，T1 不再按原形落地（保留为「若改成**单缓冲 + 预判**再评估」的开放项）。
@@ -491,7 +493,7 @@ create_matrix_format_info(best_masked, size, ecl, best)  // Format 覆写到已�
 ```bash
 export PATH="$HOME/.moon/bin:$PATH"
 moon fmt && moon check --deny-warn && moon test            # 109 全绿
-for t in wasm-gc wasm; do moon build lib --target $t --release; \
+for t in wasm-gc; do moon build lib --target $t --release; \
   moon build cmd/bench --target $t --release; moon test --target $t; done
 # cmd/bench 默认输出逐字不变：
 #   V03H 2000 builds checksum=82000 / V10H 400 →32400 / V40H 40 →9200；TOTAL_CHECKSUM=123600
@@ -542,7 +544,7 @@ for t in wasm-gc wasm; do moon build lib --target $t --release; \
 ### 5. 汇总
 
 1. **T2（O1-b）已落地**：复用最优轮掩码矩阵 + 真实 Format 覆写其上，省第 9 次整矩阵 copy；语义逐位
-   不变，109 测试 + 快照 + 双后端 checksum + 层② sha256 全绿。
+   不变，109 测试 + 快照 + wasm-gc checksum + 层② sha256 全绿。
 2. **实测量级**：V40H marginal 9.0074 → 8.8742ms（≈ −1.5%）；说明 copy 非大头，收益模型需校正
    （大头 = score 多趟扫描）。
 3. **T1（O1-a 就地翻转）实测否决**：V40H marginal +~8%；「免 copy」在本后端不如直接优化 score 趟数。

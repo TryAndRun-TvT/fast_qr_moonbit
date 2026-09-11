@@ -253,8 +253,8 @@ fast_qr 用**同一算法、同一 wasm32 执行模型**跑出：
 ### 统一验收（沿用 S9b §5 / S9c 同一把尺子）
 
 1. 快照逐位 diff 零差异（择优 mask 不变）；
-2. `moon fmt --check` / `moon check --deny-warn` / `moon test` 109 全绿（wasm-gc/wasm）；
-3. 双后端 `cmd/bench` `TOTAL_CHECKSUM` 不变；
+2. `moon fmt --check` / `moon check --deny-warn` / `moon test` 109 全绿（**仅 `wasm-gc`**；`wasm`(WASI) 已移除）；
+3. `cmd/bench` `TOTAL_CHECKSUM` 不变（单后端，不再有跨后端互证）；
 4. lib 公共 `.mbti` 零漂移（K1/K2/K4 只动 internal/matrix 天然满足；K3 若动 `QRCode` 需确认）；
 5. 每批落地后 `bash scripts/bench-layer2.sh` 复跑，回填 §5.3 表（同 N 扫描口径）。
 

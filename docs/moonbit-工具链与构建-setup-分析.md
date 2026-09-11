@@ -168,7 +168,7 @@ moon build            # 构建当前包（可 --target、--release）
 
 - `preferred_target` 已改为 **`wasm-gc`**（依据见
   [wasm-编译与运行-结果分析.md](./wasm-编译与运行-结果分析.md)）。
-- 已补 `supported_targets = "+wasm+wasm-gc"`（曾含 `js`，后续按项目决策**移除 js 后端**，保留 `wasm-gc`/`wasm` 双后端）。
+- 已补 `supported_targets = "+wasm-gc"`（曾含 `js`、`wasm`(WASI)，后续按项目决策逐一移除，现只保留 `wasm-gc`）。
 - 已补 `fast_qr_moonbit_wbtest.mbt`（白盒测试，上表 §一.2 初版漏记）。
 - 已补 `docs/`、`AGENTS.md`（由小写 `agents.md` 重命名对齐官方命名，无兼容符号链接）、`.githooks/`。
 - README 入口已改为单一真实 `README.md`（撤销官方 `README.mbt.md` + `README.md`
@@ -181,7 +181,7 @@ moon build            # 构建当前包（可 --target、--release）
 
 - **`vscode`（云原生开发）**：初始化时安装 MoonBit 工具链，开发者可直接使用 `moon` 命令。
 - **`push`（代码推送 CI）**：工具链 setup → `moon fmt --check` → `moon check --deny-warn`
-  → `moon test` → 多后端 `build-and-run` 回归。
+  → `moon test` → `build-and-run`（wasm-gc）回归。
 
 各阶段命令已**抽离到 `scripts/` 目录下的独立脚本**（`.cnb.yml` 仅以 `bash scripts/<name>.sh` 调用），
 便于维护与复用、避免各阶段重复内嵌长命令：
@@ -192,7 +192,7 @@ moon build            # 构建当前包（可 --target、--release）
 | `fmt-check` | `scripts/fmt-check.sh` | 格式门禁（`moon fmt --check`；`moon fmt` 会格式化 `moon.mod` / `moon.pkg` / 所有 `.mbt`） |
 | `check` | `scripts/check.sh` | 静态检查门禁（`moon check --deny-warn`，把告警如 `unused_package` 升级为失败） |
 | `test` | `scripts/test.sh` | 全项目测试（`moon test`） |
-| `build-and-run` | `scripts/build-and-run.sh` | 多后端回归：遍历 `wasm-gc` / `wasm` 做 `--release` 构建、运行、测试（`js` 已移除） |
+| `build-and-run` | `scripts/build-and-run.sh` | 后端回归：遍历 `wasm-gc` 做 `--release` 构建、运行、测试（`wasm`(WASI)、`js` 已移除） |
 
 > **不要加 `native` 阶段**：需系统 C 编译器，本镜像未安装，加入必然失败
 > （见 [wasm-编译与运行-结果分析.md](./wasm-编译与运行-结果分析.md) §6.1）。

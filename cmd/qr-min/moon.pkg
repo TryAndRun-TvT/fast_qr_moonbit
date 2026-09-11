@@ -6,7 +6,7 @@
 //   cmd/main（CLI 演示：终端字符画 + SVG 输出层）刻意区分——
 //   本包不含任何外壳/输出层依赖，才能回答「作为库被宿主嵌入时，QR 核心到底占多少字节」。
 // 复跑：moon build cmd/qr-min --release 后用 scripts/bench-size.sh / wasm-size.mjs 量测；
-//   语义护栏：moonrun（wasm-gc）/ WASI 宿主（wasm）下输出恒为 QR_MIN_CHECKSUM=<定值>。
+//   语义护栏：moonrun（wasm-gc）下输出恒为 QR_MIN_CHECKSUM=<定值>。
 pkgtype(kind: "executable")
 
 import {

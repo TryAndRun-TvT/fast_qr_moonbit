@@ -1,5 +1,7 @@
 # S9h · 层②性能复测异常归因（Node 版本 × 宿主漂移）· 详细分析
 
+> ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
+
 > 承接 [S9e 实现记录](./S9e-性能测试统一Node调用.md)（统一 Node 进程内口径）。
 > 复审指出「层②测试数据存在异常」——本次复测确认：**数据无测量噪声异常、语义零回归**，
 > 异常实为**跨环境系统性漂移**，且已用受控 A/B 实验定位到两个独立因素：
@@ -47,7 +49,7 @@
 
 ```bash
 bash scripts/bench-layer2.sh                    # 全流程（环境 + 两侧构建 + R=5 对比）
-node scripts/wasm-compare.mjs --fast <fast_qr.js> --moon <bench.wasm> --reps 5
+# 历史 wasm/WASI 对比命令（驱动脚本已随 wasm(WASI) 后端移除，不再可用）
 ```
 
 ### 1.2 异常现象（首个 R=5 run vs S9e §4 基线）
@@ -118,7 +120,7 @@ node scripts/wasm-compare.mjs --fast <fast_qr.js> --moon <bench.wasm> --reps 5
   ——小版本单次绝对时长短、宿主固定项与 JIT 行为占比更高。
 - 交错两臂各自内部漂移 ≤2%，效应量（18–41%）远超噪声（<3%），归因显著。
 
-> **口径提醒**：`wasm-compare.mjs` 两侧都在同一 Node 进程内（S9e 统一的就是这一点），
+> **口径提醒**：`原 wasm/WASI 对比驱动脚本` 两侧都在同一 Node 进程内（S9e 统一的就是这一点），
 > 所以「同 run 成对比值」依然公平；但**该比值现在被证明依赖 Node 大版本**——
 > 复现 S9e 数字必须用 node v24，用 v22 会得到系统性更小的比值（本表即证据）。
 
@@ -246,7 +248,7 @@ lib/快照/`cmd/bench` 未动，109 测试基线不受影响。
 - 体积侧：[S9g 确认与修正](./S9g-本项目wasm产物体积-确认与修正.md)、
   [S9f 实现记录](./S9f-产物体积对比.md)。
 - 优化路线：[S9b 评估与路线](./S9b-性能优化.md)（验收口径需按 §5.4 修订）。
-- 本仓库实码：`scripts/wasm-compare.mjs`、`scripts/bench-layer2.sh`、`scripts/moonbit-wasm-runner.mjs`、
+- 本仓库实码：`原 wasm/WASI 对比驱动脚本`、`scripts/bench-layer2.sh`、`原 wasm/WASI Node 运行器`、
   `cmd/bench/main.mbt`（未改）。
 - 环境：moon 0.1.20260904、node **v22.23.1**（系统）+ **v24.20.0**（对照臂，npmmirror tarball）、
   rustc 1.98.1、wasm-bindgen 0.2.100、gcc 14.2.0、`moonrun`。

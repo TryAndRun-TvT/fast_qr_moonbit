@@ -33,7 +33,7 @@ $:
           script: bash scripts/check.sh
         - name: test
           script: bash scripts/test.sh
-        # 多后端回归：默认后端 wasm-gc + 兼容后端 wasm(WASI)（js 已移除）
+        # 后端回归：仅默认后端 wasm-gc（js、wasm(WASI) 已按项目决策移除）
         # 注意：不要加 native 阶段 —— 需系统 C 编译器，本镜像未安装。
         - name: build-and-run
           script: bash scripts/build-and-run.sh

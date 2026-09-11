@@ -1,5 +1,7 @@
 # S9e · 性能测试统一 Node 调用
 
+> ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
+
 > 本文件由原 S9e-性能测试统一Node调用-实现方案 / S9e-性能测试统一Node调用-实现记录 于 2026-09-11 合并而成（文档整合，见 roadmap M3 收口后整理）。
 > 内容除标题降级与本头部外未改写；各部分头部的承接/修订注记原样保留。
 
@@ -32,9 +34,9 @@
   不同的固定开销。
 - **量化**：`moonrun` 子进程口径 vs Node 进程内口径，MoonBit 侧整程时间差 **12–20%**（V03H ≈19%、
   V10H ≈13%、V40H ≈13%；见 §3）。旧口径因此把 MoonBit 侧抬高了约 1.13–1.19×，**对比倍率被系统性放大**。
-- **统一方案**：新增 `scripts/moonbit-wasm-runner.mjs`——在**当前 Node 进程内**实例化 MoonBit
+- **统一方案**：新增 `原 wasm/WASI Node 运行器`——在**当前 Node 进程内**实例化 MoonBit
   `--target wasm`（WASI preview1）产物并调用（完整复刻 `moonrun` 内置宿主 shim 的 argv/字符串
-  opaque 句柄协议）。`scripts/wasm-compare.mjs` 改为**两侧同一进程、同一时钟、同一循环形态**计时。
+  opaque 句柄协议）。`原 wasm/WASI 对比驱动脚本` 改为**两侧同一进程、同一时钟、同一循环形态**计时。
 - **重测结论**（统一口径，R=5 取最小，逐位对齐零差异）：MoonBit 单次 build（A 逐次调用口径）
   0.473/1.464/10.08ms vs fast_qr 0.0845/0.4006/3.554ms → **fast_qr 快约 2.8–5.7×**；
   改用「单实例摊薄」（B 口径，剔 Node 托管 wasm 的 Instance 创建固定项）0.314/1.257/9.66ms →
@@ -49,7 +51,7 @@
 
 1. 读代码/文档，**确认并量化**两侧调用形态差异（§2、§3）；
 2. 给出**统一 Node 进程内调用**的实现方案：MoonBit WASI 产物宿主协议（§4）；
-3. 落地文件：`scripts/moonbit-wasm-runner.mjs`（新）、`scripts/wasm-compare.mjs`（改）、
+3. 落地文件：`原 wasm/WASI Node 运行器`（新）、`原 wasm/WASI 对比驱动脚本`（改）、
    `scripts/bench-layer2.sh`（改）、`scripts/setup-fast-qr-wasm-env.sh`（补 gcc 说明）；
 4. 重跑三基准点（逐位对齐 + 计时），产出 本文件「实现记录」部分；
 5. README / 文档索引 / 相关回链同步。
@@ -154,7 +156,7 @@ function string_array_read_string(h) {
 
 （实测 trace：`args_get → brsa → brs "bench.wasm" → brs "--dump" → brs "V03" → brs "ffi_end_of_/string_array"`。）
 
-#### 4.3 落地：`scripts/moonbit-wasm-runner.mjs`
+#### 4.3 落地：`原 wasm/WASI Node 运行器`
 
 - **职责**：`loadMoonWasm(path).run(argv)` —— 模块级预热编译一次（不含编译开销），每次 `run` 新建
   Instance + 一套宿主 shim 闭包，同步跑 `_start` 并收集 stdout。
@@ -164,7 +166,7 @@ function string_array_read_string(h) {
 - **回退**：若将来工具链更换 host 协议（导入集变化），`bench-layer2.sh` 支持 `MOON_HOST=moonrun`
   回退到旧的子进程口径。
 
-#### 4.4 `scripts/wasm-compare.mjs` 改造
+#### 4.4 `原 wasm/WASI 对比驱动脚本` 改造
 
 - 两侧统一到**同一个 Node 进程**：MoonBit 用上面的 runner、fast_qr 用 `require` 直调；
 - 同时输出 **A（逐次调用，与 fast_qr 调用同形）** 与 **B（单实例摊薄，纯 build 边际）** 两个 MoonBit
@@ -191,7 +193,7 @@ function string_array_read_string(h) {
 ### 6. 汇总
 
 1. **确认问题**：旧层②两侧宿主形态不同（fast_qr 进程内 / MoonBit `moonrun` 子进程），差异 **12–20%**。
-2. **方案**：`scripts/moonbit-wasm-runner.mjs` 在 Node 进程内托管 MoonBit WASI 产物（复刻 moonrun
+2. **方案**：`原 wasm/WASI Node 运行器` 在 Node 进程内托管 MoonBit WASI 产物（复刻 moonrun
    宿主 shim 的 `externref` opaque 句柄 argv 协议），两侧统一到同一进程/时钟/循环形态。
 3. **重测**：对齐零差异不变；统一口径下 MoonBit 单次 0.31–9.66ms（B 口径）、fast_qr 快约 2.7–3.7×
    （A 口径 2.8–5.7×），量级结论与旧口径一致但尺子干净。
@@ -205,8 +207,8 @@ function string_array_read_string(h) {
 
 - issue #50（本任务来源）；[S9c 实现记录](./S9c-性能测试与fast_qr-wasm对比.md) §2.3（旧降级路径）、
   [S9c 详细分析](./S9c-性能测试与fast_qr-wasm对比.md) §2（N 扫描 / 固定开销 a_moon）。
-- 本仓库实码：`cmd/bench/main.mbt`（`--dump` / checksum）、`scripts/moonbit-wasm-runner.mjs`、
-  `scripts/wasm-compare.mjs`、`scripts/bench-layer2.sh`。
+- 本仓库实码：`cmd/bench/main.mbt`（`--dump` / checksum）、`原 wasm/WASI Node 运行器`、
+  `原 wasm/WASI 对比驱动脚本`、`scripts/bench-layer2.sh`。
 - `moonrun` 内置宿主 shim（`~/.moon/bin/moonrun` 内嵌 JS，`__moonbit_fs_unstable` 定义与导入名表）；
   MoonBit `--target wasm`（WASI preview1）产物导入/导出面（本方案实测解析）。
 - 环境：moon 0.1.20260904、node v24.20.0、rust 1.98.1 + wasm32-unknown-unknown、wasm-bindgen 0.2.100、
@@ -236,8 +238,8 @@ function string_array_read_string(h) {
 
 ### 0. 一句话结论
 
-- **统一完成**：新增 `scripts/moonbit-wasm-runner.mjs`，在 **Node 进程内**实例化 MoonBit WASI 产物并调用；
-  `scripts/wasm-compare.mjs` 改为两侧**同进程、同时钟、同循环形态**计时。
+- **统一完成**：新增 `原 wasm/WASI Node 运行器`，在 **Node 进程内**实例化 MoonBit WASI 产物并调用；
+  `原 wasm/WASI 对比驱动脚本` 改为两侧**同进程、同时钟、同循环形态**计时。
 - **正确性未动**：Node 进程内 `--dump` 与 `moonrun` 输出**字节级一致**；三基准点矩阵对 fast_qr
   **逐位对齐零差异**，sha256 与 S9c 记录**逐字相同**（V03H `4942f6aa…b477`、V10H `91c85c94…0d8d`、
   V40H `c3c04930…cde7`）。
@@ -257,15 +259,15 @@ function string_array_read_string(h) {
 
 | # | 文件 | 内容 | 验收 | 状态 |
 |---|------|------|------|------|
-| 1 | `scripts/moonbit-wasm-runner.mjs`（新） | Node 进程内托管 MoonBit WASI 产物：`loadMoonWasm(path).run(argv)` | 与 `moonrun` 同产物 `--dump` **diff 空** | ✅ |
-| 2 | `scripts/wasm-compare.mjs`（改） | 两侧统一 Node 进程内；输出 A/B 双口径；加 moonrun 跨宿主抽检；对齐逻辑沿用 | 一命令产出对齐+计时表 | ✅ |
+| 1 | `原 wasm/WASI Node 运行器`（新） | Node 进程内托管 MoonBit WASI 产物：`loadMoonWasm(path).run(argv)` | 与 `moonrun` 同产物 `--dump` **diff 空** | ✅ |
+| 2 | `原 wasm/WASI 对比驱动脚本`（改） | 两侧统一 Node 进程内；输出 A/B 双口径；加 moonrun 跨宿主抽检；对齐逻辑沿用 | 一命令产出对齐+计时表 | ✅ |
 | 3 | `scripts/bench-layer2.sh`（改） | 文案/注释更新为统一口径；支持 `MOON_HOST=moonrun` 回退 | `--no-build` 端到端可跑 | ✅ |
 | 4 | `scripts/setup-fast-qr-wasm-env.sh`（补注） | 注明 wasm-bindgen 宿主宏仍需系统 gcc | 重跑幂等 | ✅ |
 | 5 | 层②重跑 | 本容器实施 | §3 表 | ✅ |
 | 6 | 收尾回归 | fmt/check/test + 双后端 + 默认 checksum | §5 | ✅ |
 | 7 | 文档治理 | S9e 方案 + 本记录 + README/索引回链 | 无死链 | ✅ |
 
-> **接口护栏**：新增 runner 是 `scripts/` 下的宿主脚本、`wasm-compare.mjs` 是驱动脚本，均不触 lib
+> **接口护栏**：新增 runner 是 `scripts/` 下的宿主脚本、`原 wasm/WASI 对比驱动脚本` 是驱动脚本，均不触 lib
 > 公共 `.mbti`；`cmd/bench` 只被「调用」，源码未改。回归维持 **109 全绿**，层① 默认数字逐字不变。
 
 ---
@@ -421,8 +423,8 @@ done
 
 1. **问题**：旧层②两侧宿主形态不同（fast_qr Node 进程内 / MoonBit `moonrun` 子进程），MoonBit 侧多计
    启动 **12–20%**，对比倍率被系统性放大。
-2. **统一**：新增 `scripts/moonbit-wasm-runner.mjs`（Node 进程内托管 MoonBit WASI 产物，复刻 moonrun
-   的 `externref` opaque 句柄 argv 协议）；`wasm-compare.mjs` 两侧同进程/同时钟/同循环形态计时。
+2. **统一**：新增 `原 wasm/WASI Node 运行器`（Node 进程内托管 MoonBit WASI 产物，复刻 moonrun
+   的 `externref` opaque 句柄 argv 协议）；`原 wasm/WASI 对比驱动脚本` 两侧同进程/同时钟/同循环形态计时。
 3. **正确性**：Node 进程内 `--dump` 与 `moonrun` **字节级一致**；三矩阵对 fast_qr **逐位对齐零差异**
    （sha256 与 S9c 同值）。
 4. **重测**：统一口径 fast_qr 快约 **2.7–5.6×**（B 纯边际 2.7–3.7×，A 严格同形 3.0–5.6×），
@@ -440,7 +442,7 @@ done
   issue #50。
 - 前序层②：[S9c 实现记录](./S9c-性能测试与fast_qr-wasm对比.md)、
   [S9c 详细分析](./S9c-性能测试与fast_qr-wasm对比.md)（N 扫描 / 固定开销拟合）。
-- 本仓库实码：`scripts/moonbit-wasm-runner.mjs`、`scripts/wasm-compare.mjs`、`scripts/bench-layer2.sh`、
+- 本仓库实码：`原 wasm/WASI Node 运行器`、`原 wasm/WASI 对比驱动脚本`、`scripts/bench-layer2.sh`、
   `scripts/build-fast-qr-wasm.sh`、`scripts/setup-fast-qr-wasm-env.sh`、`cmd/bench/main.mbt`（未改）。
 - 参考 fast_qr v0.14.0（`53e8c99`）：`src/wasm.rs`（`qr_with` patch）、`benches/qr.rs`。
 - `moonrun`（`~/.moon/bin/moonrun`）内嵌宿主 shim；MoonBit `--target wasm` 产物导入/导出面（实测解析）。

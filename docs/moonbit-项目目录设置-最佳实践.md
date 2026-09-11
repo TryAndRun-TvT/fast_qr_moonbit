@@ -233,7 +233,7 @@ moon fmt && moon info && moon check && moon test
 | 白盒测试 `_wbtest.mbt` | `lib/fast_qr_moonbit_wbtest.mbt` | 符合 |
 | 库主文件命名 | `lib/fast_qr_moonbit.mbt`（文件名沿用模块名） | 符合 |
 | README 入口（真实文件） | `README.md`（`moon.mod` 的 `readme` 指向它） | 偏离（见 §3.3） |
-| `supported_targets` 用集合语法 | `"+wasm+wasm-gc+js"` | 符合 |
+| `supported_targets` 用集合语法 | `"+wasm-gc"`（`js`、`wasm`(WASI) 已移除） | 符合 |
 | 未使用的依赖不提前声明 | `cmd/main/moon.pkg` 仅注释记录 | 符合 |
 
 ### 3.2 整改记录
@@ -243,12 +243,12 @@ moon fmt && moon info && moon check && moon test
 | 动作 | 依据 | 说明 |
 |------|------|------|
 | 新增 `README.md -> README.mbt.md` 符号链接（后已撤销，见 §3.3） | 官方布局含此链接 | 让 GitHub/GitLab 正常渲染首页；git 以 `mode 120000` 跟踪 |
-| `preferred_target` 改为 `wasm-gc` | 实测：release 产物 440 B vs wasm 的 2598 B（-83%）；微基准 45 ms vs 60 ms（快 33%）；宿主仅需 1 个 `spectest.print_char` 回调 | 让 `moon check/build/run/test` 与 IDE 默认走最优后端；兼容产物仍可用 `--target wasm` 单独产出 |
+| `preferred_target` 改为 `wasm-gc` | 实测：release 产物 440 B vs wasm 的 2598 B（-83%）；微基准 45 ms vs 60 ms（快 33%）；宿主仅需 1 个 `spectest.print_char` 回调 | 让 `moon check/build/run/test` 与 IDE 默认走最优后端；`wasm`(WASI) 后端后已移除，不再产出兼容产物 |
 | `agents.md` → `AGENTS.md` | 官方 `moon new` 输出 `AGENTS.md` | `git mv` 保留历史；曾建 `agents.md -> AGENTS.md` 兼容链接（后已撤销，见 §3.3） |
 | 新增 `.githooks/pre-commit` + `README.md` | 官方布局含此目录 | 执行 `moon fmt --check` + `moon check`（比官方仅 `moon check` 更严）；未装 `moon` 时自动跳过；启用由开发者自设 `core.hooksPath`，仓库不代设 |
 | CI 补 `fmt-check` 与 `build-and-run` 阶段 | 防止格式与多后端回归腐化 | `check`/`test` 加 `--deny-warn`；`build-and-run` 遍历 `wasm-gc`/`wasm`/`js` 做 release 构建+运行+测试；**不含 native**（镜像缺 C 编译器） |
 
-> `preferred_target` 回退方式：改回 `"wasm"` 即可，产物路径与 `supported_targets` 无需变动。
+> `wasm`(WASI) 后端已移除，原「改回 `"wasm"`」的回退方式不再适用；当前 `preferred_target` 与 `supported_targets` 均为 `wasm-gc`。
 
 ### 3.3 已知差异（记录在案，暂不变更）
 

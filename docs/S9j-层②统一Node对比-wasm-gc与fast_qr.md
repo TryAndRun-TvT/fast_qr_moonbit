@@ -1,8 +1,11 @@
 # S9j · 层② 统一 Node 进程内对比（wasm-gc vs fast_qr）· 口径收敛
 
+> ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
+
 > 本文把层②「MoonBit vs fast_qr-wasm32」的 MoonBit 侧从 `wasm`(WASI) 兼容后端**收敛为
 > `wasm-gc`（`moon.mod` 的 `preferred_target`，本仓库实际分发形态）**，消除「MoonBit 是哪个后端」
-> 与「比的是哪个产物」两处歧义；`wasm`(WASI) 侧数字退出性能/体积的对外对比，仅作历史记录保留。
+> 与「比的是哪个产物」两处歧义；`wasm`(WASI) 侧数字退出性能/体积的对外对比，仅作历史记录保留
+> （后续该后端已整体移除）。
 > 日期：2026-09-11　｜　环境：`moon 0.1.20260904`、**Node `v22.23.1`**、Linux `5.4.241-tlinux4`
 > 前置：**不改 lib / 公共 API / 快照 / 既有 `cmd` 默认行为 / fast_qr 参考实现**
 
@@ -37,7 +40,7 @@ ECL H、强制 V03/V10/V40、mask 自动择优）：**
 
 | 维度 | 声明 | S9e 对比所用 |
 |------|------|--------------|
-| `moon.mod` | `preferred_target = "wasm-gc"`（`wasm` 仅兜底） | — |
+| `moon.mod` | `preferred_target = "wasm-gc"`（唯一后端） | — |
 | README / AGENTS | 「主推 `wasm-gc`」 | — |
 | 层② 性能对比（S9e） | — | **`wasm`(WASI)** |
 | 体积对比（S9f/S9g） | — | 双后端并列（含 `wasm`） |
@@ -108,11 +111,11 @@ finish_read_string(h) / finish_read_string_array(h)
 
 ```bash
 export PATH="$HOME/.moon/bin:$HOME/.cargo/bin:$PATH"
-bash scripts/bench-layer2.sh --no-build        # 【默认 S9j】wasm-gc vs fast_qr
+bash scripts/bench-layer2.sh --no-build        # wasm-gc vs fast_qr
 R=5 bash scripts/bench-layer2.sh --no-build    # 更多轮次取最小
-# 历史回退（S9e 的 wasm/WASI 口径，不再作为对外引用）：
-MOON_TARGET=wasm bash scripts/bench-layer2.sh --no-build
 ```
+
+> `wasm`(WASI) 历史回退（`MOON_TARGET=wasm`）已随后端与 `wasm-compare.mjs` 一同移除。
 
 两次连跑（R=3）原始值：
 
@@ -133,7 +136,7 @@ fast/ours(B) = 0.269 / 0.319 / 0.368。两套数字**后端不同、Node 大版�
 
 | 位置 | 动作 |
 |------|------|
-| `scripts/bench-layer2.sh` | 默认通道改为 wasm-gc（调 `gc-compare.mjs`）；`MOON_TARGET=wasm` 保留 S9e 历史口径 |
+| `scripts/bench-layer2.sh` | 默认通道为 wasm-gc（调 `gc-compare.mjs`）；`wasm`(WASI) 回退通道已随后端移除 |
 | `scripts/gc-compare.mjs` | **新增**：wasm-gc vs fast_qr 同进程对比 + 三组护栏 |
 | README「性能速览」 | 明细表换成 wasm-gc vs fast_qr；移除 `wasm` 侧数字（含原 ① 跨后端自比行） |
 | README「编译为 Wasm」 | 体积对照表移除 MoonBit `wasm` 列，只留 `wasm-gc` vs fast_qr |
