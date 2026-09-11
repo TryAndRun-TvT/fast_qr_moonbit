@@ -145,15 +145,15 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | S1 | 数据结构：Module 打包、QRCode 固定数组、CompactQR、错误类型、公共枚举骨架 | `module.rs` / `qr.rs:25,200` / `compact.rs:61-224` / `version.rs` / `ecl.rs` | `tests/compact.rs` |
 | S2 | 常量表提取 + GF(256)（division/structure） | `hardcode.rs` / `version.rs:96` / `polynomials.rs:11-106` | `tests/version.rs`、`tests/polynomials.rs`、`tests/structure.rs` |
 | S3 ✅ | 三模式 encode + 容量选择（D2：一次全落三模式） | `encode.rs` / `version.rs` | `tests/encode.rs` |
-| S4 ✅ | default 功能图案 + placement 之字形放置（固定 mask 首码）【D3 module helper + 8 掩码数学式 + **B9a 功能图案/Format 覆写 + B9b 之字形放置 + M1 lib 最小编排入口均已落**（对照 fast_qr v0.14.0 固定 mask 快照逐位对齐，测试 77）；固定 mask 首码闭环达成，见 [S4 实现记录](./S4-矩阵与放置-实现记录.md)】 | `default.rs` / `placement.rs:36` | 快照（固定 mask 路径） |
+| S4 ✅ | default 功能图案 + placement 之字形放置（固定 mask 首码）【D3 module helper + 8 掩码数学式 + **B9a 功能图案/Format 覆写 + B9b 之字形放置 + M1 lib 最小编排入口均已落**（对照 fast_qr v0.14.0 固定 mask 快照逐位对齐，测试 77）；固定 mask 首码闭环达成，见 [S4 实现记录](./S4-矩阵与放置.md)】 | `default.rs` / `placement.rs:36` | 快照（固定 mask 路径） |
 >
-> - **S4 详细方案见 [S4-矩阵与放置-实现方案](./S4-矩阵与放置-实现方案.md)**：在 `internal/matrix` 落
+> - **S4 详细方案见 [S4-矩阵与放置-实现方案](./S4-矩阵与放置.md)**：在 `internal/matrix` 落
 >   `matrix.mbt`（功能图案）+ `placement.mbt`（之字形放置）+ 8 掩码实现，以**固定 mask** 串
 >   encode→structure→放置→Format 闭环产出 M1 首码；含 D3 原始字节矩阵介质决策与快照验收策略。
 | S5 ✅ | 8 掩码 + 4 评分 + 择优主循环（最难点） | `datamasking.rs` / `score.rs` / `placement.rs:85-119` | 全量快照对齐 |
 >
 
-> - **S5 已落地（据 [S5 实现记录](./S5-掩码评分与择优-实现记录.md)）**：8 掩码随 S4 落；S5 补齐
+> - **S5 已落地（据 [S5 实现记录](./S5-掩码评分与择优.md)）**：8 掩码随 S4 落；S5 补齐
 >   4 条评分（score.mbt N1/N2/N3/N4）+ 8 轮 clone+score 择优主循环（placement `create_auto_qr`）
 >   + N4 表 `PERCENT_SCORE`（constants）+ lib 自动择优 `QRCode::build`（mask 可 None）。对照
 >   fast_qr v0.14.0 自动择优快照（10 用例最优 mask + 全矩阵）逐位对齐，双后端全绿（测试 77→85）。
@@ -165,8 +165,8 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | S7 | 输出层：`to_str` 终端画 + SVG（按需） | `helpers.rs` / `convert/svg.rs` | `tests/svg.rs` 快照 |
 | S8 | 拆 `internal/` 子包（触发信号：文件过多/分层/私有类型需进 `.mbti` 之外） | 见框架文档 §三.2 | `.mbti` 对照 |
 | S9 | 性能：移植三基准点 V03H/V10H/V40H（输入 `https://example.com/`） | `benches/qr.rs` | 透明对比（无硬门槛） |
-> - **S6 已落地（据 [S6-端到端对齐与公共API-实现记录.md](./S6-端到端对齐与公共API-实现记录.md)、方案见
->   [S6-端到端对齐与公共API-实现方案.md](./S6-端到端对齐与公共API-实现方案.md)）**：承接 S5 锁定的自动择优
+> - **S6 已落地（据 [S6-端到端对齐与公共API.md](./S6-端到端对齐与公共API.md)、方案见
+>   [S6-端到端对齐与公共API.md](./S6-端到端对齐与公共API.md)）**：承接 S5 锁定的自动择优
 >   正确性，落地公共 `QRBuilder` 构造器（new/from_string + mode/ecl/version/mask 不可变链式 setter +
 >   build，对齐 lib.rs 导出面）+ 快照收口（三模式×4ECL 矩阵级 + V01/V14/V26/V32 + V40-H 满容量 +
 >   自动 mask 路径，约 20 条参考全矩阵逐位对齐 0 差异），收敛里程碑 **M2 功能对齐**
@@ -174,21 +174,21 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   本阶段补的快照精确对准 S6 真实缺口即「60 快照全量对齐」的覆盖收口。
 >   ⚠️ 已评审判定：此前的「全参数 None 纯自动 ×3 对参考逐位」表述失实——C 组实为 mode/ecl/version 冻结、
 >   仅 mask 自动；真全 None 分支缺参考端到端快照，详见
->   [S6-实现评审与优化-记录.md](./S6-实现评审与优化-记录.md) §2.1。
+>   [S6-端到端对齐与公共API.md](./S6-端到端对齐与公共API.md) §2.1。
 
-> - **S7 详细方案见 [S7-输出层to_str与SVG-实现方案.md](./S7-输出层to_str与SVG-实现方案.md)**：输出层——
+> - **S7 详细方案见 [S7-输出层to_str与SVG.md](./S7-输出层to_str与SVG.md)**：输出层——
 >   `helpers.mbt` 落地终端画 `print_matrix_with_margin`（含四态映射与边距）+ `QRCode::to_str`/`print`
 >   （对齐 `helpers.rs`/`qr.rs:174-185`，补 M1「CLI 输出」欠账）；`lib/svg.mbt` 落地公共 `Shape`+
 >   `SvgBuilder`（margin/shape/module_color/background_color + `to_str(qr)`）纯字符串 SVG 输出（对齐
 >   `convert/svg.rs` 不依赖 resvg/file IO 的子集）；含参考**全串快照**逐字节对齐验收（比 tests/svg.rs 更严）。
 >   S7 不做 PNG/image.rs 与 wasm 嵌图子集（无 resvg/无 wasm-bindgen 对应物，按需/二期）。
-> - **S7 方案评估见 [S7-输出层to_str与SVG-实现评估与优化-记录.md](./S7-输出层to_str与SVG-实现评估与优化-记录.md)**：独立检出
+> - **S7 方案评估见 [S7-输出层to_str与SVG.md](./S7-输出层to_str与SVG.md)**：独立检出
 >   fast_qr v0.14.0 参考源码逐行复核方案，方向正确无致命漏洞；补 circle 形状特例 / `<svg>` 的 `xmlns` /
 >   多 shape → 多 `<path>` / 坐标已含 margin 等 4 处精确核对点 + Shape↔字符串映射等优化建议。
 
 
-> - **S7 已落地（据 [S7-输出层to_str与SVG-实现记录.md](./S7-输出层to_str与SVG-实现记录.md)、方案见
->   [S7-输出层to_str与SVG-实现方案.md](./S7-输出层to_str与SVG-实现方案.md)）**：输出面补齐达成——`helpers.mbt`
+> - **S7 已落地（据 [S7-输出层to_str与SVG.md](./S7-输出层to_str与SVG.md)、方案见
+>   [S7-输出层to_str与SVG.md](./S7-输出层to_str与SVG.md)）**：输出面补齐达成——`helpers.mbt`
 >   落地终端画 `print_matrix_with_margin`（四态映射/上边距两行合一/末行，逐字符对齐 `helpers.rs`）+
 >   `QRCode::to_str`/`print`（委托，对齐 `qr.rs:174-185`）；`lib/shape.mbt` 公共 `Shape` 枚举 + 名字↔枚举映射、
 >   `lib/svg.mbt` 公共 `SvgBuilder`（margin/shape/module_color/background_color 值语义 + `to_str`）纯字符串 SVG
@@ -196,7 +196,7 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   `convert/{mod,svg}.rs` 子集）；参考**全串字节对齐**快照（受控矩阵 ×6 形状 + 多 shape + 真实 V01/V05 终端画
 >   + 真实 V01 SVG）比 tests/svg.rs 的 contains 更严；`cmd/main` 落地真码终端画+SVG 输出（补 M1 CLI 欠账）；
 >   roadmap §4.4 输出面补齐完成，测试 94→109，双后端全绿。下一步为 S8（internal 拆包）/S9（性能）。
-> - **S8 详细方案见 [S8-内部结构归位与分层-实现方案.md](./S8-内部结构归位与分层-实现方案.md)**：按 §三.2
+> - **S8 详细方案见 [S8-内部结构归位与分层.md](./S8-内部结构归位与分层.md)**：按 §三.2
 >   拆包判据对 post-S7 代码库逐条核对后判定——roadmap 原义「拆 internal 子包」已被 S1-S5 实质达成，
 >   internal 五子包单一职责/测试齐备、**无再拆信号**；真正命中判据的是 **lib 公共层的失效入口
 >   `fast_qr_moonbit.mbt`（仍自称骨架、实已实现）+ `qr.mbt`（401 行）混容器/编排/builder/output 三类子关注**。
@@ -207,7 +207,7 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   `lib` 包 `.mbti` 拆前拆后 **零漂移**（接口集不变）、测试维持 **109 全绿**（纯搬移未增减行为测试）。roadmap 原义
 >   「拆 internal」经核对**不拆**（internal 无再拆信号）。
 
-> - **S9 详细方案见 [S9-性能基准-实现方案.md](./S9-性能基准-实现方案.md)**（2026-09-06 按「本项目与
+> - **S9 详细方案见 [S9-性能基准.md](./S9-性能基准.md)**（2026-09-06 按「本项目与
 >   fast_qr 主比较 wasm 产物性能」修订对比分层）：承接 S8 合入（测试 109）后性能三基准点移植（roadmap §4.2
 >   S9，收敛 M3）。核心架构事实——MoonBit `Int` 32 位，`bitbuffer.mbt` 的 `KEEP_LAST` 取 Rust **wasm32 分支**
 >   （33 项、对全部后端生效），本仓库是 **wasm 形态**移植，故与其语义最贴近的 fast_qr 参照物是 **wasm32
@@ -220,17 +220,17 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 >   version(V03/V10/V40).build()`，强制版本语义待实现时对 `benches/qr.rs` 核对（V03H 恰为 20 字节 Byte-H
 >   最小适配版本，V10/V40 强制升版；fast_qr wasm 侧自动择优需对参考核对）；只测基线、**不并入** S5 O1
 >   （8 轮 clone→就地翻转）等正确性敏感主循环重构（单列 P2）。回归 109 全绿 + 快照零差异即安全。
-> - **S9 方案评估见 [S9-性能基准-实现评估与优化-记录.md](./S9-性能基准-实现评估与优化-记录.md)**（2026-09-06）：独立重读实码 + roadmap 复核 S9 方案，方向正确无致命漏洞；更正输入 `https://example.com/` 为 **20 字节**（roadmap 本行「19 字节」同步更正为 20，V03H 最小适配结论不变）、bench 循环须消费 build 结果防空循环（死代码消除）、补「KEEP_LAST 33 vs 65 对真实 QR 语义无差别」论证（真实路径 push≤16 位、index>16 不触达）→ 把层②逐位对齐重新定位为对既有 S1-S7 快照对齐的跨宿主重确认，增量价值在计时可比性。供 S9 实现阶段直接执行前兜底。
-> - **S9 实现落地（层①基准载体 + 跨后端数字）见 [S9-性能基准-实现记录.md](./S9-性能基准-实现记录.md)**（2026-09-06）：落地 `cmd/bench`（三基准点 V03H/V10H/V40H，输入 `https://example.com/`=20 字节、ECL=H、强制版本、mask 自动择优，循环**累加消费 build 结果**防空循环，argv 可选指定点/迭代数）+ `scripts/bench.sh`（宿主 bash `time` 多次取最小，主口径在宿主，预留层② `FAST_QR_WASM` 驱动入口）。已跑出**层①跨后端选型**数字：wasm-gc 全程更快（约 1.2–1.4×；V03H 0.695/0.854s、V10H 0.451/0.621s、V40H 0.369/0.484s，@ N=2000/400/40），两后端各点 `TOTAL_CHECKSUM` 完全一致 → **同源码跨后端结果互证**成立；把 wasm §5.2 的朴素微基准升级为真实 QR 路径、入库存量可复跑。层②（对 fast_qr-wasm32，主口径：逐位对齐 + 同口径计时）与层③（native 注记）需具 fast_qr 检出 / C 工具链环境，已在实现记录 §4 预留驱动与口径说明，达成即收敛 M3。回归维持 **109 全绿** + 快照零差异 + lib `.mbti` 零漂移。
-> - **S9 后续优化评估（2026-09-06，纯文档）见 [S9b-性能优化-评估与路线.md](./S9b-性能优化-评估与路线.md)**：对 S9 之后的性能优化做逐热点评估（未改代码）。进程级差分实测建成本模型（同点同输入只差「自动择优 vs 固定 mask」）——V40H 单次 auto 7.99ms vs fixed 1.13ms，8 轮择优开销 ≈6.86ms、**占 auto ≈86%**（V03H ≈57% / V10H ≈73%，随版本超线性放大，面积 ∝ size²）；头号靶点 = `create_auto_qr` 8 轮择优主循环（S5 评审 §4 O1），每轮 `apply_mask` 全量 copy（共 9 次）+ `score` 多趟全矩阵扫描（8 轮 ≈32 趟）；非择优管线（encode→structure→matrix→放置→wrap）单趟、相对紧凑、非优先。给**分优先级路线**：P1 O1-a 就地翻转（toggle 自逆 apply→score→还原，单 base 缓冲免 8 次全量 copy → V40H 择优 6.86ms 望 → ≈3~4ms）/ O1-b 复用最优轮矩阵省末尾 一次 copy（−≈1/9）；P2 O2 score 融合减趟 / O3 wrap_packed 按 size*size 分配（需先评估 QRCode.data 固定容量 容器语义）；层②/③ 对比收尾仍待外部环境。记录测量坑：**argv 驱动探针会被编译器整段折叠**，须编译期常量 + 消费结果。验收统一：快照逐位 diff 零差异 + 109 测试 + 双后端 checksum（O1/O2 逐步独立提交兜底）。
-> - **S9 优化再评估（2026-09-06，纯文档）见 [S9b-性能优化-再评估与实施建议.md](./S9b-性能优化-再评估与实施建议.md)**：在层② fast_qr-wasm 实测（见下 S9c bullet 详细分析）后，用边际/每模块成本 + 逐热点实码核对把差距归因两层——算法冗余（9 次整矩阵 copy + 8 轮 ~4 趟扫描 ≈32 趟 + 每格 `mask_at` match，可消）与表示/实现系数（`Array[Int]` 4B/格 vs fast `Module(u8)` 1B 固定数组，难消）；给实施批序 T1（O1-a）→T2（O1-b）→T3（减趟）+T4（mask 特化）→T5（wrap 容器）→T6（宽度实验）与组合预期（V40H 边际 9.01ms → 批 1≈5–6.5ms → 批 2≈4–5ms，fast 3.18ms 的 1.25–1.6×）；验收沿用快照 diff + 109 测试 + checksum + bench-layer2 同一把尺子；明确不承诺拉平到 fast 系数。
-> - **S9 优化首批实施（2026-09-06）见 [S9b-性能优化-O1实施记录.md](./S9b-性能优化-O1实施记录.md)**：落地 **T2（O1-b）**（复用最优轮掩码矩阵 + 真实 Format 覆写，省第 9 次整矩阵 copy；V40H marginal 9.0074→8.8742ms ≈−1.5%，sha256/快照/109 全保持）；**T1（O1-a 就地翻转）实测否决**（V40H marginal +~8%：409 vs 384ms）——copy 非大头、score 多趟扫描才是，单纯就地翻转用真实扫描换 memcpy 净亏；结论：主攻方向转向 **T3（O2 score 减趟）**（score 4 趟→3 趟，把大头打下来），O1-a 保留为开放项不按原形落地。
-> - **S9 层②（与 fast_qr wasm 对比）方案见 [S9c-性能测试与fast_qr-wasm对比-实现方案.md](./S9c-性能测试与fast_qr-wasm对比-实现方案.md)**（2026-09-06）：把 S9 记录 §4 预留的层②落成**同一 Node.js 调用 wasm**、可复跑的性能测试代码（D17/D18/D19）。fast_qr v0.14.0（`53e8c99`）patch `wasm.rs` 加 **`qr_with(content,ecl,version)`** + `wasm-bindgen --target nodejs` 产物（Node 直调 0/1 矩阵；env = rustup stable + wasm32 target + 预编译 cli 0.2.100 + **系统 gcc**——wasm-bindgen 宿主宏/构建脚本需 cc）；MoonBit `cmd/bench --target wasm` 产物由同一 Node 脚本经 **`moonrun` 子进程**驱动（Node 内 `_start` 同进程 spike 否决）；补 `cmd/bench --dump` 值全集矩阵（现校验和含类型位不可跨库互比）；新增 `wasm-compare.mjs` + `bench-layer2.sh`；npm 现成包停在 0.13.0 → 排除主口径。**实现落地见 [S9c-性能测试与fast_qr-wasm对比-实现记录.md](./S9c-性能测试与fast_qr-wasm对比-实现记录.md)**。
-> - **S9 同语言生态对比方案（2026-09-06，纯文档）见 [S9d-与moonbit生态QR包性能对比-方案.md](./S9d-与moonbit生态QR包性能对比-方案.md)**：把对比视野扩到 **moonbit 生态现有 QR 包**——`bobzhang/qrc@0.1.1`、`naoto24kawa/moonqr@0.2.0`、`PaiGack/moonbitqrcode@0.1.0`（三包实测 `moon add` 可装、wasm-gc/wasm 可编译）。方案 = 仓库外独立对比模块 import 四方（本仓库 lib + 三包）→ 单一 wasm；复用 `cmd/bench` 口径（同输入 `https://example.com/`、ECL H、V03/V10/V40 强制版本或自动、N 次 build 消费 + R 取最小 + moonrun/Node 计时）；仓库仅加 scripts（setup/build/bench-moonbit-qr.sh 等），lib 零依赖零漂移。标注语义差异：moonbitqrcode lib 层固定 mask0/仅自动版本（择优/强制版本需走其 `src/coding`，可见性待落地核）、qrc/moonqr 支持强制版本+择优。不要求逐位对齐（跨实现细节不同），只做尺寸烟测 + 计时。属 roadmap M3 之后的可选对比延伸，非 M3 门槛。
-> - **S9 同语言生态对比首跑（2026-09-06）见 [S9d-与moonbit生态QR包性能对比-实现记录.md](./S9d-与moonbit生态QR包性能对比-实现记录.md)**：三包 `moon add` 引入仓库外对比模块、同一 `moonrun` R=5 取最小实测。**同尺寸同语义可比子集 = 本仓库 vs moonqr**：本仓库 **2.5–4.1× 更快**（V40H 9.46 vs 38.29ms、V03H 0.318 vs 0.805ms 单次，V03→V40 全程）。**qrc/moonbitqrcode 无法同口径对齐**（实测核实：qrc 强制版本 API 无 mask/Format、自动 H 落 V2(25)<理论 V3；moonbitqrcode lib 仅 L/M/Q 固定 mask0、H 外部不可构造），仅作参考口径；附生态包可比性硬约束表，与 S9c 层② 同尺子衔接（S9b T3 落地后可复跑观察差距收窄）。
-> - **S9 同语言生态全库详细分析（2026-09-06）见 [S9d-与moonbit生态QR包性能对比-详细分析.md](./S9d-与moonbit生态QR包性能对比-详细分析.md)**：4 方全库总表 + 容量/语义核验。自动最小版本尺寸：本仓库/moonqr H→V3 ✅、qrc H→V2 ⚠️（`get_data_capacity` 返回字节数 vs `calculate_required_length` 返回位数，bytes/bits 混比疑似容量 bug）、moonbitqrcode Q→V2 ✅（Q 档恰容 20B）。可比子集排名 = 本仓库快 moonqr 2.5–4.1×；逐库归因：qrc 强制路径只 place_data（无择优/Format）故 0.166ms 低值不代表完整成本、moonbitqrcode 固定 mask0+无 H 是「跳过择优的小版本下限」（0.074µs/模块）不能与择优方排名；生态启示 = 完整「自动择优+可强制 ECL+多版本」实现尚少，本仓库完整性与性能有生态价值。
-> - **S9 生态专项：moonbitqrcode 快速归因 + 产物对比（2026-09-06）见 [S9d-moonbitqrcode快速原因与产物对比-分析.md](./S9d-moonbitqrcode快速原因与产物对比-分析.md)**：源码级结论——moonbitqrcode lib 固定 `Mask::of_int(0)`（不跑 8 轮择优）+ 只做自动最小版本（20B@Q→V2/625 格）；择优是择优库自动路径主要成本（S9b：V40H ≈86%）→ 免择优即快一个量级，其余管线（RS/放置/Format）并不省。产物交叉验证（矩阵→RGBA→moonqr decode 读回）：本仓库 V03H / moonqr auto-H / moonbitqrcode auto-Q **均可解码读回输入**；qrc auto-H（V2<最小 V3，容量单位 bug）与 qrc forced V3H（缺 Format/mask）**均解码失败** → moonbitqrcode「快≠算法更优」、qrc 0.1.1 暂不产出可用完整 QR。
-> - **S9 生态专项：固定 mask0 缺陷 + 主流为何择优（2026-09-06）见 [S9d-moonbitqrcode固定mask0缺陷与主流对比.md](./S9d-moonbitqrcode固定mask0缺陷与主流对比.md)**：源码核实固定 mask0 = 忠实移植 rsc.io/qr 的**未完成择优**（Go `qr.go` `NewPlan(v,l,0)` + `// TODO: Pick appropriate mask.`；README 自称 Basic encoder，测试却对照有择优的 C libqrencode）——非移植丢功能。缺陷 = 放弃 ISO 18004 N1–N4 8 掩码评分择优的最坏情况解码鲁棒性（低对比/畸变/小尺寸更易扫失败；产物仍可解码，与上篇不矛盾）。主流（fast_qr/本仓库/moonqr/zxing/qrcodegen/libqrencode）默认择优，因择优是「小成本大保险」的默认质量机制。
+> - **S9 方案评估见 [S9-性能基准.md](./S9-性能基准.md)**（2026-09-06）：独立重读实码 + roadmap 复核 S9 方案，方向正确无致命漏洞；更正输入 `https://example.com/` 为 **20 字节**（roadmap 本行「19 字节」同步更正为 20，V03H 最小适配结论不变）、bench 循环须消费 build 结果防空循环（死代码消除）、补「KEEP_LAST 33 vs 65 对真实 QR 语义无差别」论证（真实路径 push≤16 位、index>16 不触达）→ 把层②逐位对齐重新定位为对既有 S1-S7 快照对齐的跨宿主重确认，增量价值在计时可比性。供 S9 实现阶段直接执行前兜底。
+> - **S9 实现落地（层①基准载体 + 跨后端数字）见 [S9-性能基准.md](./S9-性能基准.md)**（2026-09-06）：落地 `cmd/bench`（三基准点 V03H/V10H/V40H，输入 `https://example.com/`=20 字节、ECL=H、强制版本、mask 自动择优，循环**累加消费 build 结果**防空循环，argv 可选指定点/迭代数）+ `scripts/bench.sh`（宿主 bash `time` 多次取最小，主口径在宿主，预留层② `FAST_QR_WASM` 驱动入口）。已跑出**层①跨后端选型**数字：wasm-gc 全程更快（约 1.2–1.4×；V03H 0.695/0.854s、V10H 0.451/0.621s、V40H 0.369/0.484s，@ N=2000/400/40），两后端各点 `TOTAL_CHECKSUM` 完全一致 → **同源码跨后端结果互证**成立；把 wasm §5.2 的朴素微基准升级为真实 QR 路径、入库存量可复跑。层②（对 fast_qr-wasm32，主口径：逐位对齐 + 同口径计时）与层③（native 注记）需具 fast_qr 检出 / C 工具链环境，已在实现记录 §4 预留驱动与口径说明，达成即收敛 M3。回归维持 **109 全绿** + 快照零差异 + lib `.mbti` 零漂移。
+> - **S9 后续优化评估（2026-09-06，纯文档）见 [S9b-性能优化.md](./S9b-性能优化.md)**：对 S9 之后的性能优化做逐热点评估（未改代码）。进程级差分实测建成本模型（同点同输入只差「自动择优 vs 固定 mask」）——V40H 单次 auto 7.99ms vs fixed 1.13ms，8 轮择优开销 ≈6.86ms、**占 auto ≈86%**（V03H ≈57% / V10H ≈73%，随版本超线性放大，面积 ∝ size²）；头号靶点 = `create_auto_qr` 8 轮择优主循环（S5 评审 §4 O1），每轮 `apply_mask` 全量 copy（共 9 次）+ `score` 多趟全矩阵扫描（8 轮 ≈32 趟）；非择优管线（encode→structure→matrix→放置→wrap）单趟、相对紧凑、非优先。给**分优先级路线**：P1 O1-a 就地翻转（toggle 自逆 apply→score→还原，单 base 缓冲免 8 次全量 copy → V40H 择优 6.86ms 望 → ≈3~4ms）/ O1-b 复用最优轮矩阵省末尾 一次 copy（−≈1/9）；P2 O2 score 融合减趟 / O3 wrap_packed 按 size*size 分配（需先评估 QRCode.data 固定容量 容器语义）；层②/③ 对比收尾仍待外部环境。记录测量坑：**argv 驱动探针会被编译器整段折叠**，须编译期常量 + 消费结果。验收统一：快照逐位 diff 零差异 + 109 测试 + 双后端 checksum（O1/O2 逐步独立提交兜底）。
+> - **S9 优化再评估（2026-09-06，纯文档）见 [S9b-性能优化.md](./S9b-性能优化.md)**：在层② fast_qr-wasm 实测（见下 S9c bullet 详细分析）后，用边际/每模块成本 + 逐热点实码核对把差距归因两层——算法冗余（9 次整矩阵 copy + 8 轮 ~4 趟扫描 ≈32 趟 + 每格 `mask_at` match，可消）与表示/实现系数（`Array[Int]` 4B/格 vs fast `Module(u8)` 1B 固定数组，难消）；给实施批序 T1（O1-a）→T2（O1-b）→T3（减趟）+T4（mask 特化）→T5（wrap 容器）→T6（宽度实验）与组合预期（V40H 边际 9.01ms → 批 1≈5–6.5ms → 批 2≈4–5ms，fast 3.18ms 的 1.25–1.6×）；验收沿用快照 diff + 109 测试 + checksum + bench-layer2 同一把尺子；明确不承诺拉平到 fast 系数。
+> - **S9 优化首批实施（2026-09-06）见 [S9b-性能优化.md](./S9b-性能优化.md)**：落地 **T2（O1-b）**（复用最优轮掩码矩阵 + 真实 Format 覆写，省第 9 次整矩阵 copy；V40H marginal 9.0074→8.8742ms ≈−1.5%，sha256/快照/109 全保持）；**T1（O1-a 就地翻转）实测否决**（V40H marginal +~8%：409 vs 384ms）——copy 非大头、score 多趟扫描才是，单纯就地翻转用真实扫描换 memcpy 净亏；结论：主攻方向转向 **T3（O2 score 减趟）**（score 4 趟→3 趟，把大头打下来），O1-a 保留为开放项不按原形落地。
+> - **S9 层②（与 fast_qr wasm 对比）方案见 [S9c-性能测试与fast_qr-wasm对比.md](./S9c-性能测试与fast_qr-wasm对比.md)**（2026-09-06）：把 S9 记录 §4 预留的层②落成**同一 Node.js 调用 wasm**、可复跑的性能测试代码（D17/D18/D19）。fast_qr v0.14.0（`53e8c99`）patch `wasm.rs` 加 **`qr_with(content,ecl,version)`** + `wasm-bindgen --target nodejs` 产物（Node 直调 0/1 矩阵；env = rustup stable + wasm32 target + 预编译 cli 0.2.100 + **系统 gcc**——wasm-bindgen 宿主宏/构建脚本需 cc）；MoonBit `cmd/bench --target wasm` 产物由同一 Node 脚本经 **`moonrun` 子进程**驱动（Node 内 `_start` 同进程 spike 否决）；补 `cmd/bench --dump` 值全集矩阵（现校验和含类型位不可跨库互比）；新增 `wasm-compare.mjs` + `bench-layer2.sh`；npm 现成包停在 0.13.0 → 排除主口径。**实现落地见 [S9c-性能测试与fast_qr-wasm对比.md](./S9c-性能测试与fast_qr-wasm对比.md)**。
+> - **S9 同语言生态对比方案（2026-09-06，纯文档）见 [S9d-与moonbit生态QR包性能对比.md](./S9d-与moonbit生态QR包性能对比.md)**：把对比视野扩到 **moonbit 生态现有 QR 包**——`bobzhang/qrc@0.1.1`、`naoto24kawa/moonqr@0.2.0`、`PaiGack/moonbitqrcode@0.1.0`（三包实测 `moon add` 可装、wasm-gc/wasm 可编译）。方案 = 仓库外独立对比模块 import 四方（本仓库 lib + 三包）→ 单一 wasm；复用 `cmd/bench` 口径（同输入 `https://example.com/`、ECL H、V03/V10/V40 强制版本或自动、N 次 build 消费 + R 取最小 + moonrun/Node 计时）；仓库仅加 scripts（setup/build/bench-moonbit-qr.sh 等），lib 零依赖零漂移。标注语义差异：moonbitqrcode lib 层固定 mask0/仅自动版本（择优/强制版本需走其 `src/coding`，可见性待落地核）、qrc/moonqr 支持强制版本+择优。不要求逐位对齐（跨实现细节不同），只做尺寸烟测 + 计时。属 roadmap M3 之后的可选对比延伸，非 M3 门槛。
+> - **S9 同语言生态对比首跑（2026-09-06）见 [S9d-与moonbit生态QR包性能对比.md](./S9d-与moonbit生态QR包性能对比.md)**：三包 `moon add` 引入仓库外对比模块、同一 `moonrun` R=5 取最小实测。**同尺寸同语义可比子集 = 本仓库 vs moonqr**：本仓库 **2.5–4.1× 更快**（V40H 9.46 vs 38.29ms、V03H 0.318 vs 0.805ms 单次，V03→V40 全程）。**qrc/moonbitqrcode 无法同口径对齐**（实测核实：qrc 强制版本 API 无 mask/Format、自动 H 落 V2(25)<理论 V3；moonbitqrcode lib 仅 L/M/Q 固定 mask0、H 外部不可构造），仅作参考口径；附生态包可比性硬约束表，与 S9c 层② 同尺子衔接（S9b T3 落地后可复跑观察差距收窄）。
+> - **S9 同语言生态全库详细分析（2026-09-06）见 [S9d-与moonbit生态QR包性能对比.md](./S9d-与moonbit生态QR包性能对比.md)**：4 方全库总表 + 容量/语义核验。自动最小版本尺寸：本仓库/moonqr H→V3 ✅、qrc H→V2 ⚠️（`get_data_capacity` 返回字节数 vs `calculate_required_length` 返回位数，bytes/bits 混比疑似容量 bug）、moonbitqrcode Q→V2 ✅（Q 档恰容 20B）。可比子集排名 = 本仓库快 moonqr 2.5–4.1×；逐库归因：qrc 强制路径只 place_data（无择优/Format）故 0.166ms 低值不代表完整成本、moonbitqrcode 固定 mask0+无 H 是「跳过择优的小版本下限」（0.074µs/模块）不能与择优方排名；生态启示 = 完整「自动择优+可强制 ECL+多版本」实现尚少，本仓库完整性与性能有生态价值。
+> - **S9 生态专项：moonbitqrcode 快速归因 + 产物对比（2026-09-06）见 [S9d-与moonbit生态QR包性能对比.md](./S9d-与moonbit生态QR包性能对比.md)**：源码级结论——moonbitqrcode lib 固定 `Mask::of_int(0)`（不跑 8 轮择优）+ 只做自动最小版本（20B@Q→V2/625 格）；择优是择优库自动路径主要成本（S9b：V40H ≈86%）→ 免择优即快一个量级，其余管线（RS/放置/Format）并不省。产物交叉验证（矩阵→RGBA→moonqr decode 读回）：本仓库 V03H / moonqr auto-H / moonbitqrcode auto-Q **均可解码读回输入**；qrc auto-H（V2<最小 V3，容量单位 bug）与 qrc forced V3H（缺 Format/mask）**均解码失败** → moonbitqrcode「快≠算法更优」、qrc 0.1.1 暂不产出可用完整 QR。
+> - **S9 生态专项：固定 mask0 缺陷 + 主流为何择优（2026-09-06）见 [S9d-与moonbit生态QR包性能对比.md](./S9d-与moonbit生态QR包性能对比.md)**：源码核实固定 mask0 = 忠实移植 rsc.io/qr 的**未完成择优**（Go `qr.go` `NewPlan(v,l,0)` + `// TODO: Pick appropriate mask.`；README 自称 Basic encoder，测试却对照有择优的 C libqrencode）——非移植丢功能。缺陷 = 放弃 ISO 18004 N1–N4 8 掩码评分择优的最坏情况解码鲁棒性（低对比/畸变/小尺寸更易扫失败；产物仍可解码，与上篇不矛盾）。主流（fast_qr/本仓库/moonqr/zxing/qrcodegen/libqrencode）默认择优，因择优是「小成本大保险」的默认质量机制。
 
 ### 4.3 代码迁移路线图（文件级）
 
@@ -273,7 +273,7 @@ git clone --depth 1 https://github.com/erwanvivien/fast_qr /fast_qr
 | M0 ✅ | 验证基座 + 数据结构全绿 | S1-S2 完成；单测与黄金数据通过 |
 | M1 ✅ | 编码 + 放置最小路径跑通 | 固定参数首码与参考快照逐位一致（S4 达成，测试 77）；CLI 已 import 库并输出 |
 | M2 ✅ | **功能对齐** | 三模式×4ECL 全矩阵逐位对齐 + 公共 QRBuilder/API 面对齐（S6 达成，测试 94→109）；60 快照覆盖收口 |
-| M3 ✅ | 性能与分发基线 | 三基准点可跑并给出对比数字；后端/产物分发结论记录在案（S9 方案见 [S9-性能基准-实现方案.md](./S9-性能基准-实现方案.md)，评估见 [S9-性能基准-实现评估与优化-记录.md](./S9-性能基准-实现评估与优化-记录.md)，实现记录见 [S9-性能基准-实现记录.md](./S9-性能基准-实现记录.md)，优化评估见 [S9b-性能优化-评估与路线.md](./S9b-性能优化-评估与路线.md)。**层①已落地**：`cmd/bench` + `scripts/bench.sh`，wasm-gc 全程快约 1.2–1.4×、跨后端 checksum 互证。**层②已落地（2026-09-06）**：见 [S9c-性能测试与fast_qr-wasm对比-实现记录.md](./S9c-性能测试与fast_qr-wasm对比-实现记录.md) 与复测/成本分解 [S9c-性能测试与fast_qr-wasm对比-详细分析.md](./S9c-性能测试与fast_qr-wasm对比-详细分析.md)——fast_qr `qr_with` wasm-bindgen nodejs 产物（Node 进程内直调）vs MoonBit `cmd/bench --target wasm`（moonrun 子进程）三基准点**逐位对齐零差异**（sha256 一致），计时 646.70/493.60/386.43ms vs 124.07/132.38/126.15ms（@N=2000/400/40）→ fast_qr-wasm32 快约 3.1–5.2×（整程）；详细分析剔启动后**边际单次 build** 0.304/1.162/9.01ms vs 0.061/0.335/3.18ms → fast_qr 快约 2.8–5.0×、每模块成本 0.29–0.36µs vs 0.07–0.10µs（基线，供 S9b P1/P2 优化前后对比）。层③ native 对比仍为可选量级注记（需 C 工具链 + fast_qr native 环境），非 M3 门槛） |
+| M3 ✅ | 性能与分发基线 | 三基准点可跑并给出对比数字；后端/产物分发结论记录在案（S9 方案见 [S9-性能基准.md](./S9-性能基准.md)，评估见 [S9-性能基准.md](./S9-性能基准.md)，实现记录见 [S9-性能基准.md](./S9-性能基准.md)，优化评估见 [S9b-性能优化.md](./S9b-性能优化.md)。**层①已落地**：`cmd/bench` + `scripts/bench.sh`，wasm-gc 全程快约 1.2–1.4×、跨后端 checksum 互证。**层②已落地（2026-09-06）**：见 [S9c-性能测试与fast_qr-wasm对比.md](./S9c-性能测试与fast_qr-wasm对比.md) 与复测/成本分解 [S9c-性能测试与fast_qr-wasm对比.md](./S9c-性能测试与fast_qr-wasm对比.md)——fast_qr `qr_with` wasm-bindgen nodejs 产物（Node 进程内直调）vs MoonBit `cmd/bench --target wasm`（moonrun 子进程）三基准点**逐位对齐零差异**（sha256 一致），计时 646.70/493.60/386.43ms vs 124.07/132.38/126.15ms（@N=2000/400/40）→ fast_qr-wasm32 快约 3.1–5.2×（整程）；详细分析剔启动后**边际单次 build** 0.304/1.162/9.01ms vs 0.061/0.335/3.18ms → fast_qr 快约 2.8–5.0×、每模块成本 0.29–0.36µs vs 0.07–0.10µs（基线，供 S9b P1/P2 优化前后对比）。层③ native 对比仍为可选量级注记（需 C 工具链 + fast_qr native 环境），非 M3 门槛） |
 
 ### 4.5 收尾门禁（沿用 AGENTS.md）
 

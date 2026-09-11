@@ -4,7 +4,7 @@
 > `rs-site-tools`、抽取其 `rust_setup.sh` 思路、落地本仓库 `scripts/setup-rust.sh`，
 > 并给出脚本用途、与 CI 的关系与后续使用方式。
 >
-> 关联：ISSUE #9（在 `repo-初始化配置说明.md` §演进记录 与 README 中同步）
+> 关联：ISSUE #9（在 `moonbit-工具链与构建-setup-分析.md` §演进记录 与 README 中同步）
 > 参考实现：Rust 库 fast_qr v0.14.0（见 README「移植参考」）
 
 ---
@@ -103,7 +103,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://rsproxy.cn/rustup-init.sh | sh -s -
 ## 四、文档更新
 
 - `README.md`：`项目结构` 的 `scripts/` 下补 `setup-rust.sh` 条目；文档索引补本文。
-- `docs/repo-初始化配置说明.md`：演进记录补 ISSUE #9 本次记录。
+- `docs/moonbit-工具链与构建-setup-分析.md`：演进记录补 ISSUE #9 本次记录。
 
 ---
 

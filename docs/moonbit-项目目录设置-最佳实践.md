@@ -287,7 +287,7 @@ moon fmt && moon info && moon check && moon test
 
 ## 五、参考
 
-- [代码布局检查与整理.md](./代码布局检查与整理.md) — 本仓库布局检查过程与实证记录
+- [moonbit-实现布局与文件职责.md](./moonbit-实现布局与文件职责.md) — 本仓库布局检查过程与实证记录
 - [wasm-编译与运行-结果分析.md](./wasm-编译与运行-结果分析.md) — 后端选型与产物分析
 - [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) — 工具链安装与构建系统
 - 官方构建系统教程：<https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/tutorial.html>

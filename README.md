@@ -55,9 +55,9 @@
 已知局限（诚实声明）：
 
 - **编码模式**仅支持 Byte/Alphanumeric/Numeric；**Kanji 模式暂不支持**（与参考 fast_qr 一致）。
-- 输入按 **ASCII 字节** 处理（非 ASCII 多字节字符的语义见 [S6 评审记录](./docs/S6-实现评审与优化-记录.md) 的优化建议）。
+- 输入按 **ASCII 字节** 处理（非 ASCII 多字节字符的语义见 [S6 评审记录](./docs/S6-端到端对齐与公共API.md) 的优化建议）。
 - 产物形态面向 **wasm**：MoonBit `Int` 32 位、纠错位流 `KEEP_LAST=33`（取 Rust wasm32 分支），
-  对真实 QR 语义无差别（详见 [S9 评估记录](./docs/S9-性能基准-实现评估与优化-记录.md) §2.4）。
+  对真实 QR 语义无差别（详见 [S9 评估记录](./docs/S9-性能基准.md) §2.4）。
 - `native` 后端需系统 C 编译器，当前 CI/本地镜像未安装，暂不可用。
 
 ---
@@ -190,7 +190,7 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 
 > 与 Rust 参考 fast_qr 的**产物体积对比**（同规则口径）见
 > [S9g 确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) 与
-> [S9f 实现记录](./docs/S9f-产物体积对比-实现记录.md)：
+> [S9f 实现记录](./docs/S9f-产物体积对比.md)：
 > 默认后端 `wasm-gc` 在每种口径下都更小（`-Oz` **0.73×**、含胶水 **0.62×**）；
 > `wasm`(WASI) 侧与 fast_qr 同档（`-Oz` 1.08×）。
 > 复跑 `bash scripts/bench-size.sh`（一条命令出全表 + 语义护栏）。
@@ -207,11 +207,11 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 ### 跨库对比全景
 
 **① 层① 跨后端（同源码互证）**：`wasm-gc` 全程比 `wasm` 快约 **1.2–1.4×**，两后端
-`TOTAL_CHECKSUM` 完全一致。见 [S9 实现记录](./docs/S9-性能基准-实现记录.md)。
+`TOTAL_CHECKSUM` 完全一致。见 [S9 实现记录](./docs/S9-性能基准.md)。
 
 **② 层② vs Rust 参考 fast_qr-wasm32**：自 **S9e 起两侧统一为「同一 Node 进程内」调用**（此前
 fast_qr 进程内 / MoonBit `moonrun` 子进程，MoonBit 侧被多计 12–20% 进程启动）。
-下表为**单次 build**，逐位对齐 sha256 零差异（见 [S9e 实现记录](./docs/S9e-性能测试统一Node调用-实现记录.md)）：
+下表为**单次 build**，逐位对齐 sha256 零差异（见 [S9e 实现记录](./docs/S9e-性能测试统一Node调用.md)）：
 
 | 点 | 模块数 | 本仓库 MoonBit(wasm) 单次(B 纯边际) | fast_qr-wasm32 单次 | fast/ours | 每模块成本 ours / fast |
 |----|------:|-----------------------------------:|--------------------:|----------:|------------------------:|
@@ -219,11 +219,17 @@ fast_qr 进程内 / MoonBit `moonrun` 子进程，MoonBit 侧被多计 12–20% 
 | V10H | 3249 | 1.257 ms | 0.401 ms | 0.32×（慢≈3.1×） | 0.387 / 0.123 µs |
 | V40H | 31329 | 9.66 ms | 3.554 ms | 0.37×（慢≈2.7×） | 0.308 / 0.113 µs |
 
+> ⚠️ **环境绑定（S9h 复测归因）**：上表绝对毫秒数**绑定测量环境**（node v24.20.0 + 2026-09-10 宿主）。
+> Node 大版本使 MoonBit 侧单次变动 −18~41%（v24 比 v22 快）、宿主/会话再 ±20–40%；
+> 跨环境只比「同 run 成对比值」，且 V03H 比值最敏感（复测范围 0.166–0.269×）。
+> 「fast_qr 更快 2.6–6.0×」的方向性结论全环境成立。详见
+> [S9h 层②性能复测异常归因](./docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md)。
+
 > 两口径并列（S9e §4）：**A** 每次都新建 wasm Instance（与 fast_qr「一次调用」严格同形、含 Node 托管
 > 固定项 ≈83µs/次）fast/ours = 0.18/0.27/0.33×；**B** 单实例摊薄（纯算法边际）如上表。
 > 旧 S9c 口径（MoonBit 侧含子进程启动）为 0.20/0.29/0.35× —— 量级结论一致，S9e 只是把尺子统一干净。
 
-**③ 同语言 vs moonbit 生态**（moonrun 同宿主、整程最小/N；见 [S9d 详细分析](./docs/S9d-与moonbit生态QR包性能对比-详细分析.md)）：
+**③ 同语言 vs moonbit 生态**（moonrun 同宿主、整程最小/N；见 [S9d 详细分析](./docs/S9d-与moonbit生态QR包性能对比.md)）：
 同尺寸、同语义（强制 V + ECL H + **自动择优** + 完整 Format/版本）可比子集 = 本仓库 vs `moonqr`，
 本仓库全程快 **2.5–4.1×**（V03H 0.318 vs 0.805、V40H 9.46 vs 38.29ms/单次）。
 
@@ -233,7 +239,7 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 `wasm`(WASI) 兜底侧与 fast_qr **同档**：`-Oz` 1.08×、同功能锚点 1.18×（后者曾被污染探针算成 0.92×，已修正）。
 差距主因是**运行时地板**：hello-only 基线 `wasm-gc` **263 B** / `wasm` 2095 B vs Rust **20052 B**。
 见 [S9g 确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) ·
-[S9f 实现记录](./docs/S9f-产物体积对比-实现记录.md)。
+[S9f 实现记录](./docs/S9f-产物体积对比.md)。
 
 - `qrc` / `moonbitqrcode` **不可同口径对齐**（仅参考口径）：`moonbitqrcode` lib 固定 mask0、仅 L/M/Q
   且只自动小版本（0.046ms = 跳过择优的**下限**，不代表完整质量）；`qrc` 自动版本疑似容量单位 bug、
@@ -243,7 +249,7 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 > ② 相对 moonbit 生态完整实现（moonqr）本仓库**不落后且领先 2.5–4.1×**，完整「自动择优 + 可强制 ECL +
 > 多版本」实现尚少、本库有生态价值；③ 数字仅作选型/迭代基线，不对齐追平 fast_qr 作硬承诺。
 
-### 后续性能优化 Roadmap（详见 S9b 三篇）
+### 后续性能优化 Roadmap（详见 S9b）
 
 **头号热点** = 自动择优 8 轮掩码评分主循环（V40H 占单次 auto 成本 ≈**86%**，随版本超线性放大）。
 差分实测：V40H 单次 auto ≈7.99ms vs 固定 mask ≈1.13ms。
@@ -261,10 +267,9 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 - **组合预期**（不承诺）：T3+T4 落地后 V40H 边际 ≈9 → **≈4–5ms**（fast 3.18ms 的 1.25–1.6×）。
 - **验收统一**：每步快照逐位 diff 零差异 + 109 测试 + 双后端 checksum + `bash scripts/bench-layer2.sh`
   同尺子复跑（对照 S9c/S9d/S9e 总表观察差距收窄）+ `bash scripts/bench-size.sh` 复跑体积
-  （性能—体积双边同尺子，见 [S9f](./docs/S9f-产物体积对比-实现记录.md)）。
+  （性能—体积双边同尺子，见 [S9f](./docs/S9f-产物体积对比.md)）。
 - 落地约束：改代码需另立实施任务并遵守 roadmap「S5 O1 主循环重构单列 P2」；本文档仅给路线与现状。
-- 入口：[S9b 评估与路线](./docs/S9b-性能优化-评估与路线.md) · [再评估与实施建议](./docs/S9b-性能优化-再评估与实施建议.md) ·
-  [O1 实施记录](./docs/S9b-性能优化-O1实施记录.md)。
+- 入口：[S9b 性能优化（评估路线 / 再评估 / O1 实施）](./docs/S9b-性能优化.md)。
 
 > 性能数字仅作选型与迭代基线，不代表对 fast_qr 的追赶承诺；逐条口径见 S9 系列文档。
 
@@ -277,7 +282,7 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 | 文档 | 说明 |
 |------|------|
 | [moonbit-项目目录设置-最佳实践.md](./docs/moonbit-项目目录设置-最佳实践.md) | 目录/包/测试设置的官方依据 + 实证验证 + 落地清单 |
-| [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成 |
+| [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成；附录含仓库初始化与云原生构建配置记录 |
 | [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md) | wasm 编译/运行全过程、产物结构、多后端对比与选型 |
 | [rust-环境配置脚本与fast_qr对比-setup.md](./docs/rust-环境配置脚本与fast_qr对比-setup.md) | Rust 参考环境配置（`scripts/setup-rust.sh`）+ fast_qr 对比用法 |
 | [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md) | 性能测试脚本位置、参数口径与可复现路径（公开评审/审计入口） |
@@ -289,34 +294,33 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 
 | 文档 | 说明 |
 |------|------|
-| [repo-初始化配置说明.md](./docs/repo-初始化配置说明.md) | 仓库初始化与云原生构建配置 |
 | [core-仓库布局参考与目标架构.md](./docs/core-仓库布局参考与目标架构.md) | 参考 `moonbitlang/core` 得出的目标包架构与分阶段落地路线 |
-| [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | `lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则、测试规划 |
-| [代码布局检查与整理.md](./docs/代码布局检查与整理.md) | 代码放置位置检查、MoonBit 文件/测试约定与整理记录 |
+| [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | `lib/` 公共包 + `lib/internal/` 子包的文件职责、无环依赖规则、测试规划；附录含代码放置检查与整理记录 |
 | [moonbit-重写-roadmap-详细分析.md](./docs/moonbit-重写-roadmap-详细分析.md) | 重写路线图：架构要点、S1–S9 实现顺序、里程碑 M0–M3 与验证基座 |
 
-实现系列（方案 → 记录 → 评审，按 S1–S9 顺序）：
+实现系列（2026-09-11 文档整合：每阶段合并为单文档，含 实现方案 / 实现记录 / 评审与优化 等分部；按 S1–S9 顺序）：
 
 <details>
 <summary><b>S1–S9 实现系列文档（点击展开）</b></summary>
 
 | 阶段 | 文档 | 说明 |
 |------|------|------|
-| **S1 数据结构** | [实现方案](./docs/S1-数据结构-实现方案.md) · [实现记录](./docs/S1-数据结构-实现记录.md) · [评审与优化](./docs/S1-实现评审与优化-记录.md) | ECL/Version/Mode/Mask/Module/QRCode/CompactQR 骨架与实现 |
-| **S2 常量表与 GF256** | [实现方案](./docs/S2-常量表与GF256-实现方案.md) · [评估与源码核对](./docs/S2-实现评估与源码核对-记录.md) · [实现记录](./docs/S2-实现记录.md) · [评审与优化](./docs/S2-实现评审与优化-记录.md) | 容量表 + 分组/格式/生成多项式表 + GF(256) division/structure |
-| **S3 数据编码** | [实现方案](./docs/S3-数据编码-实现方案.md) · [实现记录](./docs/S3-数据编码-实现记录.md) · [评审与优化](./docs/S3-实现评审与优化-记录.md) | 三模式编码 + best_encoding 自动回退 + terminator/8 位对齐 |
-| **S4 矩阵与放置** | [实现方案](./docs/S4-矩阵与放置-实现方案.md) · [实现记录](./docs/S4-矩阵与放置-实现记录.md) | 功能图案绘制 + 之字形放置 + 8 掩码，M1 固定参数首码 |
-| **S5 掩码评分与择优** | [实现方案](./docs/S5-掩码评分与择优-实现方案.md) · [实现记录](./docs/S5-掩码评分与择优-实现记录.md) · [评审与优化](./docs/S5-实现评审与优化-记录.md) | N1–N4 评分 + 8 轮择优主循环 |
-| **S6 端到端对齐与公共 API** | [实现方案](./docs/S6-端到端对齐与公共API-实现方案.md) · [实现记录](./docs/S6-端到端对齐与公共API-实现记录.md) · [评审与优化](./docs/S6-实现评审与优化-记录.md) | 60 快照逐位对齐 + 公共 `QRBuilder`，收敛 M2 |
-| **S7 输出层** | [实现方案](./docs/S7-输出层to_str与SVG-实现方案.md) · [评估与优化](./docs/S7-输出层to_str与SVG-实现评估与优化-记录.md) · [实现记录](./docs/S7-输出层to_str与SVG-实现记录.md) | 终端 `to_str`/`print` + 公共 `Shape`/`SvgBuilder` SVG |
-| **S8 内部结构归位** | [实现方案](./docs/S8-内部结构归位与分层-实现方案.md) | 公共层文件级职责归位（qr.mbt → qr_build/qr_builder/qr_output） |
-| **S9 性能基准** | [实现方案](./docs/S9-性能基准-实现方案.md) · [评估与优化](./docs/S9-性能基准-实现评估与优化-记录.md) · [实现记录](./docs/S9-性能基准-实现记录.md) | `cmd/bench` 三基准点 + 宿主计时，跨后端/生态对比，收敛 M3 |
-| **S9b 性能优化** | [评估与路线](./docs/S9b-性能优化-评估与路线.md) · [再评估与实施建议](./docs/S9b-性能优化-再评估与实施建议.md) · [O1 实施记录](./docs/S9b-性能优化-O1实施记录.md) | 择优主循环逐热点优化评估与首批落地 |
-| **S9c 层② fast_qr-wasm 对比** | [实现方案](./docs/S9c-性能测试与fast_qr-wasm对比-实现方案.md) · [实现记录](./docs/S9c-性能测试与fast_qr-wasm对比-实现记录.md) · [详细分析](./docs/S9c-性能测试与fast_qr-wasm对比-详细分析.md) | Node 调用 wasm 逐位对齐 + 同口径计时（收口 M3） |
-| **S9d moonbit 生态对比** | [方案](./docs/S9d-与moonbit生态QR包性能对比-方案.md) · [实现记录](./docs/S9d-与moonbit生态QR包性能对比-实现记录.md) · [详细分析](./docs/S9d-与moonbit生态QR包性能对比-详细分析.md) · [moonbitqrcode 快速原因分析](./docs/S9d-moonbitqrcode快速原因与产物对比-分析.md) · [固定 mask0 缺陷与主流对比](./docs/S9d-moonbitqrcode固定mask0缺陷与主流对比.md) | 与 `qrc`/`moonqr`/`moonbitqrcode` 同语言对比 |
-| **S9e 统一 Node 调用** | [实现方案](./docs/S9e-性能测试统一Node调用-实现方案.md) · [实现记录](./docs/S9e-性能测试统一Node调用-实现记录.md) | 两侧统一 Node 进程内调用 MoonBit/fast_qr wasm，重测并分析（issue #50） |
-| **S9f 产物体积对比** | [实现方案](./docs/S9f-产物体积对比-实现方案.md) · [实现记录](./docs/S9f-产物体积对比-实现记录.md) | 同规则口径量测两侧 wasm 体积（五档 + 基线分解 + 语义护栏，issue #50） |
+| **S1 数据结构** | [实现方案·记录·评审](./docs/S1-数据结构.md) | ECL/Version/Mode/Mask/Module/QRCode/CompactQR 骨架与实现 |
+| **S2 常量表与 GF256** | [方案·评估核对·记录·评审](./docs/S2-常量表与GF256.md) | 容量表 + 分组/格式/生成多项式表 + GF(256) division/structure |
+| **S3 数据编码** | [方案·记录·评审](./docs/S3-数据编码.md) | 三模式编码 + best_encoding 自动回退 + terminator/8 位对齐 |
+| **S4 矩阵与放置** | [方案·记录](./docs/S4-矩阵与放置.md) | 功能图案绘制 + 之字形放置 + 8 掩码，M1 固定参数首码 |
+| **S5 掩码评分与择优** | [方案·记录·评审](./docs/S5-掩码评分与择优.md) | N1–N4 评分 + 8 轮择优主循环 |
+| **S6 端到端对齐与公共 API** | [方案·记录·评审](./docs/S6-端到端对齐与公共API.md) | 60 快照逐位对齐 + 公共 `QRBuilder`，收敛 M2 |
+| **S7 输出层** | [方案·记录·评估与优化](./docs/S7-输出层to_str与SVG.md) | 终端 `to_str`/`print` + 公共 `Shape`/`SvgBuilder` SVG |
+| **S8 内部结构归位** | [实现方案](./docs/S8-内部结构归位与分层.md) | 公共层文件级职责归位（qr.mbt → qr_build/qr_builder/qr_output） |
+| **S9 性能基准** | [方案·记录·评估与优化](./docs/S9-性能基准.md) | `cmd/bench` 三基准点 + 宿主计时，跨后端/生态对比，收敛 M3 |
+| **S9b 性能优化** | [评估路线·再评估·O1 实施](./docs/S9b-性能优化.md) | 择优主循环逐热点优化评估与首批落地 |
+| **S9c 层② fast_qr-wasm 对比** | [方案·记录·详细分析](./docs/S9c-性能测试与fast_qr-wasm对比.md) | Node 调用 wasm 逐位对齐 + 同口径计时（收口 M3） |
+| **S9d moonbit 生态对比** | [方案·记录·详细分析·moonbitqrcode 两篇专题](./docs/S9d-与moonbit生态QR包性能对比.md) | 与 `qrc`/`moonqr`/`moonbitqrcode` 同语言对比 |
+| **S9e 统一 Node 调用** | [方案·记录](./docs/S9e-性能测试统一Node调用.md) | 两侧统一 Node 进程内调用 MoonBit/fast_qr wasm，重测并分析（issue #50） |
+| **S9f 产物体积对比** | [方案·记录](./docs/S9f-产物体积对比.md) | 同规则口径量测两侧 wasm 体积（五档 + 基线分解 + 语义护栏，issue #50） |
 | **S9g 体积确认与修正** | [确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) | 补默认后端 `wasm-gc` 全套体积；修正 ⑤ 锚点污染与全文结论（issue #50 复审） |
+| **S9h 性能复测异常归因** | [复测归因](./docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md) | 层②复测异常定位：Node 大版本（v22/v24 受控 A/B）与宿主漂移两因素；引用规范修订 |
 
 </details>
 
@@ -402,7 +406,7 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
   `wasm-gc`/`wasm` release 回归（`js` 已移除，不加 `native` 阶段——需系统 C 编译器）。
 - **性能基准**：`bash scripts/bench.sh`（层①跨后端）；层② fast_qr-wasm 对比见
   `bash scripts/bench-layer2.sh`（**S9e 起两侧统一 Node 进程内调用**，见
-  [S9e 实现记录](./docs/S9e-性能测试统一Node调用-实现记录.md)）。
+  [S9e 实现记录](./docs/S9e-性能测试统一Node调用.md)）。
 - **体积基准**：`bash scripts/bench-size.sh`（**S9f/S9g 同规则口径**：raw / 剥 custom / `-Oz` / wasm+胶水 /
   同功能锚点 + hello-only 基线分解，**双后端**（`wasm-gc` 默认 + `wasm` 兜底）各出一列，
   带四组语义护栏 + 探针导入面自检；见

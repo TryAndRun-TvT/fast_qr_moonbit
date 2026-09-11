@@ -71,7 +71,7 @@ Total tests: 1, passed: 1, failed: 0.
 
 > 注：§3.2/§3.3 的测试数为**当时骨架**的记录（仅 1 个黑盒冒烟）。补齐白盒测试文件
 > `fast_qr_moonbit_wbtest.mbt` 后，`moon test` 现为 2 个冒烟测试
-> （见 [代码布局检查与整理.md](./代码布局检查与整理.md) §四）。
+> （见 [moonbit-实现布局与文件职责.md](./moonbit-实现布局与文件职责.md) §四）。
 
 ### 3.3 各后端校验结果
 
@@ -197,7 +197,7 @@ tcc: error: undefined symbol 'putchar' 'malloc' 'memcpy' ...
 `fast_qr_moonbit_test.mbt` 原注释称「**包内**黑盒测试」，表述自相矛盾：
 `_test.mbt` 是**包外**黑盒测试，`_wbtest.mbt` 才是包内白盒测试。
 
-> 已修正（见 `docs/代码布局检查与整理.md`）：注释改为准确的黑盒/白盒说明，
+> 已修正（见 `docs/moonbit-实现布局与文件职责.md`）：注释改为准确的黑盒/白盒说明，
 > 并补齐缺失的 `fast_qr_moonbit_wbtest.mbt`。
 
 ### 6.3 `cmd/main/moon.pkg` 尚未建立对库包 `lib/` 的依赖
@@ -324,7 +324,7 @@ node --input-type=module -e "
 ## 九、相关文档
 
 - [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) — 工具链安装与构建系统
-- [repo-初始化配置说明.md](./repo-初始化配置说明.md) — 仓库初始化与 CI 配置
+- [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) — 仓库初始化与 CI 配置
 - [README.md](../README.md) — 项目入口与快速开始
 
 官方链接：

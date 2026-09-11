@@ -168,7 +168,7 @@ lib/fast_qr_moonbit.mbt            # 公共包：对外 API（QrCode / encode �
 - [ ] P2 引入基准/性质测试（`*_bench_test.mbt` / quickcheck）时再评估顶层
       `bench/` 基座，避免现在空建。
 
-> 优先级标注与 [代码布局检查与整理.md](./代码布局检查与整理.md) §六 一致。
+> 优先级标注与 [moonbit-实现布局与文件职责.md](./moonbit-实现布局与文件职责.md) §六 一致。
 
 ---
 
@@ -176,6 +176,6 @@ lib/fast_qr_moonbit.mbt            # 公共包：对外 API（QrCode / encode �
 
 - [moonbit-项目目录设置-最佳实践.md](./moonbit-项目目录设置-最佳实践.md) —
   `moon new` 官方目录树与包/测试约定（本仓库既有依据）
-- [代码布局检查与整理.md](./代码布局检查与整理.md) — 本仓库布局整理与遗留待办
+- [moonbit-实现布局与文件职责.md](./moonbit-实现布局与文件职责.md) — 本仓库布局整理与遗留待办
 - [wasm-编译与运行-结果分析.md](./wasm-编译与运行-结果分析.md) — 后端选型与产物
 - moonbitlang/core 布局实证：<https://github.com/moonbitlang/core>

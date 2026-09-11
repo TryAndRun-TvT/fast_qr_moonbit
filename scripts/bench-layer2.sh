@@ -20,6 +20,11 @@
 #
 # 可选回退（宿主协议变更时）：
 #   MOON_HOST=moonrun bash scripts/bench-layer2.sh   # 用 moonrun 子进程计时（旧 S9c 口径量级）
+#
+# ⚠️ 环境敏感性（S9h，2026-09-11 受控 A/B 证实）：绝对毫秒数强依赖 **Node 大版本与宿主机**
+#   （node v24 比 v22 使 MoonBit 侧单次快 18–41%、两侧再受宿主漂移 ±20–40%）；跨环境请只比
+#   「同一次 run 内的成对比值」，且复现 S9e 基线需钉 node v24.20.0。详见
+#   docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md。
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export PATH="$HOME/.moon/bin:$HOME/.cargo/bin:$PATH"

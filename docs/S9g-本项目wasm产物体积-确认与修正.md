@@ -1,7 +1,7 @@
 # S9g · 本项目 wasm 产物体积 · 确认与修正
 
 > 本文直接回答 issue #50 复审提出的问题：**「本项目 wasm 产物体积到底多大」**，
-> 并修正 [S9f](./S9f-产物体积对比-实现记录.md) 初版的两处口径错误。
+> 并修正 [S9f](./S9f-产物体积对比.md) 初版的两处口径错误。
 > 日期：2026-09-10　｜　工具链：`moon 0.1.20260904`、Node `v24.20.0`、`moon-wasm-opt`（Binaryen 125）
 > 前置：main @ `51e5092`｜**不改 lib / 公共 API / 快照 / `cmd/bench` 默认行为**
 
@@ -250,8 +250,8 @@ bash scripts/bench-size.sh --no-build   # 产物就绪时只量测（探针缺�
 
 ## 9. 参考
 
-- 上游：[S9f 实现方案](./S9f-产物体积对比-实现方案.md) · [S9f 实现记录](./S9f-产物体积对比-实现记录.md)（含修订注记）
-- 同尺子：[S9e 性能统一 Node 调用](./S9e-性能测试统一Node调用-实现记录.md)
+- 上游：[S9f 实现方案](./S9f-产物体积对比.md) · [S9f 实现记录](./S9f-产物体积对比.md)（含修订注记）
+- 同尺子：[S9e 性能统一 Node 调用](./S9e-性能测试统一Node调用.md)
 - 早期三后端体积对照（骨架阶段）：[wasm-编译与运行-结果分析](./wasm-编译与运行-结果分析.md) §5.1
 - 本仓库实码：`scripts/wasm-size.mjs`、`scripts/bench-size.sh`、`scripts/moonbit-wasm-runner.mjs`、`cmd/bench/main.mbt`（未改）
 - 环境：moon 0.1.20260904、Node v24.20.0、moon-wasm-opt（Binaryen 125）、
