@@ -16,6 +16,12 @@
 > **补充（S9f，issue #50 追加）**：本文统一的是**性能**计时口径；**产物体积**的口径统一见
 > [S9f 产物体积对比-实现方案.md](./S9f-产物体积对比.md)（同规则五档 + 基线分解 + 语义护栏）。
 > 两条线取**同一份 MoonBit `wasm` 侧产物**，可互为参照。
+>
+> **修订（S9j，2026-09-11 口径收敛）**：本文 MoonBit 侧用的是 `wasm`(WASI) **兼容兜底后端**产物，
+> 与 `moon.mod` 的 `preferred_target = "wasm-gc"`（实际分发形态）不一致，对外引用易生歧义。
+> **层② 对外引用口径已收敛为 `wasm-gc` vs fast_qr，见 [S9j](./S9j-层②统一Node对比-wasm-gc与fast_qr.md)**；
+> 本文保留为「`wasm`/WASI 后端」历史记录（其方法结论：统一 Node 进程内调用、差距集中在择优主循环，仍成立）。
+> 复跑历史口径：`MOON_TARGET=wasm bash scripts/bench-layer2.sh`。
 
 ---
 

@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 // MoonBit WASI 产物的 **Node 进程内** 运行器（S9e：统一调用宿主）。
 //
+// 【后端角色】本运行器只服务 **`wasm`(WASI) 兼容兜底后端**产物（S9e 历史口径）。
+//   层② 的**默认口径**（`wasm-gc` vs fast_qr，实际分发形态）由 scripts/gc-compare.mjs 承担
+//   （它自带 `spectest.print_char` + `__moonbit_fs_unstable` 最小 shim），见 docs/S9j-…。
+//
 // 背景（为什么需要它）：
 //   S9c 层②对比里，两侧调用形态不一致——fast_qr 侧是 Node 进程内 `require` + 直调 qr_with()，
 //   MoonBit 侧却是 `moonrun` **子进程**整程（execFileSync，含进程启动）。这使「整程最小时间」
@@ -29,8 +33,8 @@
 //
 // 注意（诚实声明，非平台缺陷）：
 //   - 该路径要求产物导入面与 moonrun 内置 shim 一致（`wasi_snapshot_preview1` + `__moonbit_fs_unstable`）。
-//     若将来 MoonBit 工具链更换 host 协议（如 moonlight 自定义导入集），需同步更新本 shim；届时
-//     `scripts/bench-layer2.sh` 的 `MOON_HOST=moonrun` 回退路径可保底。
+//     若将来 MoonBit 工具链更换 host 协议（如 moonlight 自定义导入集），需同步更新本 shim；届时可用
+//     `MOON_TARGET=wasm bash scripts/bench-layer2.sh` 复跑本历史口径，默认口径见 gc-compare.mjs。
 //   - 本模块**不参与 CI**（CI 门禁只需 moon 工具链，不引入 Node 宿主细节）；它是性能对比脚本的一部分。
 
 import fs from 'node:fs';

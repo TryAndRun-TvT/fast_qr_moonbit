@@ -14,4 +14,4 @@
 /// 结构约定（AGENTS / 方案 3）：lib 可 import lib/internal 子包，internal 永不反向依赖 lib。
 /// 历史：S1-S7 已将「注释骨架」替换为真实实现（现测试 109 全绿、wasm-gc/wasm 双后端）；S8
 ///       完成公共层文件级职责归位（qr.mbt → qr_build/qr_builder/qr_output），见
-///       [S8-内部结构归位与分层-实现方案](../docs/S8-内部结构归位与分层-实现方案.md)。
+///       [S8-内部结构归位与分层](../docs/S8-内部结构归位与分层.md)。

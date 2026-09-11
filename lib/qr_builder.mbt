@@ -6,7 +6,7 @@
 /// 架构决策（D7）：MoonBit 用不可变链式（值语义），每个 setter 返回新 `QRBuilder`；
 ///       字段默认值全 `None` 交由 `QRCode::build` 的 select_capacity 语义。
 /// 架构决策（D11，S8）：从 qr.mbt 拆出 QRBuilder 子关注到本文件（同包搬移、无逻辑改动），见
-///       docs/S8-内部结构归位与分层-实现方案.md §3.2。结果容器/错误在 qr.mbt，编排在 qr_build.mbt。
+///       docs/S8-内部结构归位与分层.md §3.2。结果容器/错误在 qr.mbt，编排在 qr_build.mbt。
 
 ///|
 /// QR 构造器（builder 模式）。持有输入数据与可选参数，链式 setter 返回新实例。

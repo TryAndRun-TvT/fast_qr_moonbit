@@ -1,0 +1,14 @@
+// S9i 纯库调用体积探针（可执行包）：度量「仅链接 QR 核心生成管线」的 wasm 产物体积下限。
+// 职责与语义对齐 fast_qr 侧 s9f_size_probe（scripts/bench-size.sh 生成，外部检出）：
+//   对三基准点（V03/V10/V40，输入 https://example.com/，ECL=H，mask 自动择优）各 build 一次，
+//   消费结果（size + 代表性模块字节累加）防死代码消除，末尾 println 一行校验总量。
+// 与 cmd/bench（性能基准外壳：@env/argv 解析 + 迭代循环 + --dump 值全集导出）和
+//   cmd/main（CLI 演示：终端字符画 + SVG 输出层）刻意区分——
+//   本包不含任何外壳/输出层依赖，才能回答「作为库被宿主嵌入时，QR 核心到底占多少字节」。
+// 复跑：moon build cmd/qr-min --release 后用 scripts/bench-size.sh / wasm-size.mjs 量测；
+//   语义护栏：moonrun（wasm-gc）/ WASI 宿主（wasm）下输出恒为 QR_MIN_CHECKSUM=<定值>。
+pkgtype(kind: "executable")
+
+import {
+  "tryandrun/fast_qr_moonbit/lib",
+}

@@ -6,7 +6,7 @@
 ///       `print_matrix_with_margin`。
 /// 架构决策（D8）：纯渲染函数放 helpers.mbt，`QRCode` 仅挂便捷方法委托之（对齐参考 qr.rs to_str→helpers）。
 /// 架构决策（D11，S8）：从 qr.mbt 拆出「输出便捷」子关注到本文件（同包搬移、无逻辑改动），见
-///       docs/S8-内部结构归位与分层-实现方案.md §3.2。
+///       docs/S8-内部结构归位与分层.md §3.2。
 
 ///|
 /// 渲染为终端 Unicode 半块字符画（含边距），返回整串字符串。

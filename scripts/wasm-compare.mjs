@@ -1,5 +1,10 @@
 #!/usr/bin/env node
-// S9e 层② 性能对比驱动：**统一 Node 进程内**调用两侧 wasm（MoonBit wasm vs fast_qr-wasm32）。
+// S9e 层② 性能对比驱动（**历史口径**）：**统一 Node 进程内**调用两侧 wasm（MoonBit `wasm`/WASI vs fast_qr-wasm32）。
+//
+// 【口径状态（S9j，2026-09-11）】本驱动用的 MoonBit 侧是 `wasm`(WASI) **兼容兜底后端**，
+//   与 `moon.mod` 的 `preferred_target = "wasm-gc"`（实际分发形态）不一致，**不再作为对外引用口径**。
+//   层② 默认口径见 scripts/gc-compare.mjs（`wasm-gc` vs fast_qr，同一 Node 进程）。
+//   本驱动保留用于复现 S9e 历史记录：`MOON_TARGET=wasm bash scripts/bench-layer2.sh`。
 //
 // 为什么统一（对齐 issue「并非统一通过 nodejs 调用」）：
 //   S9c 旧口径是「fast_qr 侧 Node 进程内直调 + MoonBit 侧 moonrun 子进程整程」——两侧不同宿主形态，

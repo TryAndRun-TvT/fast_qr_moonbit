@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # 构建 fast_qr v0.14.0 的 Node.js 可调用 wasm 产物（层② D17：qr_with 导出 + wasm-bindgen nodejs 胶水）。
 #
-# 用途：给 scripts/wasm-compare.mjs 提供 fast_qr 侧「Node 直调」包（fast_qr.js + fast_qr_bg.wasm）。
+# 用途：为层② 对比提供 fast_qr 侧「Node 直调」包（fast_qr.js + fast_qr_bg.wasm），
+#   由 scripts/gc-compare.mjs（默认口径，MoonBit 侧 wasm-gc）与 scripts/wasm-compare.mjs
+#   （历史口径，MoonBit 侧 wasm/WASI）共用，见 docs/S9j-…。
 #   - 检出/复用 fast_qr v0.14.0（commit 53e8c99，钉版本——与 S1-S7 快照对齐的参考同源）；
 #   - patch src/wasm.rs 追加 `qr_with(content, ecl, version)`（强制 ECL/version、mask 自动择优，
 #     返回 0/1 值矩阵），语义对齐参考 benches/qr.rs 三基准点；

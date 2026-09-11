@@ -5,6 +5,25 @@
 
 **项目状态**：功能对齐收口（M0–M3 里程碑 ✅），109 单测 + 快照全绿，`wasm-gc` / `wasm` 双后端回归通过。
 
+`moon run cmd/main` 的真实输出（内容 `https://example.com/`）：
+
+```text
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ▄▄▄▄▄ ██▀█  ▀ █▀█ ▄▄▄▄▄ █
+█ █   █ █▀█▀█▄ ▀█▄█ █   █ █
+█ █▄▄▄█ █▀  █▀█ ███ █▄▄▄█ █
+█▄▄▄▄▄▄▄█ ▀ █ █ ▀ █▄▄▄▄▄▄▄█
+█▀ ▄▀▀█▄█▀ ▀▄▄▀▄▀▄▀  █ █▀▀█
+█▀▄▀██ ▄▀█▀██ █▀▄▀▄█▀▄ ▄█▄█
+█▄█ ▄█▄▄ ▄██▀ ▄▄  █  ███▀ █
+█▄▄ ▀▄▀▄▀▀ ▀▀▄██▄  ▄▀▀ ▄█▄█
+█▄▄▄▄▄▄▄▄▀█▄▄▀███ ▄▄▄ ██▄▀█
+█ ▄▄▄▄▄ ██▄ ██ ▀▀ █▄█ ███▄█
+█ █   █ ██▀▄ ▄▄ ▄▄ ▄▄ █▀▀▄█
+█ █▄▄▄█ █ ▀▄  ▄▀   ▀  ▄█▄▄█
+█▄▄▄▄▄▄▄▄█████▄█▄█▄█▄██▄██▄█
+```
+
 | | |
 |---|---|
 | **语言** | [MoonBit](https://www.moonbitlang.cn/)（`wasm-gc` 主推 + `wasm`/WASI 兼容；`js` 已移除，`native` 需系统 C 编译器） |
@@ -18,17 +37,15 @@
 
 - [功能特性](#功能特性)
 - [能力与局限](#能力与局限)
-- [在项目中作为依赖使用](#在项目中作为依赖使用)
+- [快速开始](#快速开始)
 - [从源码构建](#从源码构建)
 - [编译为 Wasm](#编译为-wasm)
 - [性能速览](#性能速览)
 - [文档索引](#文档索引)
-- [性能测试脚本公开评审说明](./docs/性能测试脚本-公开评审说明.md)
-- [体积对比脚本公开评审说明](./docs/性能测试脚本-公开评审说明.md#7-产物体积对比s9f)
-- [本项目 wasm 产物体积（S9g）](./docs/S9g-本项目wasm产物体积-确认与修正.md)
 - [代码放置约定](#代码放置约定方案-3模块根无包库包在-lib)
 - [项目结构](#项目结构)
 - [开发与 CI](#开发与-ci)
+- [问题反馈与贡献](#问题反馈与贡献)
 - [License](#license)
 
 ---
@@ -62,13 +79,13 @@
 
 ---
 
-## 在项目中作为依赖使用
+## 快速开始
 
-在你的 MoonBit 项目里添加本库作为依赖：
+在项目根目录（`moon.mod` 所在处）添加本库为依赖：
 
-```toml
-# 项目 moon.mod 所在目录执行
-# moon add tryandrun/fast_qr_moonbit
+```bash
+# 需本模块已发布至 mooncakes；发布前可 clone 本仓库按「从源码构建」体验
+moon add tryandrun/fast_qr_moonbit
 ```
 
 在 `moon.pkg` 中声明依赖并起别名（本库包路径为 `.../lib`，别名默认即目录名 `lib`）：
@@ -94,13 +111,13 @@ fn main {
   let qr = gen()
   // 输出终端 Unicode 半块字符画（含边距）
   println(qr.to_str())
-  // 输出 SVG 字符串（默认黑色方块 + 白色背景、margin=4）
+  // 输出 SVG 字符串（默认黑色方块 + 白色背景、margin=4），链式定制颜色与模块形状
   let svg = @lib.SvgBuilder::default()
     .module_color("#0000ff")
     .background_color("#ffffff")
     .shape(@lib.Shape::RoundedSquare)
     .to_str(qr)
-  println(svg[:200] + "...")
+  println(svg[:200].to_owned() + "...")
 }
 ```
 
@@ -164,21 +181,26 @@ moon build cmd/main --target wasm --release
 moon run   cmd/main --target wasm
 ```
 
-产物位置与体积（release，**完整实现**）：
+产物体积（release；复跑 `bash scripts/bench-size.sh`）：
 
-| 产物 | 后端 | raw | 剥 `custom` 段 | `-Oz`（可加载档） |
-|------|------|---:|---------------:|------------------:|
-| `cmd/bench`（三基准点，含 `--dump`） | **`wasm-gc`**（默认） | **47912 B**（46.8 KiB） | 47790 B | **36296 B**（35.4 KiB） |
-| `cmd/bench` | `wasm`（WASI） | 81666 B（79.8 KiB） | 81544 B | 53745 B（52.5 KiB） |
-| `cmd/main`（CLI：字符画 + SVG） | **`wasm-gc`**（默认） | **44308 B**（43.3 KiB） | — | **33709 B** |
-| `cmd/main` | `wasm`（WASI） | 75949 B（74.2 KiB） | — | 51043 B |
+| 产物 | 后端 | raw | `-Oz`（可加载档） |
+|------|------|---:|------------------:|
+| **`cmd/qr-min`（纯库调用 = 库实际体积）** | **`wasm-gc`**（默认） | 41294 B | **31470 B**（30.7 KiB） |
+| `cmd/qr-min` | `wasm`（WASI） | 72227 B | 47878 B（46.8 KiB） |
+| `cmd/bench`（基准外壳：argv/迭代/`--dump`） | **`wasm-gc`**（默认） | 47912 B（46.8 KiB） | 36296 B（35.4 KiB） |
+| `cmd/bench` | `wasm`（WASI） | 81666 B（79.8 KiB） | 53745 B（52.5 KiB） |
+| `cmd/main`（CLI：字符画 + SVG） | **`wasm-gc`**（默认） | 44308 B（43.3 KiB） | 33709 B |
+| `cmd/main` | `wasm`（WASI） | 75949 B（74.2 KiB） | 51043 B |
 
-**库运行时地板**（一行 `println` 的最小可执行包）：`wasm-gc` **263 B** / `wasm` **2095 B**
-→ 本库 QR 业务代码净增 **约 +33–36 KB**（`wasm-gc`）。
-`wasm-gc` 比 `wasm` 小 **32.5%**（`-Oz`），且宿主集成成本最低（无 memory 导出、对象交给宿主 GC）。
-
-> 默认选 `wasm-gc` 的依据：体积比 `wasm` 小、计算密集基准快约 **33%**、宿主接入最简单。
-> 早期骨架阶段的 -83% 对照见 [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md)。
+> **引用规范**：`cmd/bench` / `cmd/main` 是「命令形态」产物，外壳不随库分发，
+> **不能代表库被宿主嵌入时的实际体积**——引用库体积请用 `cmd/qr-min` 口径并注明后端与优化档。
+>
+> **体积金字塔**（`wasm-gc`，`-Oz`）：运行时地板（一行 `println`）**263 B** → QR 核心净增
+> **+31207 B**（`cmd/qr-min`）→ 输出层（终端画 + SVG）+2239 B（`cmd/main`）→ 基准外壳
+> +4826 B（`cmd/bench`）。
+> **默认后端选型依据（`wasm-gc` vs `wasm` 自比，非 vs fast_qr）**：体积比 `wasm` 小 32.5%（`-Oz`，S9g）、
+> 计算密集基准快约 33%（S9）、宿主接入最简单（无 memory 导出、对象交给宿主 GC）。
+> 与 fast_qr 的逐口径对照见下文表格。
 
 ```bash
 # -Oz 体积最优档（默认后端 wasm-gc）：
@@ -188,88 +210,81 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
   --all-features --disable-custom-descriptors -Oz -o main.min.wasm   # 33709 B
 ```
 
-> 与 Rust 参考 fast_qr 的**产物体积对比**（同规则口径）见
-> [S9g 确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) 与
-> [S9f 实现记录](./docs/S9f-产物体积对比.md)：
-> 默认后端 `wasm-gc` 在每种口径下都更小（`-Oz` **0.73×**、含胶水 **0.62×**）；
-> `wasm`(WASI) 侧与 fast_qr 同档（`-Oz` 1.08×）。
-> 复跑 `bash scripts/bench-size.sh`（一条命令出全表 + 语义护栏）。
+### 与 fast_qr 的体积对照
+
+**MoonBit 侧一律取默认后端 `wasm-gc`（实际分发形态）**；下表按形态分块，避免「库体积」与
+「命令形态」混读。
+
+#### A. 库对库（纯库调用口径 = 对外引用主口径）
+
+两侧同为「核心-only + 一行 `println`」：MoonBit `cmd/qr-min` vs fast_qr 无胶水裸探针：
+
+| 口径（B） | MoonBit `wasm-gc` | fast_qr 裸探针 | ours / fast |
+|-----------|------------------:|---------------:|------------:|
+| raw | 41294 | 59440 | **0.69×** |
+| `-Oz`（可加载档） | **31470** | 45687 | **0.69×** |
+| 核心净增（扣 hello 地板 263 / 20052 B） | **+31207** | +25635 | 1.22× |
+
+> **结论**：库对库，`wasm-gc` 在 raw 与 `-Oz` 两档都约 **0.69×**；扣掉运行时地板后核心净增
+> 1.22×——差距大头是两侧**运行时地板**（`wasm-gc` 263 B vs Rust 20052 B，76×），非 QR 实现差异。
+> raw 档两侧元数据口径不同（fast_qr 侧含 `name`/`target_features` custom 段），以 `-Oz` 为公平档。
+
+#### B. 命令形态 vs 库导出（参考口径）
+
+MoonBit `cmd/bench`（含 argv/迭代/`--dump` 外壳）vs fast_qr `fast_qr_bg`（wasm-bindgen 库导出 + 胶水）：
+
+| 口径（B） | MoonBit `wasm-gc` | fast_qr v0.14.0 | ours / fast |
+|-----------|------------------:|----------------:|------------:|
+| ① raw | 47912 | 61510 | **0.78×** |
+| ② 剥 custom 段 | 47790 | 53476 | **0.89×** |
+| ③ `-Oz` | 36296 | 49956 | **0.73×** |
+| ④ ③ + 宿主胶水 | 36296（无胶水） | 58173（含 `fast_qr.js` 8217 B） | **0.62×** |
+
+> 该块两侧形态不对称（我方含命令外壳、对方含宿主胶水），仅作参考——**引用库体积请用 A 块**。
+> A 块已在 S9i 对称化（此前误用 `cmd/bench` 外壳对撞裸探针，得 0.79×）。
+> **MoonBit `wasm`(WASI) 兼容后端的体积数据不参与本对比**（仅作历史记录见 S9g）。
+> 逐条口径、护栏与归因见 [S9i](./docs/S9i-纯库调用体积探针与库实际体积.md) ·
+> [S9g 确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) · [S9f 实现记录](./docs/S9f-产物体积对比.md)。
 
 ---
 
 ## 性能速览
 
-项目自带可复跑基准（`cmd/bench` + `scripts/bench.sh`，输入 `https://example.com/`=20B、ECL H、
-强制 V03/V10/V40、mask 自动择优）。以下汇总**跨库性能对比**（vs Rust 参考 fast_qr + moonbit 生态 QR 包）
-与**后续优化路线**。完整口径、原始表与归因见所链文档（数字均为 R 取最小的实测，可 `scripts/bench*.sh`
-复跑）。
+项目自带可复跑基准（`cmd/bench` + `scripts/bench*.sh`；输入 `https://example.com/`=20B、ECL H、
+强制 V03/V10/V40、mask 自动择优；数字均为实测取最小）。核心结论：
 
-### 跨库对比全景
+| 对比 | 结果 | 出处 |
+|------|------|------|
+| ① vs Rust fast_qr-wasm32（**默认后端 `wasm-gc`**） | 单次 build 慢 ≈**1.8–3.4×**，逐位对齐 sha256 零差异；差距集中在 8 轮掩码择优主循环 | 明细见下表 · [S9j](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md) |
+| ② vs moonbit 生态 `moonqr`（同宿主、完整实现可比子集） | 本仓库全程快 **2.5–4.1×**（V03H 0.318 vs 0.805、V40H 9.46 vs 38.29 ms/单次） | [S9d](./docs/S9d-与moonbit生态QR包性能对比.md) |
+| ③ 产物体积 vs fast_qr | `wasm-gc` 各口径均更小（对称锚点 **0.69×**） | 对照表见 [编译为 Wasm](#编译为-wasm) · [S9i](./docs/S9i-纯库调用体积探针与库实际体积.md) |
 
-**① 层① 跨后端（同源码互证）**：`wasm-gc` 全程比 `wasm` 快约 **1.2–1.4×**，两后端
-`TOTAL_CHECKSUM` 完全一致。见 [S9 实现记录](./docs/S9-性能基准.md)。
+### ① vs fast_qr-wasm32：性能明细（S9j 统一「同一 Node 进程内」口径，单次 build）
 
-**② 层② vs Rust 参考 fast_qr-wasm32**：自 **S9e 起两侧统一为「同一 Node 进程内」调用**（此前
-fast_qr 进程内 / MoonBit `moonrun` 子进程，MoonBit 侧被多计 12–20% 进程启动）。
-下表为**单次 build**，逐位对齐 sha256 零差异（见 [S9e 实现记录](./docs/S9e-性能测试统一Node调用.md)）：
+**MoonBit 侧 = `wasm-gc`（默认后端、实际分发形态）**；两侧逐位对齐 sha256 零差异。
+「B 口径 = 单实例摊薄（纯算法边际）」为对外引用主口径：
 
-| 点 | 模块数 | 本仓库 MoonBit(wasm) 单次(B 纯边际) | fast_qr-wasm32 单次 | fast/ours | 每模块成本 ours / fast |
-|----|------:|-----------------------------------:|--------------------:|----------:|------------------------:|
-| V03H | 841 | 0.314 ms | 0.085 ms | 0.27×（慢≈3.7×） | 0.374 / 0.101 µs |
-| V10H | 3249 | 1.257 ms | 0.401 ms | 0.32×（慢≈3.1×） | 0.387 / 0.123 µs |
-| V40H | 31329 | 9.66 ms | 3.554 ms | 0.37×（慢≈2.7×） | 0.308 / 0.113 µs |
+| 点 | 模块数 | 本仓库 MoonBit(wasm-gc) | fast_qr-wasm32 | fast / ours | 每模块成本 ours / fast |
+|----|------:|------------------------:|---------------:|------------:|------------------------|
+| V03H | 841 | 0.198 ms | 0.059 ms | 0.297×（慢 ≈3.4×） | 0.235 / 0.070 µs |
+| V10H | 3249 | 0.729 ms | 0.323 ms | 0.442×（慢 ≈2.3×） | 0.224 / 0.099 µs |
+| V40H | 31329 | 5.329 ms | 3.021 ms | 0.567×（慢 ≈1.8×） | 0.170 / 0.096 µs |
 
-> ⚠️ **环境绑定（S9h 复测归因）**：上表绝对毫秒数**绑定测量环境**（node v24.20.0 + 2026-09-10 宿主）。
-> Node 大版本使 MoonBit 侧单次变动 −18~41%（v24 比 v22 快）、宿主/会话再 ±20–40%；
-> 跨环境只比「同 run 成对比值」，且 V03H 比值最敏感（复测范围 0.166–0.269×）。
-> 「fast_qr 更快 2.6–6.0×」的方向性结论全环境成立。详见
-> [S9h 层②性能复测异常归因](./docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md)。
+> 口径并列：**A** 每次新建 wasm Instance（与 fast_qr「一次调用」严格同形，含宿主固定项）
+> fast/ours = 0.217 / 0.406 / 0.563×；**B** 单实例摊薄如上表。三组护栏全绿：逐位对齐、
+> Node shim vs `moonrun` 跨宿主一致、`wasm-gc` vs `wasm` checksum 互证。
 
-> 两口径并列（S9e §4）：**A** 每次都新建 wasm Instance（与 fast_qr「一次调用」严格同形、含 Node 托管
-> 固定项 ≈83µs/次）fast/ours = 0.18/0.27/0.33×；**B** 单实例摊薄（纯算法边际）如上表。
-> 旧 S9c 口径（MoonBit 侧含子进程启动）为 0.20/0.29/0.35× —— 量级结论一致，S9e 只是把尺子统一干净。
+> ⚠️ **绝对毫秒数绑定测量环境**（本表 Node v22.23.1 + 2026-09-11 宿主；S9e 历史口径为 Node v24.20.0）：
+> 跨环境只比「同 run 成对比值」，方向性结论全环境成立——归因见
+> [S9h 复测异常归因](./docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md)。
+> 生态另两个 QR 包（`qrc`/`moonbitqrcode`）缺完整择优/Format 等，不可同口径对齐，仅参考口径见 S9d。
+> **MoonBit `wasm`(WASI) 兼容后端的性能/体积数字不再参与对外对比**（仅作历史记录见 S9e/S9g），
+> 以避免「比的是哪个后端」歧义。
 
-**③ 同语言 vs moonbit 生态**（moonrun 同宿主、整程最小/N；见 [S9d 详细分析](./docs/S9d-与moonbit生态QR包性能对比.md)）：
-同尺寸、同语义（强制 V + ECL H + **自动择优** + 完整 Format/版本）可比子集 = 本仓库 vs `moonqr`，
-本仓库全程快 **2.5–4.1×**（V03H 0.318 vs 0.805、V40H 9.46 vs 38.29ms/单次）。
-
-**④ 产物体积对比**（S9f/S9g，同规则口径）：**默认后端 `wasm-gc` 在每种口径下都比 fast_qr 小** ——
-raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**（36296 vs 49956 B）、
-含 fast_qr 宿主胶水（8217 B）**0.62×**。
-`wasm`(WASI) 兜底侧与 fast_qr **同档**：`-Oz` 1.08×、同功能锚点 1.18×（后者曾被污染探针算成 0.92×，已修正）。
-差距主因是**运行时地板**：hello-only 基线 `wasm-gc` **263 B** / `wasm` 2095 B vs Rust **20052 B**。
-见 [S9g 确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) ·
-[S9f 实现记录](./docs/S9f-产物体积对比.md)。
-
-- `qrc` / `moonbitqrcode` **不可同口径对齐**（仅参考口径）：`moonbitqrcode` lib 固定 mask0、仅 L/M/Q
-  且只自动小版本（0.046ms = 跳过择优的**下限**，不代表完整质量）；`qrc` 自动版本疑似容量单位 bug、
-  强制路径无 mask/Format（低值不代表完整 QR 成本）。
-
-> **评估结论**：① 相对 Rust 参考 fast_qr 的 ~2.7–3.7×（S9e 统一口径）差距集中在「8 轮择优主循环」且可优化收窄；
-> ② 相对 moonbit 生态完整实现（moonqr）本仓库**不落后且领先 2.5–4.1×**，完整「自动择优 + 可强制 ECL +
-> 多版本」实现尚少、本库有生态价值；③ 数字仅作选型/迭代基线，不对齐追平 fast_qr 作硬承诺。
-
-### 后续性能优化 Roadmap（详见 S9b）
-
-**头号热点** = 自动择优 8 轮掩码评分主循环（V40H 占单次 auto 成本 ≈**86%**，随版本超线性放大）。
-差分实测：V40H 单次 auto ≈7.99ms vs 固定 mask ≈1.13ms。
-
-| 优先级 | 项 | 内容 | 状态 / 预期 |
-|--------|----|------|-------------|
-| **P1 已试** | T1（O1-a 就地翻转） | 免 8 轮全量 copy | ⛔ **实测否决**（+~8%，copy 非大头、score 多趟扫描才是） |
-| **P1 已落地** | T2（O1-b 复用最优轮矩阵） | 省末尾第 9 次 copy | ✅ V40H 边际 9.007→8.874ms（≈−1.5%），快照/sha256/109 全绿 |
-| **P1 主攻（下一步）** | T3（O2 score 减趟） | score 4 趟→3 趟（N4 dark 并入已有趟） | 预期 V40H 择优 −10–20%；对齐敏感区需逐步独立提交 |
-| **P1** | T4（mask 判定特化） | 消除每格 `match mask_idx` | 预期 −5–10%；建议与 T3 同批、独立提交 |
-| **P2** | T5（wrap 按 size² 分配） | 改善小版本固定开销 | 需先评估公共 `QRCode.data` 固定容量容器语义 |
-| **P2/实验** | T6（表示宽度 Int→Byte） | 收窄 4B/格搬运 | 高风险大改面，先独立微基准再定 |
-| — | — | — | **明确不追平** fast 每模块 0.07–0.10µs（Rust release+u8+LLVM 系数底） |
-
-- **组合预期**（不承诺）：T3+T4 落地后 V40H 边际 ≈9 → **≈4–5ms**（fast 3.18ms 的 1.25–1.6×）。
-- **验收统一**：每步快照逐位 diff 零差异 + 109 测试 + 双后端 checksum + `bash scripts/bench-layer2.sh`
-  同尺子复跑（对照 S9c/S9d/S9e 总表观察差距收窄）+ `bash scripts/bench-size.sh` 复跑体积
-  （性能—体积双边同尺子，见 [S9f](./docs/S9f-产物体积对比.md)）。
-- 落地约束：改代码需另立实施任务并遵守 roadmap「S5 O1 主循环重构单列 P2」；本文档仅给路线与现状。
-- 入口：[S9b 性能优化（评估路线 / 再评估 / O1 实施）](./docs/S9b-性能优化.md)。
+**后续优化**：头号热点 = 自动择优 8 轮掩码评分主循环（V40H 占单次 auto 成本 ≈86%）；T2 已落地
+（≈−1.5%），T3（score 减趟）+ T4（mask 判定特化）主攻中；当前 `wasm-gc` V40H 边际 **5.33 ms**
+（fast_qr 3.02 ms），**明确不追平** fast_qr 每模块 ≈0.07–0.10 µs。逐项评估与实测（基于早期
+`wasm` 后端基线的路线）见 [S9b 性能优化](./docs/S9b-性能优化.md)。
 
 > 性能数字仅作选型与迭代基线，不代表对 fast_qr 的追赶承诺；逐条口径见 S9 系列文档。
 
@@ -285,8 +300,9 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 | [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成；附录含仓库初始化与云原生构建配置记录 |
 | [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md) | wasm 编译/运行全过程、产物结构、多后端对比与选型 |
 | [rust-环境配置脚本与fast_qr对比-setup.md](./docs/rust-环境配置脚本与fast_qr对比-setup.md) | Rust 参考环境配置（`scripts/setup-rust.sh`）+ fast_qr 对比用法 |
-| [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md) | 性能测试脚本位置、参数口径与可复现路径（公开评审/审计入口） |
+| [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md) | 性能测试脚本位置、参数口径与可复现路径（公开评审/审计入口；含产物体积对比 §7） |
 | [S9g-本项目wasm产物体积-确认与修正.md](./docs/S9g-本项目wasm产物体积-确认与修正.md) | **本项目 wasm 产物体积**（`wasm-gc`/`wasm` 双后端的 raw / 剥 custom / `-Oz`）+ 与 fast_qr 同口径对比 |
+| [S9i-纯库调用体积探针与库实际体积.md](./docs/S9i-纯库调用体积探针与库实际体积.md) | **库实际体积口径**（`cmd/qr-min` 纯库调用探针；体积金字塔 + 引用规范 + ⑤ 锚点对称化） |
 
 ### 面向维护者 / 架构文档
 
@@ -321,6 +337,8 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 | **S9f 产物体积对比** | [方案·记录](./docs/S9f-产物体积对比.md) | 同规则口径量测两侧 wasm 体积（五档 + 基线分解 + 语义护栏，issue #50） |
 | **S9g 体积确认与修正** | [确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md) | 补默认后端 `wasm-gc` 全套体积；修正 ⑤ 锚点污染与全文结论（issue #50 复审） |
 | **S9h 性能复测异常归因** | [复测归因](./docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md) | 层②复测异常定位：Node 大版本（v22/v24 受控 A/B）与宿主漂移两因素；引用规范修订 |
+| **S9i 纯库调用体积探针** | [探针与库实际体积](./docs/S9i-纯库调用体积探针与库实际体积.md) | `cmd/qr-min` 纯库调用口径：库实际体积 31470 B（wasm-gc `-Oz`）+ 修正 ⑤ 锚点不对称（0.69×） |
+| **S9j 层② wasm-gc 口径收敛** | [wasm-gc vs fast_qr](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md) | 层② MoonBit 侧收敛为默认后端 `wasm-gc`；Node 进程内 shim 直测（fast 快 ≈1.8–3.4×），`wasm` 退出对外对比 |
 
 </details>
 
@@ -344,21 +362,13 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 
 ## 代码放置约定（方案 3：模块根无包，库包在 `lib/`）
 
-本仓库模块根只放元数据（对齐 `moonbitlang/core` 形态），按下列约定放置代码：
+本仓库模块根只放元数据（对齐 `moonbitlang/core` 形态）：库包在 `lib/`、实现子包在 `lib/internal/`
+（internal 永不反向 import `lib`，依赖无环）、CLI 在 `cmd/main/`；**不要建 `src/`**（MoonBit 无此约定）。
+测试放所属包目录内：`*_test.mbt` 黑盒（包外，仅 `pub` API）/ `*_wbtest.mbt` 白盒（包内，可访问私有实现），
+两者不可混用；跨包依赖在使用方 `moon.pkg` 声明且声明后必须使用（否则 `unused_package` 告警致 `moon check` 失败）。
 
-| 文件 / 目录 | 放置位置 | 约定 |
-|-------------|---------|------|
-| 模块配置 | 根目录 `moon.mod` | 声明 `name` / `preferred_target` / `supported_targets`；**根目录不建包**（无 `moon.pkg`） |
-| 库包 | `lib/` + `lib/moon.pkg` | 库源码全部在 `lib/`；公共类型/入口在 `lib/` 根文件，实现子包在 `lib/internal/` |
-| 库入口 | `lib/fast_qr_moonbit.mbt` | 文件名沿用模块名便于识别 |
-| 黑盒测试 | `lib/<模块名>_test.mbt` | **包外**运行，只能访问 `pub` API；用 `@lib` 别名引用本包（别名 = 目录名 `lib`） |
-| 白盒测试 | `lib/<模块名>_wbtest.mbt` | **包内**运行，可直接访问私有实现 |
-| CLI 入口 | `cmd/main/` | `moon.pkg` 需写 `pkgtype(kind: "executable")` |
-| 跨包依赖 | 使用方的 `moon.pkg` | `import { "tryandrun/fast_qr_moonbit/lib" @lib }`；声明后必须使用，否则触发 `unused_package` |
-
-> **不要建 `src/`**：MoonBit 无 `src/` 约定；本仓库用 `lib/` 承载库包、`lib/internal/`
-> 承载实现细节（与 core 的 feature 包 + internal 形态一致）。
-> 包名由目录名决定且不可配置；目录内 `.mbt` 文件名则可自由命名。弃用代码放各目录的 `deprecated.mbt`。
+完整约定表见 [AGENTS.md](./AGENTS.md)，文件级职责详见
+[moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md)。
 
 ---
 
@@ -385,6 +395,7 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 │       └── matrix/             #     module/matrix/placement/datamasking/score
 ├── cmd/main/                   # CLI 可执行入口（演示终端画 + SVG）
 ├── cmd/bench/                  # 性能三基准点基准（S9，含 --dump 值全集导出）
+├── cmd/qr-min/                 # 纯库调用体积探针（S9i：库实际体积口径，零外壳）
 ├── docs/                       # 项目文档（见上文「文档索引」）
 ├── scripts/                    # 构建与开发辅助脚本（见下节）
 ├── .githooks/                  # 可选 Git 钩子（需自行启用）
@@ -404,14 +415,17 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
   单测、多后端构建回归、性能基准），均由 `.cnb.yml` 在 CI（push）中按序调用。
 - **代码门禁**：`moon fmt --check` + `moon check --deny-warn` + `moon test` + 双后端
   `wasm-gc`/`wasm` release 回归（`js` 已移除，不加 `native` 阶段——需系统 C 编译器）。
-- **性能基准**：`bash scripts/bench.sh`（层①跨后端）；层② fast_qr-wasm 对比见
-  `bash scripts/bench-layer2.sh`（**S9e 起两侧统一 Node 进程内调用**，见
-  [S9e 实现记录](./docs/S9e-性能测试统一Node调用.md)）。
+- **性能基准**：`bash scripts/bench.sh`（层①跨后端）；层② `bash scripts/bench-layer2.sh` 默认
+  **`wasm-gc`（默认后端）vs fast_qr** 同 Node 进程对比（S9j）；`MOON_TARGET=wasm` 回退
+  S9e 的 `wasm`(WASI) 历史口径（见 [S9j](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md)）。
 - **体积基准**：`bash scripts/bench-size.sh`（**S9f/S9g 同规则口径**：raw / 剥 custom / `-Oz` / wasm+胶水 /
   同功能锚点 + hello-only 基线分解，**双后端**（`wasm-gc` 默认 + `wasm` 兜底）各出一列，
   带四组语义护栏 + 探针导入面自检；见
   [S9g 确认与修正](./docs/S9g-本项目wasm产物体积-确认与修正.md)）。
 - **Git 钩子（可选）**：`git config core.hooksPath .githooks`（个人本地配置，仓库不代设）。
+- **后端口径约定**：对外性能/体积对比统一取**默认后端 `wasm-gc`**（实际分发形态）；
+  `wasm`(WASI) 为兼容兜底，仅作历史记录、不参与对外对比（术语与脚本角色见
+  [性能测试脚本公开评审说明 §2.1](./docs/性能测试脚本-公开评审说明.md)）。
 - **编码 / 提交规范**：见 [AGENTS.md](./AGENTS.md)（密钥安全、MoonBit 布局、文档死链零容忍等硬性约定）。
 
 常用脚本一览：
@@ -421,15 +435,24 @@ raw **0.78×**（47912 vs 61510 B）、剥 custom **0.89×**、`-Oz` **0.73×**�
 | `setup-moonbit.sh` | 安装 MoonBit 工具链并校验 |
 | `fmt-check.sh` / `check.sh` / `test.sh` | 格式门禁 / 静态检查门禁 / 单元测试 |
 | `build-and-run.sh` | 双后端（wasm-gc/wasm）构建 + 运行 + 测试回归 |
-| `bench.sh` | S9 层① 宿主计时（多次取最小） |
-| `bench-layer2.sh` | 层② Node（S9e：**同一进程内**）调用 wasm 与 fast_qr 对比 |
-| `moonbit-wasm-runner.mjs` | Node 进程内托管 MoonBit WASI 产物的运行器（S9e 统一宿主） |
-| `wasm-compare.mjs` | 层② 对比驱动：逐位对齐 + A/B 双口径计时（S9e 统一 Node 调用） |
-| `bench-size.sh` | 产物**体积**对比入口（S9f/S9g 同规则口径 + 双后端 + 语义护栏 + 探针自检 + 基线分解） |
+| `bench.sh` | S9 层① **跨后端自比**（wasm-gc vs wasm，默认后端选型依据；非 vs fast_qr） |
+| `bench-layer2.sh` | 层② 同 Node 进程调用对比（**S9j 默认 `wasm-gc` vs fast_qr**；`MOON_TARGET=wasm` 回退 S9e 历史口径） |
+| `gc-compare.mjs` | 层② wasm-gc 对比驱动：Node 宿主 shim（argv/print_char）+ 逐位对齐 + 跨宿主护栏 + A/B 计时（S9j） |
+| `moonbit-wasm-runner.mjs` | Node 进程内托管 MoonBit WASI 产物的运行器（S9e 历史口径宿主） |
+| `wasm-compare.mjs` | 层② 对比驱动：逐位对齐 + A/B 双口径计时（S9e 历史口径，MoonBit 侧 `wasm`/WASI） |
+| `bench-size.sh` | 产物**体积**对比入口（S9f/S9g/S9i 同规则口径 + 纯库调用探针 + 语义护栏 + 基线分解；**对外列取 wasm-gc**，wasm 列仅记录） |
 | `wasm-size.mjs` | 体积对比驱动：五档量测 + 段解析 + 语义护栏 + markdown/JSON（S9f/S9g，含 `wasm-gc` 通道） |
 | `build-fast-qr-wasm.sh` | 构建 fast_qr v0.14.0 `qr_with` nodejs 产物（外部检出，不入库） |
 | `setup-fast-qr-wasm-env.sh` | 层②环境：rust wasm32 target + gcc + 预编译 wasm-bindgen-cli（幂等） |
 | `setup-rust.sh` | 安装 Rust 工具链（rsproxy 镜像，供 fast_qr 参考对比，可选） |
+
+---
+
+## 问题反馈与贡献
+
+- **问题与建议**：提交至仓库 [Issue](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/issues)。
+- **贡献流程**：改动前请阅读 [AGENTS.md](./AGENTS.md)（密钥安全、MoonBit 布局、文档死链零容忍等
+  硬性约定），并跑通[开发与 CI](#开发与-ci) 中的收尾检查后再提交。
 
 ---
 

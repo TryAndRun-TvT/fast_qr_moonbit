@@ -5,7 +5,7 @@
 ///       `QRCode::select_capacity`（容量/版本三元组解析）、`QRCode::build_fixed`（固定掩码）、
 ///       `QRCode::build`（mask=None 自动择优 / Some 固定快速路径）；私有 `wrap_packed` 为共用尾步。
 /// 架构决策（D11，S8）：从 qr.mbt 拆出「编排/构造」子关注到本文件（同包搬移、无逻辑改动），见
-///       docs/S8-内部结构归位与分层-实现方案.md §3.2。QRCode 结果容器与错误在 qr.mbt，QRBuilder 在 qr_builder.mbt。
+///       docs/S8-内部结构归位与分层.md §3.2。QRCode 结果容器与错误在 qr.mbt，QRBuilder 在 qr_builder.mbt。
 /// 依赖方向：本文件 import `@data_encoding`/`@reedsolomon`/`@matrix`/`@constants` 等 internal 子包；
 ///       MoonBit 同包（lib/）内非 pub 符号跨文件亦可见，故 `wrap_packed` 无需 pub 即可被本文件使用。
 

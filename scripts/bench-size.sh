@@ -4,12 +4,16 @@
 # S9f 产物体积对比入口：**统一口径**量测 MoonBit 与 fast_qr 两侧 wasm 产物体积
 # （承接 issue #50「同一把尺子」：S9e 统一了性能计时口径，本脚本统一体积口径）。
 #
+# 【后端角色约定】（S9j 起全局统一，避免「比的是哪个后端」歧义）：
+#   - wasm-gc = 主推/默认后端，**对外对比口径**（`wasm-gc` 列 + `cmd/qr-min` 纯库调用探针）；
+#   - wasm(WASI) = 兼容兜底后端，本脚本仍出列但**仅作历史记录**，不参与对外对比。
+#
 # 与「拿两个 .wasm 文件大小对撞」的区别：
 #   1) 两侧产物形态不同（MoonBit `_start` 可执行包 / fast_qr 库导出 + wasm-bindgen 胶水）；
 #   2) 两侧 custom 段体积差 60 倍（Rust 侧 8 KB 级 name/target_features vs MoonBit 122 B）；
 #   3) 因此按**同一套规则**出五档：① raw ② 剥 custom ③ moon-wasm-opt -Oz
-#      ④ 单次调用 wasm+胶水 ⑤ **同功能锚点**（对 fast_qr 另编一个「无胶水单文件 + 打印」裸探针，
-#      与 MoonBit `cmd/bench` 同形对撞 —— 这是唯一能排除胶水/依赖面差异的口径）。
+#      ④ 单次调用 wasm+胶水 ⑤ **同功能锚点**（对 fast_qr 另编「无胶水单文件 + 打印」裸探针，
+#      与 MoonBit `cmd/qr-min` 纯库调用探针同形对撞，见 docs/S9i-…；`cmd/bench` 命令形态单列）。
 #
 # 职责:
 #   1) 确保 fast_qr-wasm 环境与产物（scripts/setup-fast-qr-wasm-env.sh + build-fast-qr-wasm.sh）；
@@ -38,6 +42,9 @@ MOON_MAIN_WASM="${MOON_MAIN_WASM:-$PWD/_build/wasm/release/build/cmd/main/main.w
 # **默认后端** wasm-gc 通道（本仓库实际分发形态，moon.mod: preferred_target = "wasm-gc"）
 MOON_GC_BENCH_WASM="${MOON_GC_BENCH_WASM:-$PWD/_build/wasm-gc/release/build/cmd/bench/bench.wasm}"
 MOON_GC_MAIN_WASM="${MOON_GC_MAIN_WASM:-$PWD/_build/wasm-gc/release/build/cmd/main/main.wasm}"
+# S9i 纯库调用体积探针（cmd/qr-min：仅 QR 核心生成管线，无 argv/--dump/输出层外壳）
+MOON_QRMIN_WASM="${MOON_QRMIN_WASM:-$PWD/_build/wasm/release/build/cmd/qr-min/qr-min.wasm}"
+MOON_GC_QRMIN_WASM="${MOON_GC_QRMIN_WASM:-$PWD/_build/wasm-gc/release/build/cmd/qr-min/qr-min.wasm}"
 MOON_GC_HELLO_WASM="${MOON_GC_HELLO_WASM:-$ROOT/moonbit_hello_probe/hello-gc.wasm}"
 MOON_WASM_OPT="${MOON_WASM_OPT:-$HOME/.moon/bin/moon-wasm-opt}"
 MOONRUN="${MOONRUN:-$(command -v moonrun || echo "$HOME/.moon/bin/moonrun")}"
@@ -47,11 +54,13 @@ if [[ "${1:-}" != "--no-build" ]]; then
   bash "$SCRIPT_DIR/setup-fast-qr-wasm-env.sh"
   echo "=== [2/4] 构建 fast_qr qr_with nodejs 产物 ==="
   bash "$SCRIPT_DIR/build-fast-qr-wasm.sh"
-  echo "=== [3/4] MoonBit cmd/bench + cmd/main（wasm 兜底 + wasm-gc 默认后端）==="
+  echo "=== [3/4] MoonBit cmd/bench + cmd/main + cmd/qr-min（wasm 兜底 + wasm-gc 默认后端）==="
   moon build cmd/bench --target wasm --release
   moon build cmd/main --target wasm --release
+  moon build cmd/qr-min --target wasm --release
   moon build cmd/bench --target wasm-gc --release
   moon build cmd/main --target wasm-gc --release
+  moon build cmd/qr-min --target wasm-gc --release
 fi
 
 # 体积探针（幂等，外部检出副本 / 临时模块，均不入库）：
@@ -193,5 +202,7 @@ node "$SCRIPT_DIR/wasm-size.mjs" \
   --moon-gc-wasm "$MOON_GC_BENCH_WASM" \
   --moon-gc-main-wasm "$MOON_GC_MAIN_WASM" \
   --moon-gc-hello-wasm "$MOON_GC_HELLO_WASM" \
+  --moon-qrmin-wasm "$MOON_QRMIN_WASM" \
+  --moon-gc-qrmin-wasm "$MOON_GC_QRMIN_WASM" \
   --moonrun "$MOONRUN" \
   --wasm-opt "$MOON_WASM_OPT"
