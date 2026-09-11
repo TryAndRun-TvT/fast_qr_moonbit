@@ -185,12 +185,16 @@ fn[T] unsafe_reinterpret_from_fixed_array(arr : FixedArray[T]) -> ReadOnlyArray[
 > **建议**：T-R1/T-R2 **作为类型对齐**低优先落地（不单列为性能里程碑）；T-R5 是 RS 侧更本质的杠杆，
 > 但两者都**不应占据优化主线**——主线仍是 S9l **P0 掩码特化 / P1 容器 / P2 评分**。
 
-> **落地记录（2026-09-12，见 [S9n §6.5](./S9n-优化方案复评与wasm-gc收敛审计.md)）**：**T-R1/T-R2/T-R4 已实施**——
+> **落地记录（2026-09-12，见 [S9n §6.5–6.6](./S9n-优化方案复评与wasm-gc收敛审计.md)）**：**T-R1/T-R2/T-R4 已实施**——
 > RS 两表、全部常量表与局部只读字面量（`offsets`/`pad`/测试 `mods`/`bits`/`sizes`）改为 `ReadOnlyArray`；
 > `get_polynomial`/`alignment_grid` 改**零拷贝只读视图**（免 `.copy()` 分配）；`moon.mod` 启用
 > `prefer_readonly_array` lint（实测生效、当前零命中）。验证：111 测试 + `TOTAL_CHECKSUM` 三点一致 +
-> `QR_MIN_CHECKSUM=283` + lib 公共 `.mbti` 零漂移；整 build 收益**低于测量分辨率**（本文预测的
-> ≈0.4–0.5% 语义/体积对齐，非性能杠杆）。T-R3 维持不做；T-R5 待做。
+> `QR_MIN_CHECKSUM=283` + lib 公共 `.mbti` 零漂移。
+>
+> **性能复验（同日受控探针 ABAB，详见 [S9n §6.6](./S9n-优化方案复评与wasm-gc收敛审计.md)）**：
+> 真实块长（15B）`division` **≈1.30–1.34×**（本文历史口径 ≈1.25×，同向确认）、220B 档 ≈1.6–1.9×；
+> 整 build V40 实测 Δ≈40µs/build ≈ **0.9%**（分母由 5.90ms 缩至 4.42ms，故高于本文按旧基线外推的
+> ≈0.5%）——定性不变：**类型对齐为主、有限性能为辅，非性能杠杆**。T-R3 维持不做；T-R5 待做。
 
 ### 明确不做
 

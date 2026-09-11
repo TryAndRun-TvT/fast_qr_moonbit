@@ -303,7 +303,9 @@ V40H 单次 auto 约 **68% 在 8 轮 `score`**（N1+N3 行/列 ≈37%、N2 ≈16
 V40H 单次 auto **5.97→4.42 ms（−26%）**、V10H **−24%**、V03H **−4%**，且 `TOTAL_CHECKSUM` 三项与基线
 **完全相同**（输出逐位不变，111 测试全绿）。**ReadOnlyArray（T-R1/T-R2/T-R4）亦已落地**：RS/常量查找表
 与局部只读字面量全部只读化、`get_polynomial` 等改零拷贝只读视图、`moon.mod` 启用
-`prefer_readonly_array` lint 防回归——整 build 收益低于测量分辨率（符合 S9m「类型对齐、非性能杠杆」预测）。
+`prefer_readonly_array` lint 防回归——受控探针复验 `division` **≈1.30–1.34×**（真实块长，两态
+checksum 逐位一致），整 build **≈0.9%**（分辨率边缘；定性「类型对齐为主、非性能杠杆」，
+见 [S9n §6.6](./docs/S9n-优化方案复评与wasm-gc收敛审计.md)）。
 容器 P1 受阻于 `QRCode.data` 固定容量公共契约（须 API 评审）；P2b(N2)/P3/T-R5 待做。
 
 > 性能数字仅作选型与迭代基线，不代表对 fast_qr 的追赶承诺；逐条口径见 S9 系列文档。
