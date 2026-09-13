@@ -133,3 +133,109 @@ test "create_auto_qr: 返回最低分掩码且矩阵自洽" {
     fail("矩阵长度应为 size*size")
   }
 }
+
+///|
+/// T2-b2：N1「恰好 5 连」边界 + 被非 Data 打断的结算路径（S10 §6 T2-b / 变异 M20 的补测）。
+///
+/// 背景：`line_scan_buf` 的运行分有三处结算点——① 变色时、② 遇非 Data 时、③ 行末。
+/// 变异 M20（把 ① 的阈值 5 改成 6）在既有夹具上**零检出**，说明「恰好 5 连 + 紧接着变色」
+/// 这条路径此前**无覆盖**。本用例按参考 `score.rs::adjacent_line` 的四条线逐条断言
+/// （含 `EMPT`/`FIND` 非 Data 分隔的结算路径），把 ① 的阈值钉死。
+///
+/// 参考：fast_qr v0.14.0 `src/tests/score.rs::adjacent_line`。
+/// 期望值（5/5/3/3）为参考实算值；线内容按参考的 DATA/EMPT/FIND 类型逐格转写为 packed 值。
+/// 说明：`test_line_run` 与实现同一算法（属铁律 3 的 `actual == actual` 型护栏），
+/// 因此本用例的价值**不在正确性**，而在**把结算阈值暴露到可定位粒度**——
+/// 真值（5/5/3/3）虽为参考实算，但这里主要锁「阈值不可漂移」。
+
+///|
+test "t2b2_n1_line_boundary_settlement" {
+  // 线 1/2：7 连暗 Data → 结算一次（7-2=5）。① 行末结算路径。
+  let l1 : Array[Int] = Array::make(7, pack(1, module_type_data))
+  if test_line_run(fn(i) { l1[i] }, 7) != 5 {
+    fail(
+      "t2b2: 7 连暗（行末结算）got=" +
+      test_line_run(fn(i) { l1[i] }, 7).to_string() +
+      " want=5",
+    )
+  }
+  // 线 3：EMPT(T) DATA×4 EMPT(T) DATA×5 → 两段各 4/5，仅第二段 5 连计 3。
+  // 覆盖「遇非 Data 结算」（②）+「恰好 5 连」（①/② 阈值边界）。
+  let l3 : Array[Int] = [
+    pack(1, module_type_empty),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_empty),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+  ]
+  let g3 = test_line_run(fn(i) { l3[i] }, 11)
+  if g3 != 3 {
+    fail("t2b2: 非 Data 分隔两段（5 连计 3）got=" + g3.to_string() + " want=3")
+  }
+  // 线 4：FIND×7 EMPT(F) DATA(F) DATA(T) DATA(F) DATA(T) DATA(F) DATA(T)×5 DATA(F)
+  //       DATA(T)×2 EMPT(F) FIND×7 —— 覆盖「变色结算」（①）与「恰好 5 连」的交互。
+  let l4 : Array[Int] = [
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(0, module_type_empty),
+    pack(0, module_type_data),
+    pack(1, module_type_data),
+    pack(0, module_type_data),
+    pack(1, module_type_data),
+    pack(0, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(0, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(0, module_type_empty),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+    pack(1, module_type_finder),
+  ]
+  let g4 = test_line_run(fn(i) { l4[i] }, 29)
+  if g4 != 3 {
+    fail(
+      "t2b2: xiaojiba 首行（变色结算 + 5 连边界）got=" + g4.to_string() + " want=3",
+    )
+  }
+}
+
+///|
+/// T2-b3：N1「恰好 5 连后立刻变色」的**独立构造**（M20 的直接靶点）。
+/// 线 = 5 连暗 Data + 1 亮 Data：变色发生在第 6 格，5 连须在此结算为 5-2=3。
+/// 若结算阈值被改成 6，此运行**不会**在变色处结算，行末 count=1 亦不计 → 结果 0（变红）。
+
+///|
+test "t2b3_n1_exact_five_then_color_change" {
+  let l : Array[Int] = [
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(0, module_type_data),
+  ]
+  let got = test_line_run(fn(i) { l[i] }, 6)
+  if got != 3 {
+    fail("t2b3: 5 连暗 + 1 亮（变色处结算）got=" + got.to_string() + " want=3")
+  }
+}
