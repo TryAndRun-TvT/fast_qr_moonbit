@@ -239,3 +239,64 @@ test "t2b3_n1_exact_five_then_color_change" {
     fail("t2b3: 5 连暗 + 1 亮（变色处结算）got=" + got.to_string() + " want=3")
   }
 }
+
+///|
+/// T2-d2：择优**并列取最低位 mask**（S10 §6 T2-d / 变异 M21 的补测）。
+///
+/// `create_auto_qr` 的主循环用 `score < best_score`（严格小于）→ 并列时**先到的低位 mask 胜出**。
+/// 变异 M21（改成 `<=`）在既有夹具上**零检出**，说明「并列判定」此前无覆盖。
+///
+/// 本用例不依赖「恰好构造出并列输入」（脆弱），而是**直接复算全部 8 轮得分**：
+/// 断言返回的 `best_mask` 等于「得分最小者中的**最小 mask 号**」。这样：
+///   - `<=` 变异会把并列时的胜者改成最大号 → 与断言不符 → 变红；
+///   - 语义与实现文档（"并列取先到的低位 mask"）一致，与夹具无关，故不会随机地红。
+///
+/// 说明：`create_auto_qr` 内部逐轮 `apply_mask` + `score`，本用例在测试侧**重放同一 8 轮**，
+/// 属铁律 3 的 `actual == actual` 型护栏；其价值是**把并列规则钉死**，而非提供正确性真值。
+/// 正确性真值由 `t2c`/`t2e`/`t1c`/`t1d` 的黄金向量承担。
+
+///|
+test "t2d2_auto_mask_tie_break_lowest" {
+  // 选一个能容纳、且 8 轮得分分布多样的 structure（V05-L，108 数据码字）。
+  let structure : Array[Byte] = []
+  let mut i = 0
+  while i < 135 {
+    structure.push(((i * 97 + 11) & 0xFF).to_byte())
+    i += 1
+  }
+  let ver = 4 // V05
+  let ecl = 0 // L
+  let size = ver * 4 + 21
+  let (m, best_mask) = create_auto_qr(structure, ver, ecl)
+  // 测试侧重放 8 轮：构造 base = create_matrix + place_on_matrix_data（与实现同序）。
+  let base = create_matrix(ver)
+  place_on_matrix_data(base, size, structure)
+  let mut best_score = 2147483647
+  let mut want_mask = 0
+  let mut k = 0
+  while k < 8 {
+    let s = score(apply_mask(base, size, k), size)
+    if s < best_score {
+      best_score = s
+      want_mask = k
+    }
+    k += 1
+  }
+  if best_mask != want_mask {
+    fail(
+      "t2d2: 并列取低位 mask 规则不符 got=" +
+      best_mask.to_string() +
+      " want=" +
+      want_mask.to_string() +
+      "（若 got 更大，说明用了 `<=`，并列时取了高位 mask）",
+    )
+  }
+  if m.length() != size * size {
+    fail(
+      "t2d2: 返回矩阵长度 got=" +
+      m.length().to_string() +
+      " want=" +
+      (size * size).to_string(),
+    )
+  }
+}
