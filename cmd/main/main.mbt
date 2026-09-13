@@ -20,8 +20,13 @@ fn main {
   println("--- QRCode.to_str() 终端字符画 ---")
   println(qr.to_str())
   println(
-    "--- SvgBuilder::default() SVG 字符串（前 200 字符示意） ---",
+    "--- SvgBuilder 链式定制（module_color/background_color/shape）SVG（前 200 字符示意） ---",
   )
-  let svg = @lib.SvgBuilder::default().to_str(qr)
+  // 与 README「快速开始」示例口径一致：默认 + 自定义模块色/背景/圆角形状（D3 一致性）
+  let svg = @lib.SvgBuilder::default()
+    .module_color("#0000ff")
+    .background_color("#ffffff")
+    .shape(@lib.Shape::RoundedSquare)
+    .to_str(qr)
   println(svg[:200].to_owned() + "...")
 }

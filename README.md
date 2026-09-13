@@ -3,7 +3,7 @@
 > 基于 [MoonBit](https://www.moonbitlang.cn/) 的高性能二维码（QR Code）生成库。
 > 纯 MoonBit 实现、无外部依赖，逐位对齐 Rust 参考库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr)。
 
-**项目状态**：功能对齐收口（M0–M3 里程碑 ✅），`moon test` 全绿（**140** 个用例，含快照），仅 `wasm-gc` 后端回归通过。
+**项目状态**：功能对齐收口（M0–M3 里程碑 ✅），`moon test` 全绿（**146** 个用例，含快照），仅 `wasm-gc` 后端回归通过。
 
 示例二维码（内容 `https://example.com/`，由 `SvgBuilder` 生成、**SVG 矢量**，缩放不失真）：
 
@@ -122,11 +122,36 @@ fn main {
 |------|-----------|
 | `ECL` / `Version` / `Mode` / `Mask` | 纠错级别（L/M/Q/H）、版本（V01–V40）、编码模式、掩码枚举 |
 | `QRCode` | 生成结果容器（矩阵 + size/version/ecl/mask/mode 元数据 + `to_str`/`print`） |
-| `QRCode::build` | 过程式编排入口（input/mode/ecl/version/mask → `Result[QRCode]`） |
+| `QRCode::build` / `build_fixed` | 过程式编排入口（input/mode/ecl/version/mask → `Result[QRCode]`；`build` 的 `Some(mask)` 分支委托 `build_fixed`） |
+| `QRCode::empty` / `for_version` | **空矩阵构造**（宿主自建/改写矩阵的入口，见下「矩阵读写」） |
+| `QRCode::get` / `set` / `meta` / `data`（+ `size`/`version`/`ecl`/`mask`/`mode`） | 逐格读写与元数据访问器（`set` 不可变式，返回新 `QRCode`） |
+| `QRCode::select_capacity` | 容量/版本三元组解析（显式模式参与判定，供自定义编排复用） |
 | `QRBuilder` | 链式构造器：`from_string`/`new` + `mode/ecl/version/mask` + `build` |
-| `Module` / `ModuleType` | 单像素模块（明暗 + 8 种功能归属），供读取/访问 |
-| `SvgBuilder` / `Shape` | SVG 字符串输出；6 种模块形状（square/circle/rounded_square/vertical/horizontal/diamond） |
+| `Module` / `ModuleType` | 单像素模块（明暗 + 8 种功能归属）；`Module::new(value, type)` 为通用构造 |
+| `SvgBuilder` / `Shape` | SVG 字符串输出；6 种模块形状（square/circle/rounded_square/vertical/horizontal/diamond）；链式 `margin/module_color/background_color/shape` |
+| `Shape::from_name` | 由名字（大小写不敏感）取形状枚举，未知名回退 |
+| `ECL::to_char` | 纠错级别 → 显示字符（`L`/`M`/`Q`/`H`） |
 | `QRCodeError` | 构造错误（`EncodedData` 数据过大、`SpecifiedVersion` 版本过小） |
+
+### 矩阵读写与自建（宿主可拿到 `QRCode`）
+
+`QRCode::build` / `QRBuilder::build` 返回的**就是** `QRCode`（`pub(all) struct`），
+宿主可直接读/改矩阵并交给输出层；从零自建则用 `QRCode::empty(version)` 拿一张干净画布：
+
+```moonbit
+// ① 已有编码结果：读/改单格（set 为不可变式，返回新 QRCode，不改源）
+let (v, ecl, mask, mode) = qr.meta()          // 元数据快照
+let dark = qr.get(0, 0).value()               // 逐格读
+let qr2  = qr.set(0, 0, @lib.Module::new(true, @lib.ModuleType::Data))  // 逐格写
+
+// ② 从零自建：空矩阵（全亮）作起点，逐格写入后输出
+let canvas = @lib.QRCode::empty(@lib.Version::V05)   // 边长 = 版本*4+17
+let drawn  = canvas.set(10, 10, @lib.Module::new(true, @lib.ModuleType::Data))
+println(drawn.to_str())
+```
+
+> 命名/形状等辅助入口：`Shape::from_name("circle")`（按名取形状）、
+> `ECL::to_char(ECL::Q)`（级别显示字符）、`SvgBuilder::default().module_color(...)`（链式配色）。
 
 ---
 
@@ -261,7 +286,7 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 **已落地**（2026-09-12，明细见 [S9n §6](./docs/S9n-优化方案复评与wasm-gc收敛审计.md)）：
 **P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b N4 并入行趟**——**受控 A/B（`cmd/bench` 边际口径，
 非上表层② 口径）** V40H 单次 auto **5.97→4.42 ms（−26%）**、V10H **−24%**、V03H **−4%**，
-且 `TOTAL_CHECKSUM` 三项与基线**完全相同**（输出逐位不变，111 测试全绿）。
+且 `TOTAL_CHECKSUM` 三项与基线**完全相同**（输出逐位不变，当次 `moon test` 全绿）。
 上表层② 重测值（V40H 4.808 ms）与本段的 `cmd/bench` 边际值（4.42 ms）**口径/宿主不同、不可直接对撞**。
 **ReadOnlyArray（T-R1/T-R2/T-R4）亦已落地**：RS/常量查找表
 与局部只读字面量全部只读化、`moon.mod` 启用 `prefer_readonly_array` lint 防回归——受控探针复验
@@ -280,7 +305,7 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 
 ## 测试
 
-**现状**：`moon test` **140 个用例全绿**（含 wasm-gc 回归），**26 个**测试文件按「就近式三载体」分层
+**现状**：`moon test` **146 个用例全绿**（含 wasm-gc 回归），**26 个**测试文件按「就近式三载体」分层
 （`*_test.mbt` 黑盒 / `*_wbtest.mbt` 白盒 / 源码内联 `test {}` 目前未使用）：
 用例数与文件数**以实跑为准**（`moon test` / `find lib cmd -name '*_test.mbt' -o -name '*_wbtest.mbt' | wc -l`），
 避免文档数字与实现漂移（详见 [S11 §10.4](./docs/S11-无效代码与冗余文档清理评估.md#104-硬伤-4v1-漏检readme-与实现脱节测试数与文件数陈旧)）。
@@ -294,7 +319,7 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 **测试完善路线**见 [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md)（**测试维护入口**）。
 该路线已实跑三项验证，结论比「覆盖更多代码」更有信息量：
 
-- **强负向对照（变异检测）**：就地植入 **23 类**最小缺陷 → **23 类全部被现有测试检出**
+- **强负向对照（变异检测）**：就地植入 **21 类**最小缺陷 → **21 类全部被现有测试检出**
   （复跑 `bash scripts/test-audit.sh mutation`）。历次审计共发现 **4 条真漏检**，全部已修：
   ① 容量表改**中间项**、② Format 表改**非抽查 `(ECL,mask)`**（初版，由 **T1-f/T2-e** 修复）；
   ③ **N1 结算阈值 `5→6`**（「恰好 5 连后立刻变色」路径无覆盖，由 **T2-b2/b3** 修复）；
@@ -346,7 +371,7 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 | [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) | README 精简的**冗余清单**、官方 README 约定对照与取舍（含示例实测） |
 | [S9o-性能与体积数据重测-与README冗余清理.md](./docs/S9o-性能与体积数据重测-与README冗余清理.md) | **本轮重测记录**：性能/体积数据刷新方法与归因 + README 去冗余清单 |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | 布局规则、`lib/` + `lib/internal/` 文件级职责、无环依赖、测试规划（**维护者入口**） |
-| [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md) | **测试 roadmap v5**：参考 fast_qr 测试体系盘点（含证据等级）+ 覆盖差距矩阵（G1–G15）+ 分阶段 T0–T7 路线 + 七条铁律；**附录 D/E/F/G/H 为实跑结论**（第三方解码回读、变异检测 **23/23**、v3/v4/v5 落地记录）（**测试维护入口**） |
+| [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md) | **测试 roadmap v5**：参考 fast_qr 测试体系盘点（含证据等级）+ 覆盖差距矩阵（G1–G15）+ 分阶段 T0–T7 路线 + 七条铁律；**附录 D/E/F/G/H 为实跑结论**（第三方解码回读、变异检测 **21/21**、v3/v4/v5 落地记录）（**测试维护入口**） |
 | [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md) | **v5 真 bug 修复记录**：T3-d 探针首跑暴露的「显式模式未参与容量判定」缺陷——现象/根因/实测证据/修法/**与参考 83,160 组参数对照**/回归与变异项 |
 | [S10b-测试覆盖率报告.md](./docs/S10b-测试覆盖率报告.md) | **T5-a 覆盖率报告**（行级，`scripts/coverage.sh` 产出）+ **T5-b 不下降门禁**（顶部 `coverage-floor` 机器可读标记） |
 | [S11-无效代码与冗余文档清理评估.md](./docs/S11-无效代码与冗余文档清理评估.md) | **清理评估入口（v2）**：无效/冗余代码与文档的判定口径、实测清单、分级处置队列与执行纪律（Issue #63）；**§10 为二次复核记录**（修正 v1 的「能力缺口」误判、覆盖率清单与文档计数偏差） |
