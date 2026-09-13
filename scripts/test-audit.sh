@@ -30,7 +30,7 @@ MODE="${1:-all}"
 # 锚点用 `\n` 表示换行（由 scripts/apply-mutation.py 还原）。
 mutations() {
   cat <<'MUT'
-M1|掩码 2/3 公式互换|lib/internal/matrix/datamasking.mbt|2 => x % 3 == 0\n    3 => (x + y) % 3 == 0|2 => (x + y) % 3 == 0\n    3 => x % 3 == 0
+M1|掩码 2/3 公式互换|lib/internal/matrix/datamasking.mbt|2 => (x + y) % 3 == 0\n    3 => x % 3 == 0|2 => x % 3 == 0\n    3 => (x + y) % 3 == 0
 M2|Format 表 L-mask1 错 1 位|lib/internal/constants/hardcode.mbt|30660, 29427, 32170, 30877|30660, 29426, 32170, 30877
 M4|N2 每 2x2 计 4 分（应 3）|lib/internal/matrix/score.mbt|square = square + 3|square = square + 4
 M5|division 余数截断 1 字节|lib/internal/reedsolomon/reedsolomon.mbt|let rem_len = by.length() - 1|let rem_len = by.length() - 2
@@ -68,14 +68,15 @@ run_mutation() {
   local table; table="$(mktemp)"; mutations >"$table"
   local id desc file from to out failed verdict
   while IFS='|' read -r id desc file from to <&3; do
-    [ -z "$id" ] && continue
+    if [ -z "$id" ]; then continue; fi
     if ! python3 scripts/apply-mutation.py "$file" "$from" "$to" 2>/dev/null; then
       printf '%-4s %-30s %-8s %s\n' "$id" "$desc" "-" "⚠️ 锚点失效（实现已变，需同步更新清单）"
       git checkout -- lib/; continue
     fi
     out="$(moon test </dev/null 2>&1 | tail -1)"
     failed="$(sed -n 's/.*failed: \([0-9]*\)\..*/\1/p' <<<"$out")"
-    verdict="✅ 已检出"; [ "${failed:-0}" = "0" ] && verdict="❌ 漏检"
+    verdict="✅ 已检出"
+    if [ "${failed:-0}" = "0" ]; then verdict="❌ 漏检"; fi
     printf '%-4s %-30s %-8s %s\n' "$id" "$desc" "${failed:-?}" "$verdict"
     git checkout -- lib/
   done 3<"$table"
