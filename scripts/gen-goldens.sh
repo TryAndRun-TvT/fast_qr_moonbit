@@ -12,6 +12,9 @@
 #   bash scripts/gen-goldens.sh --emit-rs        # 发射 division/structure 黄金向量（T1-c/T1-d）
 #   bash scripts/gen-goldens.sh --emit-default   # 抽取独立数字真值矩阵（T0-c）
 #   bash scripts/gen-goldens.sh --verify-default # 校验独立数字真值未漂移（T0-c）
+#   bash scripts/gen-goldens.sh --emit-score     # 发射逐行/逐列打分明细（T2-a/T2-b）
+#   bash scripts/gen-goldens.sh --emit-placement # 发射放置逐格坐标序列（T2-c）
+#   bash scripts/gen-goldens.sh --emit-all-rs    # 一次发射全部「参考侧实算」向量（T1-c/d + T2-a/b + T2-c）
 #
 # 环境变量:
 #   FAST_QR_DIR   参考检出目录（默认 $HOME/.cache/fast_qr_wasm/fast_qr，回退 $HOME/.cache/fast_qr）
@@ -47,6 +50,20 @@ else
   echo ">> 参考检出: $REF（无 .git，跳过 commit 校验）"
 fi
 
+# 参考侧实算器（注入 fast_qr 检出 src/tests/ 后跑 cargo test）：
+#   $1 = 脚本文件（scripts/ 下）  $2 = Rust test 函数名
+run_ref_emitter() {
+  local src="$1" fn="$2"
+  local dst="$REF/src/tests/$(basename "$src")"
+  local modname="${src##*/}"; modname="${modname%.rs}"
+  cp "$src" "$dst"
+  local MODFILE="$REF/src/tests/mod.rs"
+  local BACKUP; BACKUP="$(mktemp)"; cp "$MODFILE" "$BACKUP"
+  if ! grep -q "$modname" "$MODFILE"; then printf 'mod %s;\n' "$modname" >> "$MODFILE"; fi
+  ( cd "$REF" && cargo test --lib "$fn" -- --nocapture 2>/dev/null | grep "^GOLDEN|" ) || true
+  cp "$BACKUP" "$MODFILE"; rm -f "$BACKUP" "$dst"
+}
+
 MODE="${1:---verify}"
 case "$MODE" in
   --verify)
@@ -54,6 +71,10 @@ case "$MODE" in
     python3 "$SCRIPT_DIR/snapshot_gen_tables.py" --ref "$REF" --verify
     echo "=== 校验独立数字真值（T0-c） ==="
     python3 "$SCRIPT_DIR/snapshot_gen_default.py" --ref "$REF" --verify
+    echo "=== 校验打分明细（T2-a/T2-b） ==="
+    python3 "$SCRIPT_DIR/snapshot_verify_score.py" --ref "$REF" --verify
+    echo "=== 校验放置逐格坐标（T2-c） ==="
+    python3 "$SCRIPT_DIR/snapshot_verify_placement.py" --ref "$REF" --verify
     ;;
   --emit-default)
     echo "=== 抽取独立数字真值矩阵（T0-c） ==="
@@ -69,19 +90,24 @@ case "$MODE" in
     ;;
   --emit-rs)
     echo "=== 发射 division/structure 黄金向量（T1-c/T1-d） ==="
-    RS="$REF/src/tests/snapshot_gen_rs_vectors.rs"
-    cp "$SCRIPT_DIR/snapshot_gen_rs_vectors.rs" "$RS"
-    # 幂等追加 mod（运行后还原）
-    MODFILE="$REF/src/tests/mod.rs"
-    BACKUP="$(mktemp)"; cp "$MODFILE" "$BACKUP"
-    if ! grep -q "snapshot_gen_rs_vectors" "$MODFILE"; then
-      printf 'mod snapshot_gen_rs_vectors;\n' >> "$MODFILE"
-    fi
-    ( cd "$REF" && cargo test --lib __emit_goldens -- --nocapture 2>/dev/null | grep '^GOLDEN|' ) || true
-    cp "$BACKUP" "$MODFILE"; rm -f "$BACKUP" "$RS"
+    run_ref_emitter "$SCRIPT_DIR/snapshot_gen_rs_vectors.rs" __emit_goldens
+    ;;
+  --emit-score)
+    echo "=== 发射打分明细（T2-a/T2-b） ==="
+    run_ref_emitter "$SCRIPT_DIR/snapshot_gen_score.rs" __emit_score_goldens
+    ;;
+  --emit-placement)
+    echo "=== 发射放置逐格坐标（T2-c） ==="
+    run_ref_emitter "$SCRIPT_DIR/snapshot_gen_placement.rs" __emit_placement_goldens
+    ;;
+  --emit-all-rs)
+    echo "=== 一次发射全部参考侧实算向量 ==="
+    run_ref_emitter "$SCRIPT_DIR/snapshot_gen_rs_vectors.rs" __emit_goldens
+    run_ref_emitter "$SCRIPT_DIR/snapshot_gen_score.rs" __emit_score_goldens
+    run_ref_emitter "$SCRIPT_DIR/snapshot_gen_placement.rs" __emit_placement_goldens
     ;;
   *)
-    echo "用法: bash scripts/gen-goldens.sh [--verify|--regen-tables|--emit-rs]" >&2
+    echo "用法: bash scripts/gen-goldens.sh [--verify|--regen-tables|--emit-rs|--emit-score|--emit-placement|--emit-all-rs]" >&2
     exit 2
     ;;
 esac

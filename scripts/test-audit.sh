@@ -45,6 +45,10 @@ M14|division 余数首字节 +1|lib/internal/reedsolomon/reedsolomon.mbt|rem[r] 
 M15|structure 首块起点偏移|lib/internal/reedsolomon/reedsolomon.mbt|let sidx = gi * g1s|let sidx = gi * g1s + 1
 M16|功能图案类型号 finder 改 2|lib/internal/matrix/module.mbt|pub let module_type_finder : Int = 1|pub let module_type_finder : Int = 2
 M17|percent_score 表中间项改值|lib/internal/constants/hardcode.mbt|0, 0, 0, 10, 10, 10, 10, 10, 20, 20, 20|0, 0, 1, 10, 10, 10, 10, 10, 20, 20, 20
+M18|生成多项式度 18 系数改值|lib/internal/constants/hardcode.mbt|    (215).to_byte(),\n    (234).to_byte(),\n    (158).to_byte(),|    (215).to_byte(),\n    (233).to_byte(),\n    (158).to_byte(),
+M19|放置之字形首列起点偏移|lib/internal/matrix/placement.mbt|let mut c = size - 1|let mut c = size - 2
+M20|N1 行运行结算阈值 5->6|lib/internal/matrix/score.mbt|if count >= 5 {\n        run = run + count - 2\n      }\n      count = 0\n      current = val|if count >= 6 {\n        run = run + count - 2\n      }\n      count = 0\n      current = val
+M21|择优并列取最高位 mask|lib/internal/matrix/placement.mbt|if s < best_score {|if s <= best_score {
 MUT
 }
 
