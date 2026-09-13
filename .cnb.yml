@@ -33,6 +33,13 @@ $:
           script: bash scripts/check.sh
         - name: test
           script: bash scripts/test.sh
+        # T6-c 文档互链死链检查（S10 §6 T6-c）：AGENTS.md §四「死链零容忍」的可执行化。
+        #   只查相对链接（外链/锚点跳过），零依赖、秒级，适合进 push CI。
+        - name: docs-link-check
+          script: bash scripts/docs-link-check.sh
+        # T7-b 测试规模护栏（S10 §6 T7-b）：单测试文件 ≤800 行。
+        - name: test-scale
+          script: bash scripts/test-scale.sh
         # 后端回归：仅默认后端 wasm-gc（js、wasm(WASI) 已按项目决策移除）
         # 注意：不要加 native 阶段 —— 需系统 C 编译器，本镜像未安装。
         - name: build-and-run
