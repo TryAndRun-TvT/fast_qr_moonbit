@@ -27,52 +27,20 @@ let pattern_window_mask : Int = 0b11111111111
 ///|
 /// 对一段逻辑行（行=连续切片；列=跳跃访问）做 N1 运行结算 + N3 图案窗口扫描。
 /// `get(i)` 返回第 i 格 packed 值（明暗|类型<<1）；返回 (pattern_score, run_line_score)。
-/// 完全对照参考 `score.rs::line`：运行计数只在 Data 上累计，非 Data 或变色即结算；
-/// quiet zone 由窗口初值 0（行首 4 浅色）+ 行尾补 4 浅色移位体现（仅影响 N3 图案）。
+///
+/// **实现委托生产路径 `line_scan_buf`**（S11 §4.1/§10.6 P1-2 延伸）：本函数原为与
+/// `line_scan_buf` 逐位等价的**独立副本**，仅被白盒 helper `test_line_run`/
+/// `test_line_pattern` 使用——正属 S11 §3.2 同类的「双份实现漂移风险」。改为把
+/// `get` 回调物化到临时连续缓冲后**直接复用 `line_scan_buf`**，既消副本又使
+/// 白盒断言测的**就是**生产算法（不再 `actual == actual` 的同源问题）。
 fn line_score(get : (Int) -> Int, len : Int) -> (Int, Int) {
-  let mut patt = 0
-  let mut run = 0
-  let mut count = 1
-  let mut current = 1 - (get(0) & 1) // = !line[0].value()：起始与首格相反
-  let mut buffer : Int = 0
+  let buf = Array::make(len, 0)
   let mut i = 0
   while i < len {
-    let v = get(i)
-    let val = v & 1
-    buffer = ((buffer << 1) | val) & pattern_window_mask
-    if buffer == pattern_light_before || buffer == pattern_light_after {
-      patt = patt + 40
-    }
-    if val != current {
-      if count >= 5 {
-        run = run + count - 2
-      }
-      count = 0
-      current = val
-    }
-    if !is_data_byte(v) {
-      if count >= 5 {
-        run = run + count - 2
-      }
-      count = 0
-      i += 1
-      continue
-    }
-    count = count + 1
+    buf[i] = get(i)
     i += 1
   }
-  if count >= 5 {
-    run = run + count - 2
-  }
-  // 行尾补 4 浅色移位：仅浅色在后的图案仍可在此命中。
-  let mut j = 0
-  while j < 4 {
-    buffer = (buffer << 1) & pattern_window_mask
-    if buffer == pattern_light_after {
-      patt = patt + 40
-    }
-    j += 1
-  }
+  let (patt, run, _) = line_scan_buf(buf, 0, len)
   (patt, run)
 }
 

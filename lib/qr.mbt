@@ -44,9 +44,24 @@ pub fn QRCode::default(size : Int) -> QRCode {
 }
 
 ///|
-/// 以指定版本构造空 `QRCode`（矩阵边长由版本推导，元数据 `version=Some(v)`）。
-pub fn QRCode::for_version(v : Version) -> QRCode {
+/// 以指定版本构造**空矩阵** `QRCode`：边长由版本推导（`v.width()`），
+/// 矩阵全为亮色 Data 模块，仅 `version` 元数据被置为 `Some(v)`（ecl/mask/mode 仍 `None`）。
+///
+/// 这是宿主「从零自建/改写矩阵再输出」（如叠加自定义图案）的**语义清晰入口**：
+/// 先 `QRCode::empty(v)` 拿一张干净画布，再用 `set(row, col, m)` 逐格写入，
+/// 最后交给输出层（`to_str` / `SvgBuilder::to_str`）。若已有满矩阵需改单格，
+/// 用 `build()` 得到结果后直接 `set(...)` 亦可（`QRCode` 本就由 `build()` 公开返回）。
+///
+/// 语义对齐参考 fast_qr `QRCode::default(size)`，但把「版本」作为显式入参、
+/// 避免 `default(size)` 的「边长 + 元数据全 None」双重歧义（见 docs/S11 §3.1）。
+pub fn QRCode::empty(v : Version) -> QRCode {
   QRCode::default(v.width()).with_version(v)
+}
+
+///|
+/// 以指定版本构造空 `QRCode`（`QRCode::empty` 的历史别名，语义完全一致）。
+pub fn QRCode::for_version(v : Version) -> QRCode {
+  QRCode::empty(v)
 }
 
 ///|

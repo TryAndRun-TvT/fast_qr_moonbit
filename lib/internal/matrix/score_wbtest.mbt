@@ -327,3 +327,39 @@ test "t2d2_auto_mask_tie_break_lowest" {
     )
   }
 }
+
+///|
+/// N3 quiet-zone 边界：`test_line_pattern` 直接锁**图案窗口**分量（S11 §4.1/§10.6 P1-2）。
+/// 夹具：行 = 0000 1011101（前 4 浅 + finder 类图案）。
+/// 期望 80 = 行首 4 浅补齐命中浅前图案 +40，行尾补 4 浅移位命中浅后图案 +40。
+/// 与 `score_pattern: ...计 40` 的区别：此处直接断言 `line_score` 的图案分量，
+/// 覆盖此前无调用方的 `test_line_pattern`，且该分量现走生产 `line_scan_buf`（非副本）。
+test "t5b_n3_quiet_zone_dual_sided_pattern_via_line_score" {
+  let bits : ReadOnlyArray[Int] = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1]
+  let got = test_line_pattern(fn(i) { pack(bits[i], module_type_data) }, 11)
+  if got != 80 {
+    fail(
+      "t5b N3 quiet-zone: got=" + got.to_string() + " want=80（双侧各 +40）",
+    )
+  }
+}
+
+///|
+/// N1 结算点 ② 边界：**≥5 连后遇非 Data** 才走「非 Data 结算」分支，
+/// 与「行末结算」（l1）和「恰好 5 连后变色」（t2b3）互补。
+/// 夹具：DATA×6 暗 + EMPT 亮 → 6 连在遇 EMPT 时结算 6-2=4，行末无追加。
+test "t5b_n1_settle_on_nondata_after_run" {
+  let l : Array[Int] = [
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(1, module_type_data),
+    pack(0, module_type_empty),
+  ]
+  let got = test_line_run(fn(i) { l[i] }, 7)
+  if got != 4 {
+    fail("t5b N1 非 Data 结算: got=" + got.to_string() + " want=4（6-2）")
+  }
+}

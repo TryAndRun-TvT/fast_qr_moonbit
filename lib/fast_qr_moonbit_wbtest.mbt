@@ -73,10 +73,31 @@ test "ecl_ordering" {
   assert_eq(ECL::M.to_int(), 1)
   assert_eq(ECL::Q.to_int(), 2)
   assert_eq(ECL::H.to_int(), 3)
-  assert_eq(ECL::Q.to_int(), 2)
   assert_eq(ECL::from_int(0).to_int(), 0)
   assert_eq(ECL::from_int(3).to_int(), 3)
+}
+
+///|
+/// `ECL::to_char` 全 4 臂回环（S11 §4.1/§10.6 P1-2）：枚举全量断言，
+/// 锁「序号 → 显示字符」契约（此前只断言了 `L` 臂，M/Q/H 三臂未触达）。
+test "ecl_to_char_all_arms" {
   assert_eq(ECL::to_char(ECL::L), 'L')
+  assert_eq(ECL::to_char(ECL::M), 'M')
+  assert_eq(ECL::to_char(ECL::Q), 'Q')
+  assert_eq(ECL::to_char(ECL::H), 'H')
+  // 与 to_int 序号一一对应（0..=3），交叉验证不走同一条 match
+  let chars : ReadOnlyArray[Char] = ['L', 'M', 'Q', 'H']
+  for c in chars {
+    let e = ECL::from_int(
+      match c {
+        'L' => 0
+        'M' => 1
+        'Q' => 2
+        _ => 3
+      },
+    )
+    assert_eq(ECL::to_char(e), c)
+  }
 }
 
 ///|
