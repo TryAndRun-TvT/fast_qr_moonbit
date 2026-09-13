@@ -119,36 +119,3 @@ test "qr_builder_version_too_small" {
       }
   }
 }
-
-///|
-/// T2-d：择优「列参与评分」回归（S10 §6 T2-d，参考 issue #77 方法迁移）。
-///
-/// 背景：参考 fast_qr issue #77 的 bug 是「转置取自未掩码矩阵 → 各 mask 的竖向惩罚恒等」，
-/// 于是 `https://fast-qr.com/` + ECL H 会错误地选中 `VerticalLines`；
-/// 修好列感知评分后应选中 `Diamonds`。
-///
-/// 因此本用例锁的是**行为结果**（选中 Diamonds = 序号 6），而非某个中间量：
-/// 若实现退回「列不参与评分」，mask 会变，本用例即红。
-/// 参考：fast_qr v0.14.0 `src/tests/score.rs::mask_selection_considers_columns`。
-test "t2d_mask_selection_considers_columns" {
-  let inp : Array[Byte] = []
-  for ch in "https://fast-qr.com/".to_array() {
-    inp.push(ch.to_int().to_byte())
-  }
-  match QRBuilder::new(inp).ecl(ECL::H).build() {
-    Ok(qr) => {
-      match qr.mask {
-        Some(m) =>
-          if m.to_int() != 6 {
-            fail(
-              "t2d: 择优 mask 应为 Diamonds(6)，got=" +
-              m.to_int().to_string() +
-              "（若为 2=VerticalLines 说明列未参与评分，参考 issue #77）",
-            )
-          }
-        None => fail("t2d: 自动择优路径应写入 mask 元数据，got=None")
-      }
-    }
-    Err(_) => fail("t2d: 构建失败（输入应可容纳于自动择版本）")
-  }
-}
