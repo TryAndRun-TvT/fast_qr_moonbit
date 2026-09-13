@@ -4,6 +4,9 @@
 /// 介质：公共 `Module.byte()` = `明暗|类型<<1`，与参考快照同构；按格逐位（十六进制）比对。
 /// 覆盖：V1/V5/V7/V10 × L/M/Q/H × mask 0/1/2/3/5/7（含 V7+/V10 版本信息区、mask 5/7 网格）。
 ///
+/// 溯源元数据（T0-b）：生成器 scripts/snapshot_gen_s6.rs ｜ 参考 fast_qr commit 53e8c99（v0.14.0）
+/// ｜ 生成日期 2026-09-13 ｜ 复跑校验：bash scripts/gen-goldens.sh --verify（仅覆盖常量表指纹）
+/// ｜ 快照重建：见 scripts/snapshot_gen_s6.rs 头注释（拷入参考 examples 后经 stdin 喂 cases.txt）。
 
 ///|
 /// 输入统一 'hi'（强制 Byte 模式；各强制版本/纠错均能容纳，编码填充至满）。

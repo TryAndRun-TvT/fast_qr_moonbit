@@ -7,6 +7,9 @@
 ///   B. V01 最短 / 版本信息区触发点 V14/V26/V32；
 ///   C. 全参数 None 纯自动路径（mode/ecl/version/mask 全自动）。
 /// 复用同包 bstr/hexval/parse_hex（m1_snapshot_test.mbt 顶层，同包共享）。
+/// 溯源元数据（T0-b）：生成器 scripts/snapshot_gen_s6.rs ｜ 参考 fast_qr commit 53e8c99（v0.14.0）
+/// ｜ 生成日期 2026-09-13 ｜ 复跑校验：bash scripts/gen-goldens.sh --verify（仅覆盖常量表指纹）
+/// ｜ 快照重建：见 scripts/snapshot_gen_s6.rs 头注释（拷入参考 examples 后经 stdin 喂 cases.txt）。
 fn c0() -> Array[Byte] {
   let r : Array[Byte] = []
   for

@@ -1,5 +1,6 @@
 // snapshot_gen_s6.rs —— S6 全量快照参考数据生成器（开发期工具，不参与 push CI）
 //
+// 钉版参考：fast_qr commit 53e8c99（Cargo.toml version 0.14.0）—— 见 scripts/gen-goldens.sh。
 // 用途：在具备 Rust 环境 + fast_qr v0.14.0 参考库处生成 S6 端到端快照的参考全矩阵 hex，
 //       供 MoonBit lib/s6_snapshot_test.mbt 逐位对齐（roadmap「表与快照禁止手抄」铁律）。
 // 用法：
