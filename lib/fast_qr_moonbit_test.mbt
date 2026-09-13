@@ -119,3 +119,291 @@ test "public_select_capacity_data_too_big" {
     Err(e) => if e != EncodedData { fail("expected EncodedData, got other") }
   }
 }
+
+///|
+/// 辅助：对 `select_capacity` 的 `Ok((mode,ecl,version))` 断言三元组；
+/// 失败信息含模块.函数 + 参数指纹（对齐 T7-a 可定位性标准）。
+fn assert_cap(
+  label : String,
+  input : Array[Byte],
+  mode : Mode?,
+  ecl : ECL?,
+  v : Version?,
+  want : (Int, Int, Int),
+) -> Unit raise {
+  match QRCode::select_capacity(input, mode, ecl, v) {
+    Ok(t) =>
+      if t != want {
+        fail(
+          "qr_build.select_capacity \{label}: got=(\{t.0},\{t.1},\{t.2}) want=(\{want.0},\{want.1},\{want.2}) len=\{input.length()}",
+        )
+      }
+    Err(_) =>
+      fail(
+        "qr_build.select_capacity \{label}: got=Err want=Ok(\{want.0},\{want.1},\{want.2}) len=\{input.length()}",
+      )
+  }
+}
+
+///|
+/// 辅助：断言 `Err(SpecifiedVersion)`（失败信息含参数指纹）。
+fn assert_ver_low(
+  label : String,
+  input : Array[Byte],
+  mode : Mode?,
+  ecl : ECL?,
+  v : Version?,
+) -> Unit raise {
+  match QRCode::select_capacity(input, mode, ecl, v) {
+    Ok(t) =>
+      fail(
+        "qr_build.select_capacity \{label}: got=Ok(\{t.0},\{t.1},\{t.2}) want=Err(SpecifiedVersion) len=\{input.length()}",
+      )
+    Err(SpecifiedVersion) => ()
+    Err(EncodedData) =>
+      fail(
+        "qr_build.select_capacity \{label}: got=Err(EncodedData) want=Err(SpecifiedVersion) len=\{input.length()}",
+      )
+  }
+}
+
+///|
+/// 辅助：断言 `Err(EncodedData)`（失败信息含参数指纹）。
+fn assert_too_big(
+  label : String,
+  input : Array[Byte],
+  mode : Mode?,
+  ecl : ECL?,
+  v : Version?,
+) -> Unit raise {
+  match QRCode::select_capacity(input, mode, ecl, v) {
+    Ok(t) =>
+      fail(
+        "qr_build.select_capacity \{label}: got=Ok(\{t.0},\{t.1},\{t.2}) want=Err(EncodedData) len=\{input.length()}",
+      )
+    Err(EncodedData) => ()
+    Err(SpecifiedVersion) =>
+      fail(
+        "qr_build.select_capacity \{label}: got=Err(SpecifiedVersion) want=Err(EncodedData) len=\{input.length()}",
+      )
+  }
+}
+
+///|
+/// T3-d 回归 ①：**显式模式必须参与版本选择**（v5 修复的核心 bug）。
+/// 旧实现把 `mode_idx` 算好后从未用于容量判定（`version_for` 恒按 Numeric），
+/// 于是显式 Alphanumeric/Byte + `v=None` 会被按 Numeric 预算放行，
+/// 随后交错的却是 Alnum/Byte 编码器 → **静默错数据**（下游解码器读回 ≠ 输入）。
+/// 真值来源：参考 fast_qr v0.14.0 `Version::get(mode, ecl, len)` 的 mode 分支
+/// （由 Rust harness 在钉版 `53e8c99` 上实跑核对，19680 + 64480 组参数零差异）。
+test "public_select_capacity_explicit_mode_respected" {
+  // '1' × 41：Numeric-L V01 上限恰 41；Alnum-L 上限 25；Byte-L 上限 17。
+  // 同一输入按模式给出**三个不同的最小版本**，这是「模式被尊重」的判据。
+  let d41 = Array::make(41, b'1')
+  assert_cap(
+    "41-digit Numeric-L",
+    d41,
+    Some(Mode::Numeric),
+    Some(ECL::L),
+    None,
+    (0, 0, 0),
+  )
+  assert_cap(
+    "41-digit Alnum-L",
+    d41,
+    Some(Mode::Alphanumeric),
+    Some(ECL::L),
+    None,
+    (1, 0, 1),
+  )
+  assert_cap(
+    "41-digit Byte-L",
+    d41,
+    Some(Mode::Byte),
+    Some(ECL::L),
+    None,
+    (2, 0, 2),
+  )
+  // 交叉验证：同一输入 `mode=None` 自动回退到 Numeric → 仍是最小 V01
+  assert_cap("41-digit auto-L", d41, None, Some(ECL::L), None, (0, 0, 0))
+  // 非全数字串无法回退 Numeric：'A' × 30 自动 → Alnum（V01-L 上限 25 → V02）
+  let a30 = Array::make(30, b'A')
+  assert_cap("30-char auto-L", a30, None, Some(ECL::L), None, (1, 0, 1))
+  assert_cap(
+    "30-char Alnum-L",
+    a30,
+    Some(Mode::Alphanumeric),
+    Some(ECL::L),
+    None,
+    (1, 0, 1),
+  )
+  assert_cap(
+    "30-char Byte-L",
+    a30,
+    Some(Mode::Byte),
+    Some(ECL::L),
+    None,
+    (2, 0, 1),
+  )
+}
+
+///|
+/// T3-d 回归 ②：**显式版本越界必须报 `SpecifiedVersion`**（旧实现只校验 Numeric 容量）。
+/// 旧实现下 `mode=Byte, ecl=H, version=V01, len=18` 不报错（Numeric-H-V01 上限 17）。
+/// 真值：参考 V01 容量 Numeric-H=17 / Alnum-H=10 / **Byte-H=7**。
+test "public_select_capacity_specified_version_mode_aware" {
+  // ── Byte-H-V01 上限 7 ──
+  assert_cap(
+    "Byte-H-V01 len7",
+    Array::make(7, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::H),
+    Some(Version::V01),
+    (2, 3, 0),
+  )
+  assert_ver_low(
+    "Byte-H-V01 len8",
+    Array::make(8, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::H),
+    Some(Version::V01),
+  )
+  assert_ver_low(
+    "Byte-H-V01 len18",
+    Array::make(18, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::H),
+    Some(Version::V01),
+  )
+  // 同一输入换 Numeric 模式：V01-H 上限 17 → len8 合法（证明判据确实按模式走）
+  assert_cap(
+    "Numeric-H-V01 len8",
+    Array::make(8, b'1'),
+    Some(Mode::Numeric),
+    Some(ECL::H),
+    Some(Version::V01),
+    (0, 3, 0),
+  )
+  // ── Byte-L-V01 上限 17 ──
+  assert_cap(
+    "Byte-L-V01 len17",
+    Array::make(17, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::L),
+    Some(Version::V01),
+    (2, 0, 0),
+  )
+  assert_ver_low(
+    "Byte-L-V01 len18",
+    Array::make(18, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::L),
+    Some(Version::V01),
+  )
+  // ── Numeric-L-V01 上限 41 / Alnum-L-V01 上限 25 ──
+  assert_cap(
+    "Numeric-L-V01 len41",
+    Array::make(41, b'1'),
+    Some(Mode::Numeric),
+    Some(ECL::L),
+    Some(Version::V01),
+    (0, 0, 0),
+  )
+  assert_ver_low(
+    "Numeric-L-V01 len42",
+    Array::make(42, b'1'),
+    Some(Mode::Numeric),
+    Some(ECL::L),
+    Some(Version::V01),
+  )
+  assert_ver_low(
+    "Alnum-L-V01 len26",
+    Array::make(26, b'A'),
+    Some(Mode::Alphanumeric),
+    Some(ECL::L),
+    Some(Version::V01),
+  )
+  // ── 显式大版本：按该版本自身 CCI 档位复算 ──
+  assert_cap(
+    "Byte-L-V40 len2953",
+    Array::make(2953, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::L),
+    Some(Version::V40),
+    (2, 0, 39),
+  )
+  // len2954 超出 Byte-L 全谱系上限 → 先撞 EncodedData（全局上界先于指定版本检查），
+  // 与参考 `Version::get` → None → EncodedData 的短路顺序一致。
+  assert_too_big(
+    "Byte-L-V40 len2954",
+    Array::make(2954, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::L),
+    Some(Version::V40),
+  )
+}
+
+///|
+/// T3-d 回归 ③：超大输入的错误面（显式模式 + 显式版本）。
+test "public_select_capacity_too_big_mode_aware" {
+  // Byte-Q V40 上限 1663；Byte-H V40 上限 1273
+  assert_too_big(
+    "Byte-Q len1664",
+    Array::make(1664, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::Q),
+    None,
+  )
+  assert_cap(
+    "Byte-Q len1663",
+    Array::make(1663, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::Q),
+    None,
+    (2, 2, 39),
+  )
+  assert_too_big(
+    "Byte-H len1274",
+    Array::make(1274, b'x'),
+    Some(Mode::Byte),
+    Some(ECL::H),
+    None,
+  )
+}
+
+///|
+/// T3-d 回归 ④：`QRBuilder` 链式路径与 `select_capacity` 同源（端到端消费模式）。
+/// 显式 Byte + 长输入必须走 **Byte 编码器**（头 0b0100），而非被静默按 Numeric 编码。
+test "public_builder_explicit_mode_uses_mode_encoder" {
+  // '1' × 30：显式 Byte + ECL L → 需 V02（Byte-L-V01 上限 17）
+  let r_byte = QRBuilder::from_string("111111111111111111111111111111")
+    .mode(Mode::Byte)
+    .ecl(ECL::L)
+    .build()
+  match r_byte {
+    Ok(q) => {
+      assert_eq(q.mode(), Some(Mode::Byte))
+      assert_eq(q.version(), Some(Version::V02))
+      assert_eq(q.size(), 25)
+    }
+    Err(_) =>
+      fail(
+        "qr_builder.build(id='1'*30, mode=Byte, ecl=L): got=Err want=Ok V02 byte",
+      )
+  }
+  // 同输入改 Numeric → V01（Numeric-L-V01 上限 41）
+  let r_num = QRBuilder::from_string("111111111111111111111111111111")
+    .mode(Mode::Numeric)
+    .ecl(ECL::L)
+    .build()
+  match r_num {
+    Ok(q) => {
+      assert_eq(q.version(), Some(Version::V01))
+      assert_eq(q.size(), 21)
+    }
+    Err(_) =>
+      fail(
+        "qr_builder.build(id='1'*30, mode=Numeric, ecl=L): got=Err want=Ok V01 numeric",
+      )
+  }
+}

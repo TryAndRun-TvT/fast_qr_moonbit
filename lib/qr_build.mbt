@@ -17,12 +17,29 @@
 /// - 数据过大（V40 装不下）→ `Err(EncodedData)`；指定版本 < 最小适配 → `Err(SpecifiedVersion)`。
 /// 供 S4 create_matrix 与后续 QRBuilder（S6）复用：本阶段只做容量选择，矩阵放置随 S4 接入
 /// 此路径产出的版本号构建完整 QRCode（见 S3 方案 §3.5/§6）。
+///
+/// **两类容量校验（对齐参考 fast_qr `Version::get` + `QRCode::new` 的两段式判定）**：
+/// ① 无显式版本（`v=None`）：按**声明模式**求最小适配版本，直接查 `version_for(mode_idx, …)`。
+/// 这条链必须与「该模式实际会被交给哪个编码器」一致——否则较长输入会被静默按 Numeric
+/// 预算通过、随后用 Alnum/Byte 编码器写入超出数据区的位流（见下方 T3-d 回归 note）。
+/// ② 显式版本（`Some(uv)`）：参考 `Version::get` 的 `mode` 分支覆盖**全部三种模式**
+/// （含 Byte，V01-L=17 / V01-H=7），故「Byte 18 字节 + 强制 V01-H」在参考侧即
+/// `Err(SpecifiedVersion)`；同版本下 Byte 的容量严格小于 Numeric，只有按声明模式判定
+/// 才能复现该错误面。此外显式版本下还需用 uv **自身的 CCI 档位**复算
+/// （`fits_at_version`，覆盖 V20→V27 这类跨档边界）。
+///
+/// 回归 note（T3-d 探针发现，v5 修复）：旧实现把 mode 序号算好后**从未传给容量判定**
+/// （`version_for` 恒按 Numeric 预算），导致
+///   - `Some(Alphanumeric)` / `Some(Byte)` + `v=None` 时按 Numeric 求最小版本；
+///   - `Some(mode)` + `Some(uv)` 时丢弃模式、只查 Numeric 容量，`SpecifiedVersion` 基本失效。
+/// 表现为「静默错数据」（下游解码器读回与输入不同），而非报错。
 pub fn QRCode::select_capacity(
   input : Array[Byte],
   mode : Mode?,
   ecl : ECL?,
   v : Version?,
 ) -> Result[(Int, Int, Int), QRCodeError] {
+  let len = input.length()
   // mode：None → best_encoding 自动回退
   let mode_idx = match mode {
     Some(m) => m.to_int()
@@ -33,22 +50,29 @@ pub fn QRCode::select_capacity(
     Some(e) => e.to_int()
     None => ECL::Q.to_int()
   }
-  // 最小适配版本：-1 → V40 也装不下（数据过大）
-  let min_v = @constants.version_for(mode_idx, ecl_idx, input.length())
-  if min_v < 0 {
-    return Err(EncodedData)
-  }
-  // 指定版本约束：uv 序号 >= 最小适配才合法，否则报 SpecifiedVersion
-  let version_idx = match v {
-    Some(uv) =>
-      if uv.to_int() >= min_v {
-        uv.to_int()
-      } else {
+  match v {
+    None => {
+      // 按声明模式（或自动回退出的模式）求最小适配版本；-1 → V40 也装不下
+      let min_v = @constants.version_for(mode_idx, ecl_idx, len)
+      if min_v < 0 {
+        return Err(EncodedData)
+      }
+      Ok((mode_idx, ecl_idx, min_v))
+    }
+    Some(uv) => {
+      // ① 全局上界：该模式在全谱系内是否装得下（对照参考 `Version::get` → None → EncodedData）
+      if @constants.version_for(mode_idx, ecl_idx, len) < 0 {
+        return Err(EncodedData)
+      }
+      // ② 指定版本容纳性：按**声明模式** + **指定版本自身 CCI 档位**判定
+      //    （对照参考 `QRCode::new` 中 `user_version >= version` 的比较；
+      //     `fits_at_version` 用位流口径复算，比容量表更紧且覆盖 CCI 跨档）
+      if !@constants.fits_at_version(mode_idx, ecl_idx, uv.to_int(), len) {
         return Err(SpecifiedVersion)
       }
-    None => min_v
+      Ok((mode_idx, ecl_idx, uv.to_int()))
+    }
   }
-  Ok((mode_idx, ecl_idx, version_idx))
 }
 
 ///|

@@ -1,10 +1,10 @@
-# S10 — 测试用例设计与完善 roadmap v4（参考 fast_qr 测试体系 + 独立正确性验证）
+# S10 — 测试用例设计与完善 roadmap v5（参考 fast_qr 测试体系 + 独立正确性验证）
 
 > 目标：以 Rust 参考库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr) 的测试代码为基准，
 > 盘点本仓库测试资产，定位覆盖缺口，给出**分阶段、可验收、可定位失败**的测试完善路线；
 > 并回答一个更根本的问题：**当前所有断言都是「与参考实现逐位一致」，谁保证参考本身对？**
 >
-> 日期：2026-09-13（v4 落地修订）　｜　基线：本仓库 `main`（**135 单测全绿**，wasm-gc 同绿）
+> 日期：2026-09-13（v5 落地修订）　｜　基线：本仓库 `main`（**140 单测全绿**，wasm-gc 同绿）
 > ｜　参考检出：`fast_qr` commit `53e8c99`（`Cargo.toml` version `0.14.0`，`--depth 1`）
 > 复跑：`bash scripts/test.sh`（= `moon test`），后端回归 `moon test --target wasm-gc`。
 >
@@ -28,9 +28,21 @@
 > **T5-a**（覆盖率报告 `docs/S10b-…`）、**T7-a**（存量快照 fail 信息标准化）。
 > 变异对照由 v3 的 **17/17 提升至 21/21**（新增 M18–M21，其中 **M20/M21 首跑即漏检**，
 > 已由 T2-b2/T2-b3 与 T2-d2 修复——**这正是本轮审计的最大价值**）。
-> 仍待办：T3-c/d（解码向量固化 + `cmd` 多内容探针）、T5-b（覆盖率下限锁定）。
+> **v5 落地修订**（相对 v4）：按 v4 §G.5「仍待办」**实落**，并在落地过程中**发现并修复一条真 bug**：
+> **T3-d**（`cmd/bench --dump-case`，54 组语料：三模式 × 4 ECL × 4 版本 + 6 组自动版本靶点）、
+> **T3-c**（`lib/s6_decode_vectors_test.mbt`，11 条固化向量 + `snapshot_gen_decode_vectors.mjs`）、
+> **T5-b**（`coverage.sh --floor` 不下降门禁 + `S10b` 的 `coverage-floor` 标记）、
+> **T6-c**（`docs-link-check.sh` 死链检查，473 条相对链接，进 push CI）。
+> 变异对照由 v4 的 **21/21 提升至 23/23**（新增 M22/M23 直指本轮修复的语义 bug）。
+> ⚠️ **本轮最大产出是 bug 修复而非测试**：`select_capacity` 的**模式语义**缺陷
+> （显式 `mode` 未参与容量判定 → 静默错数据、矩阵不可解码），详见 [S10c](./S10c-select-capacity模式语义缺陷-定位与修复.md) 与附录 H。
 
 ---
+
+> **v5 核心产出是一条约定的实现 bug 修复**（`select_capacity` 模式语义），
+> 完整记录见 [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./S10c-select-capacity模式语义缺陷-定位与修复.md)。
+> 一句话：显式 `mode` 未参与容量判定 → 较长 Alnum/Byte 输入被静默按 Numeric 选版本 →
+> 数据区装不下实际位流 → **矩阵不可解码**（旧实现下 T3-d 有 4/54 组 jsQR 返回 NULL）。
 
 ## 1. 结论摘要（TL;DR）
 
@@ -480,13 +492,18 @@ T4-a 待 S9 性能优化收敛后再做（避免测试与实现同时大改）�
 10. [x] 择优 mask 号核对与回归用例（T2-d）+ 并列取低位规则（T2-d2）
 11. [x] ~~`snapshot_gen_poly.rs`~~（T1-a 改用测试内独立推导，脚本不再需要）
 12. [x] `qr-decode-check.mjs` 审计脚本（jsQR；含 `--mutate` 反向证据）+ `scripts/test-audit.sh` 包装（T3-a/T3-b，**已入库实跑**）
-12b. [ ] `cmd` 多内容探针（覆盖三模式 × 4 ECL × 4 版本）（T3-d）
-13. [ ] 固化解码向量 `s6_decode_vectors_test.mbt`（T3-c）
+12b. [x] `cmd` 多内容探针（T3-d）：`--dump-case list|<n>|all`，**54 组**语料
+      （三模式 × 4 ECL × 4 版本 = 48 + 6 组**自动版本靶点**）
+13. [x] 固化解码向量 `s6_decode_vectors_test.mbt`（T3-c，11 条；生成器
+      `scripts/snapshot_gen_decode_vectors.mjs --write`）
 14. [x] 属性测试四则（随机化 + 不可变式 + 掩码互异 + 尺寸不变量）（T4-a，`t4a_property_test.mbt`）
 15. [x] `gc-compare.mjs` 升级为 CI 可选差分门禁（T4-c，`scripts/diff-gate.sh`）
-16. [~] 覆盖率报告（T5-a，`scripts/coverage.sh` + `docs/S10b-…`）✅；分模块下限（T5-b）待办
+16. [x] 覆盖率报告（T5-a，`scripts/coverage.sh` + `docs/S10b-…`）✅；
+      **不下降门禁**（T5-b，`coverage.sh --floor` + `coverage-floor` 标记）✅
 17. [x] 规模护栏（T7-b）+ checksum 断言化（T7-c）+ 失败信息标准化（T7-a，`m1`/`s6` 快照）
+17b. [x] 测试规模护栏接入 push CI（T7-b，`scripts/test-scale.sh`）
 18. [x] `AGENTS.md` 测试小节（三载体 + 七铁律 + 例行检查）（T6-a）
+18b. [x] 文档互链死链检查（T6-c，`scripts/docs-link-check.sh`，473 条相对链接，进 push CI）
 
 ## 附录 D：T3 解码回读「已实测」结论（2026-09-13，本环境实跑）
 
@@ -534,8 +551,11 @@ T4-a 待 S9 性能优化收敛后再做（避免测试与实现同时大改）�
 | M19 | 放置之字形首列起点偏移 | **13** | ✅ 已检出（**T2-c 新增覆盖**） |
 | M20 | N1 行运行结算阈值 `5→6` | **2** | ✅ 已检出（**T2-b2/T2-b3 修复**，首跑零检出） |
 | M21 | 择优并列 `s < best` → `s <= best` | **1** | ✅ 已检出（**T2-d2 修复**，首跑零检出） |
+| **M22** | `select_capacity` 丢弃显式模式（`version_for(0,…)`） | **7** | ✅ 已检出（**v5 修复**，见 §10） |
+| **M23** | 显式版本丢弃模式校验（`fits_at_version(0,…)`） | **1** | ✅ 已检出（**v5 修复**，见 §10） |
 
-**21/21 全部检出**（v3 为 17/17；v4 新增 M18–M21 四条对照，其中 M20/M21 首跑即漏检，
+**23/23 全部检出**（v4 为 21/21；v5 新增 M22/M23 两条对照，直指本轮修复的
+`select_capacity` 模式语义 bug，见 [S10c](./S10c-select-capacity模式语义缺陷-定位与修复.md)）（v3 为 17/17；v4 新增 M18–M21 四条对照，其中 M20/M21 首跑即漏检，
 已由 T2-b2/T2-b3、T2-d2 修复。真值集合扩至 135 个用例）。 v2 的两条漏检成因**同源且极具体**：
 
 | 漏检项 | 为什么测不出 | 补测方案 |
@@ -683,7 +703,53 @@ T4-c（差分门禁升 CI）、T5（覆盖率报告与分模块下限）、T7-a�
   **Rust dev-deps 需要系统 C 编译器**（本环境 `apt-get install -y build-essential`）。
   `snapshot_gen_score.rs` 已改为**自包含夹具**（内联 841 字节），不再依赖参考测试模块的可见性。
 
-### G.5 仍待办（v4 未覆盖）
+### G.5 仍待办（v4 未覆盖）——**v5 已全部落地，见附录 H**
 
 T3-c（解码向量固化 `s6_decode_vectors_test.mbt`）、T3-d（`cmd` 多内容探针：三模式 × 4 ECL × 4 版本）、
 T5-b（覆盖率下限「不下降」锁定）、T6-c（本文与 README 互链的死链检查）。
+
+---
+
+## 附录 H：v5 落地记录（2026-09-13，实跑）
+
+> 本节记录 v5 相对 v4 的**实际交付**。与前几版不同，**v5 的主要产出是一条真 bug 的修复**
+> （非测试增量）：探针 `T3-d` 首跑即暴露 `select_capacity` 的模式语义缺陷，
+> 修复后与参考在 **83,160 组参数**上零差异（S10c §5）。
+> 落地基线：`moon test` **135 → 140 用例全绿**；变异对照 **21/21 → 23/23 全检出**。
+
+### H.1 交付清单
+
+| 项 | 落地物 | 关键实现 | 验证 |
+|----|--------|---------|------|
+| **bug fix** | `lib/qr_build.mbt` + `lib/internal/constants/capacity.mbt`（新增 `fits_at_version`） | ①`v=None` 按**声明模式**求最小版本；②`v=Some` 先判全谱系上界，再用**位流口径 + 指定版本 CCI 档位**复算 | 83,160 组参数与参考零差异；旧实现下 4 组语料解码 NULL |
+| T3-d | `cmd/bench/main.mbt` `--dump-case list\|<n>\|all` | **54 组**语料（三模式 × 4 ECL × {V01,V05,V10,V40} = 48 + **6 组自动版本靶点**）；矩阵协议与 `--dump` 完全一致，另加 `QR_CASE` 元数据行 | 54/54 jsQR 读回原文；旧实现下 4 组 NULL |
+| T3-c | `lib/s6_decode_vectors_test.mbt` + `scripts/snapshot_gen_decode_vectors.mjs` | **11 条**固化向量（5 组 grid 四角 + **全部 6 组 auto 靶点**）；FNV-1a 64 指纹（core 无 sha256，黑盒可复算） | 140 用例全绿；旧实现下本用例变红 |
+| T5-b | `scripts/coverage.sh --floor` + `docs/S10b-…` 顶部 `coverage-floor` 标记 | **「不下降」门禁**（`lib/**` 未覆盖行 ≤ 登记上限）；不设绝对百分比阈值（避免造无信息量用例） | 实跑：26 ≤ 26 ✅；人为调低上限 → 退出码 1 ❌ |
+| T6-c | `scripts/docs-link-check.sh`（**进 push CI**） | 受版本控制 Markdown 的**相对链接**存在性检查；跳过外链/锚点；**忽略代码块** | 53 文件 / **473 条**相对链接，零死链；植入假死链 → 退出码 1 |
+| — | `.cnb.yml` | push 阶段新增 `docs-link-check` 与 `test-scale` 两个零依赖 stage | Schema 校验通过 |
+| — | `scripts/test-audit.sh` | `decode` 增跑 T3-d 全语料；新增 M22/M23 | 23/23 全检出 |
+
+### H.2 变异检测刷新（v4 21/21 → v5 23/23）
+
+| # | 植入缺陷 | 失败数 | 对应修复 |
+|:-:|---|:---:|---|
+| M22 | `select_capacity` 丢弃显式模式（`version_for(0,…)`） | **7** | §10.3 修法① |
+| M23 | 显式版本丢弃模式校验（`fits_at_version(0,…)`） | **1** | §10.3 修法② |
+
+### H.3 环境备注（v5 新增踩坑）
+
+- **工作区可能在多次工具调用之间被重置**：本轮曾出现「改完 `lib/` 后下一次命令工作区已被
+  还原」，导致修复丢失。→ **教训：每次有意义的改动后立即 `git commit`**，不要攒到最后。
+  这与附录 F.4 的「变异检测会还原 `lib/`」是**两个不同陷阱**——前者是审计脚本的
+  预期行为，后者是**环境态**，必须靠「小步提交」而不是「小心」来防。
+- 加 `--dump-case` 到 `cmd/bench` 后，`moon coverage analyze` 的 `cmd/bench` 未覆盖行
+  从 35 涨到 72：这些分支由 `test-audit.sh decode`（不进 push CI）覆盖，
+  **不属库分发面**，故 `coverage-floor` 只按 `lib/**` 计（26 行）。
+- 生成器里 `UInt64::to_hex` / `String::to_bytes` 都不可用（前者不存在、后者已 deprecated）：
+  自持 `decode_hex16`（逐 nibble），字节迭代改用 `for c in s` 取 `c.to_int() & 0xFF`。
+
+### H.4 仍待办
+
+v4 §G.5 的四项已全部落地。剩余**非阻塞**项：
+- T4-b 的变异清单可继续扩样（例如 `cci_bits` 的 Byte 分支、`missing_bits` 表值）；
+- `coverage-floor` 可随补测逐步**下调**（当前 26，S10b §2.1 已写明处置约定）。

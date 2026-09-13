@@ -285,28 +285,40 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 
 | 层 | 覆盖 |
 |----|------|
-| 黑盒 | 公共枚举与 `select_capacity` 四态、`QRBuilder` 链式等价、**择优 mask 号回归（T2-d）**、SVG 全串、终端画、**21 个**端到端全矩阵 hex 快照 |
+| 黑盒 | 公共枚举与 `select_capacity` 四态 + **模式/版本语义回归（4 条，v5）**、`QRBuilder` 链式等价、**择优 mask 号回归（T2-d）**、SVG 全串、终端画、**21 个**端到端全矩阵 hex 快照、**11 条固化解码向量（T3-c）** |
 | 白盒 | 位流、常量表交叉不变量 + **全表值级校验（T1-f）**、**生成多项式独立推导（T1-a）**、三模式编码、GF(256) 交织 + **黄金余数/交织向量（T1-c/T1-d）+ 交叉独立证据（T1-e）**、**逐行/逐列打分明细（T2-a/T2-b）+ 结算边界（T2-b2/b3）**、8 种掩码、**放置逐格坐标（T2-c）**、**Format 双副本布局（T2-e）**、**独立数字真值（T0-c）**、**属性测试四则（T4-a）**、**枚举全量回环（T5-b）** |
 | 黄金值来源 | 参考 fast_qr commit `53e8c99` 侧由脚本产出（**禁止手抄**）：`snapshot_gen_s6.rs`（全矩阵）、`snapshot_gen_tables.py`（常量表全表指纹）、`snapshot_gen_rs_vectors.rs`（division/structure）、`snapshot_gen_score.rs`（打分明细）、`snapshot_gen_placement.rs`（放置坐标）、`snapshot_gen_default.py`（Python `qrcode` 独立真值）；一键校验 `bash scripts/gen-goldens.sh --verify`（四项零差异） |
 
 **测试完善路线**见 [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md)（**测试维护入口**）。
 该路线已实跑三项验证，结论比「覆盖更多代码」更有信息量：
 
-- **强负向对照（变异检测）**：就地植入 **21 类**最小缺陷 → **21 类全部被现有测试检出**
+- **强负向对照（变异检测）**：就地植入 **23 类**最小缺陷 → **23 类全部被现有测试检出**
   （复跑 `bash scripts/test-audit.sh mutation`）。历次审计共发现 **4 条真漏检**，全部已修：
   ① 容量表改**中间项**、② Format 表改**非抽查 `(ECL,mask)`**（初版，由 **T1-f/T2-e** 修复）；
   ③ **N1 结算阈值 `5→6`**（「恰好 5 连后立刻变色」路径无覆盖，由 **T2-b2/b3** 修复）；
   ④ **择优并列 `s < best` → `s <= best`**（并列规则是文档契约却无用例，由 **T2-d2** 修复）。
   这两条**首跑即漏检**，是本轮审计最大的价值——**分支存在 ≠ 分支被测**、**契约必须显式锁定**。
-- **独立第三方解码回读**：用纯 JS 解码器 `jsqr` 对矩阵做像素化解码，三基准点（V03H/V10H/V40H）
-  **全部读回原文**；`--mutate` 负向对照组（破坏定位图案）**全部解码失败**——
-  证明该证据链「能红、可信」（入口 `bash scripts/test-audit.sh decode`，口径与像素标定见 S10 附录 D）。
+- **独立第三方解码回读**：用纯 JS 解码器 `jsqr` 对矩阵做像素化解码，
+  ① 三基准点（V03H/V10H/V40H）**全部读回原文**；
+  ② **T3-d 全语料 54 组**（三模式 × 4 ECL × 4 版本 + 6 组自动版本靶点）**全部读回原文**；
+  ③ `--mutate` 负向对照组（破坏定位图案）**全部解码失败**——证明该证据链「能红、可信」
+  （入口 `bash scripts/test-audit.sh decode`，口径与标定见 S10 附录 D）。
+- **⚠️ 测试基础设施抓到了一条真 bug（v5）**：T3-d 探针首跑即暴露
+  `QRCode::select_capacity` 的**模式语义缺陷**——显式 `mode` 未参与容量判定，
+  较长 Alphanumeric/Byte 输入被**静默按 Numeric 选版本**，数据区装不下实际位流
+  → **矩阵不可解码**（旧实现下 4/54 组 jsQR 返回 `NULL`）。
+  修复后与参考在 **83,160 组参数**上零差异；详见
+  [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md)。
 - **证据链钉版可复现**：所有「与参考逐位一致」的黄金值均可由 `scripts/gen-goldens.sh`
   在钉版参考上重建/校验（`--verify` 四项零差异），并已实测检出「中间项改值」「布局偏移」「系数改值」类缺陷。
 - **差分门禁**：`scripts/diff-gate.sh` 进 push CI（**T4-c**），把「与参考 wasm 逐位 sha256」
   从仅打印升级为门禁；无参考制品时**显式打印 skipped**，避免静默假绿。
-- **覆盖率**：`bash scripts/coverage.sh`（**T5-a**，报告见 [S10b](./docs/S10b-测试覆盖率报告.md)）；
-  **仅报告不设阈值**——覆盖率是变异检测的补充而非替代（铁律 3）。
+- **覆盖率**：`bash scripts/coverage.sh`（**T5-a** 报告，见 [S10b](./docs/S10b-测试覆盖率报告.md)）；
+  `--floor` 为 **T5-b「不下降」门禁**（`lib/**` 未覆盖行 ≤ S10b 顶部 `coverage-floor` 标记）。
+  **不设绝对百分比阈值**——覆盖率是变异检测的补充而非替代（铁律 3），绝对阈值会诱发造无信息量用例。
+- **文档互链死链检查**：`bash scripts/docs-link-check.sh`（**T6-c**，进 push CI）；
+  检查受版本控制 Markdown 的**相对链接**存在性（跳过外链/锚点、忽略代码块），当前 **476 条零死链**。
+- **测试规模护栏**：`bash scripts/test-scale.sh`（**T7-b**，进 push CI），单测试文件 ≤800 行。
 
 **测试铁律**（摘要，完整七条见 S10 §5）：黄金值必须有脚本出处 · 黑盒锁契约/白盒锁实现 ·
 **禁止 `actual == actual`** · 断言失败必须能定位到模块/行/格 · **负向优先于正向** ·
@@ -332,8 +344,9 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 | [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) | README 精简的**冗余清单**、官方 README 约定对照与取舍（含示例实测） |
 | [S9o-性能与体积数据重测-与README冗余清理.md](./docs/S9o-性能与体积数据重测-与README冗余清理.md) | **本轮重测记录**：性能/体积数据刷新方法与归因 + README 去冗余清单 |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | 布局规则、`lib/` + `lib/internal/` 文件级职责、无环依赖、测试规划（**维护者入口**） |
-| [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md) | **测试 roadmap v4**：参考 fast_qr 测试体系盘点（含证据等级）+ 覆盖差距矩阵（G1–G15）+ 分阶段 T0–T7 路线 + 七条铁律；**附录 D/E/F/G 为实跑结论**（第三方解码回读、变异检测 21/21、v3/v4 落地记录）（**测试维护入口**） |
-| [S10b-测试覆盖率报告.md](./docs/S10b-测试覆盖率报告.md) | **T5-a 覆盖率报告**（行级，`scripts/coverage.sh` 产出；仅报告不设阈值） |
+| [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md) | **测试 roadmap v5**：参考 fast_qr 测试体系盘点（含证据等级）+ 覆盖差距矩阵（G1–G15）+ 分阶段 T0–T7 路线 + 七条铁律；**附录 D/E/F/G/H 为实跑结论**（第三方解码回读、变异检测 **23/23**、v3/v4/v5 落地记录）（**测试维护入口**） |
+| [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md) | **v5 真 bug 修复记录**：T3-d 探针首跑暴露的「显式模式未参与容量判定」缺陷——现象/根因/实测证据/修法/**与参考 83,160 组参数对照**/回归与变异项 |
+| [S10b-测试覆盖率报告.md](./docs/S10b-测试覆盖率报告.md) | **T5-a 覆盖率报告**（行级，`scripts/coverage.sh` 产出）+ **T5-b 不下降门禁**（顶部 `coverage-floor` 机器可读标记） |
 | [AGENTS.md](./AGENTS.md) | AI/协作者硬性约定：密钥安全、MoonBit 布局、文档死链零容忍（**贡献前必读**） |
 | ⤷ [S1–S9n 实现系列文档](./docs/S1-数据结构.md) | 按阶段编号的实现方案/记录/评审与性能评估全套（**按需深入，从 S1 进入**） |
 | ⤷ [fast_qr 移植参考](./docs/移植参考/fast-qr-索引.md) | Rust 参考库 v0.14.0 的架构/接口/概念分析语料（**由索引统辖**） |
@@ -416,10 +429,11 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 | 性能基准 | `bench.sh`（层①）、`bench-layer2.sh` + `gc-compare.mjs`（层② vs fast_qr） | ❌ |
 | 体积基准 | `bench-size.sh` + `wasm-size.mjs`（同规则口径 + 纯库探针 + 语义护栏） | ❌ |
 | 外部检出 | `build-fast-qr-wasm.sh`（fast_qr 侧产物，检出副本不入库） | ❌ |
-| 测试审计 | `test-audit.sh`（变异检测 + 解码回读）+ `apply-mutation.py` + `qr-decode-check.mjs` | ❌ |
+| 测试审计 | `test-audit.sh`（变异检测 + 解码回读）+ `apply-mutation.py` + `qr-decode-check.mjs`（`--points` 三基准点 / **`--corpus` T3-d 54 组**） | ❌ |
 | 黄金值/规模 | `gen-goldens.sh`（钉版重建 + `--verify` 四项）+ `snapshot_gen_tables.py` / `snapshot_gen_default.py` / `snapshot_gen_rs_vectors.rs` / `snapshot_gen_score.rs` / `snapshot_gen_placement.rs` + `snapshot_verify_*.py` + `test-scale.sh`（单测试文件 ≤800 行护栏） | ❌ |
 | 差分门禁 | `diff-gate.sh`（vs 参考 wasm 逐位 sha256；无制品显式 skipped） | ✅（可 skipped） |
-| 覆盖率 | `coverage.sh`（`moon coverage analyze` 报告） | ❌ |
+| 覆盖率 | `coverage.sh`（`moon coverage analyze` 报告）+ **`--floor` 不下降门禁（T5-b）** | ❌ |
+| 文档/规模护栏 | **`docs-link-check.sh`（T6-c 相对链接死链，进 CI）** + `test-scale.sh`（T7-b 单测试文件 ≤800 行，进 CI） | ✅ |
 | 资源生成 | `gen-readme-qr-svg.sh`（重建 `docs/assets/qr-example.svg`，临时包用完即删） | ❌ |
 
 ---

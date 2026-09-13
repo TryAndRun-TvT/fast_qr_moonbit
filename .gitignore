@@ -13,3 +13,7 @@
 # 本地环境
 .env*
 .DS_Store
+
+# 审计脚本的 npm 依赖（`scripts/qr-decode-check.mjs` 用，仅本地，不入 push CI）
+/node_modules/
+/package-lock.json

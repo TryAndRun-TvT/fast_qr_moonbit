@@ -280,6 +280,47 @@ pub fn missing_bits(version_idx : Int) -> Int {
 }
 
 ///|
+/// 给定 (mode, ecl, version) 与字符数 `len`，判定**就是这一版**装不装得下。
+/// 与 `version_for` 的差别：后者回答「最小适配版本是哪个」，本函数回答「指定版本能否容纳」。
+/// 两者在 CCI 位宽随版本档位变化时并不等价——`version_for` 返回的最小版本与查询版本可能
+/// 跨 V01-V09 / V10-V26 / V27-V40 档（CCI 位宽不同 → 同一模式下可容纳字符数不同）。
+/// 判定式（对齐 QR 规范 8.4.9 与参考 fast_qr `encode::encode` 的写位流口径）：
+///   头部 = 4(模式) + cci_bits(version, mode)
+///   负载 = Numeric: len/3*10 + [0|4|7]（余 1→4bit、余 2→7bit、整除→0）
+///          Alnum  : len/2*11 + [0|6]（余 1→6bit）
+///          Byte   : len*8
+/// 要求 `头部 + 负载 <= data_bits(ecl, version)`。
+/// **不含终止符**：`add_terminator` 只补 `min(剩余空间, 4)` 个 0，数据已填满时补 0 位——
+/// 故 41 位 Numeric（V01-L 规范上限）在 151 ≤ 152 位下合法，与容量表一致。
+/// 实测：与参考 fast_qr v0.14.0（钉版 `53e8c99`）在 19680 + 64480 组参数上零差异。
+pub fn fits_at_version(
+  mode_idx : Int,
+  ecl_idx : Int,
+  version_idx : Int,
+  len : Int,
+) -> Bool {
+  let m = if mode_idx < 0 || mode_idx > 2 { 0 } else { mode_idx }
+  let e = if ecl_idx < 0 || ecl_idx > 3 { 3 } else { ecl_idx }
+  let v = if version_idx < 0 || version_idx > 39 { 39 } else { version_idx }
+  if len < 0 {
+    return false
+  }
+  let dbits = data_bits(e, v)
+  let cci = cci_bits(v, m)
+  let payload = match m {
+    0 => // Numeric：3 字符/10bit，余 1→4bit、余 2→7bit
+      len / 3 * 10 +
+      (if len % 3 == 1 { 4 } else if len % 3 == 2 { 7 } else { 0 })
+    1 => // Alphanumeric：2 字符/11bit，余 1→6bit
+      len / 2 * 11 + (if len % 2 == 1 { 6 } else { 0 })
+    _ => // Byte：逐字节 8bit
+      len * 8
+  }
+  // 注意：不含终止符——`add_terminator` 只补 min(剩余, 4) 位，空间不足时补 0 位。
+  4 + cci + payload <= dbits
+}
+
+///|
 /// 字符计数指示符（CCI）位宽：每种 (版本, 模式) 下写在各模式头(4bit mode)之后的
 /// 「字符计数」字段位宽。对应参考 fast_qr v0.14.0 `src/hardcode.rs:302 cci_bits`
 /// （roadmap 批次 B2 补丁，决策 D1：与 data_bits 同归 capacity.mbt）。
