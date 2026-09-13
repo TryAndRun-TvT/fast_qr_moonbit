@@ -43,12 +43,6 @@ pub fn ECL::from_int(i : Int) -> ECL {
 }
 
 ///|
-/// 默认纠错级别（fast_qr 语义：缺省为 Quartile）。
-pub fn ecl_default() -> ECL {
-  Q
-}
-
-///|
 /// 纠错级别在字符串输出中对应的字符（供 Display/to_str 使用）。
 pub fn ECL::to_char(self : ECL) -> Char {
   match self {

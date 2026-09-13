@@ -54,12 +54,6 @@ pub(all) struct SvgBuilder {
 }
 
 ///|
-/// 默认 `SvgBuilder`：margin=4、背景 `#ffffff`、模块色 `#000000`、shapes 空（=Square）。
-pub fn SvgBuilder::new() -> SvgBuilder {
-  SvgBuilder::default()
-}
-
-///|
 /// 默认值构造（对齐参考 `Default for SvgBuilder`）。
 pub fn SvgBuilder::default() -> SvgBuilder {
   SvgBuilder::{

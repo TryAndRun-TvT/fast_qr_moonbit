@@ -39,7 +39,7 @@ pub(all) struct QRCode {
 ///|
 /// 构造一个边长 `size`、矩阵全为亮色数据模块、元数据全 `None` 的空 `QRCode`。
 pub fn QRCode::default(size : Int) -> QRCode {
-  let data = Array::make(QR_MAX_MODULES, Module::data(module_light()))
+  let data = Array::make(QR_MAX_MODULES, Module::data(false))
   QRCode::{ data, size, version: None, ecl: None, mask: None, mode: None, }
 }
 

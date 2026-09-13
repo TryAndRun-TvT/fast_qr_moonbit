@@ -2,9 +2,10 @@
 /// 黑盒测试（_test.mbt，包外运行，只能访问 `pub` API）
 /// 通过模块公共面验证 S1 数据结构层行为：公共枚举序号、Module 位语义、QRCode 容器。
 test "public_ecl_api" {
-  // ECL 序号映射与默认级别
+  // ECL 序号映射与默认级别（缺省 Quartile，由 QRBuilder/select_capacity 直接取 ECL::Q）
   assert_eq(ECL::L.to_int(), 0)
-  assert_eq(ecl_default().to_int(), ECL::Q.to_int())
+  assert_eq(ECL::Q.to_int(), 2)
+  assert_eq(ECL::to_char(ECL::Q), 'Q')
 }
 
 ///|
@@ -33,7 +34,7 @@ test "public_module_value" {
 
 ///|
 test "public_module_type" {
-  assert_eq(Module::finder_pattern(false).module_type().to_int(), 1)
+  assert_eq(Module::new(false, FinderPattern).module_type().to_int(), 1)
   assert_eq(Module::dark(true).module_type().to_int(), 6)
 }
 

@@ -5,7 +5,7 @@
 // ---------- Module 位打包（参照 fast_qr module.rs 测试语义） ----------
 
 test "module_data_light" {
-  let m = Module::data(module_light())
+  let m = Module::data(false)
   assert_eq(m.module_type().to_int(), ModuleType::Data.to_int())
   assert_eq(m.value(), false)
 }
@@ -35,16 +35,20 @@ test "module_toggle" {
 ///|
 test "module_each_type" {
   // 构造各类型模块，校验类型号与位布局一致（类型号写 bit1-3）
-  let mods : ReadOnlyArray[Module] = [
-    Module::data(true),
-    Module::finder_pattern(true),
-    Module::alignment(true),
-    Module::timing(true),
-    Module::format(true),
-    Module::version(true),
-    Module::dark(true),
-    Module::empty(true),
+  let types : ReadOnlyArray[ModuleType] = [
+    Data,
+    FinderPattern,
+    Alignment,
+    Timing,
+    Format,
+    Version,
+    DarkModule,
+    Empty,
   ]
+  let mods : Array[Module] = []
+  for t in types {
+    mods.push(Module::new(true, t))
+  }
   let mut expected = 0
   while expected < mods.length() {
     assert_eq(mods[expected].module_type().to_int(), expected)
@@ -69,7 +73,7 @@ test "ecl_ordering" {
   assert_eq(ECL::M.to_int(), 1)
   assert_eq(ECL::Q.to_int(), 2)
   assert_eq(ECL::H.to_int(), 3)
-  assert_eq(ecl_default().to_int(), ECL::Q.to_int())
+  assert_eq(ECL::Q.to_int(), 2)
   assert_eq(ECL::from_int(0).to_int(), 0)
   assert_eq(ECL::from_int(3).to_int(), 3)
   assert_eq(ECL::to_char(ECL::L), 'L')
