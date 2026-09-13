@@ -121,3 +121,110 @@ test "B9a Format 覆写对照参考快照 (Q/mask0)" {
     fail("dark module 不应被 format 覆写")
   }
 }
+
+///|
+/// T2-e Format 信息「双副本物理布局」逐位断言（S10 §6 T2-e）。
+/// 参考：fast_qr v0.14.0 src/tests/version.rs（两段取址逻辑），
+/// 真值集合 = 32 组 (ECL,mask) × 15 位（表值指纹已由 T1-f 锁定）。
+/// 覆盖缺口 G2：此前仅有 (0,0)/(3,7) 两点抽查，无法发现「非抽查 (ECL,mask) 值/布局」错误。
+/// 断言内容：两副本各自按「参考取址序列」读回 15 位，均等于 format_information 的 MSB-first 位流，
+/// 且两副本逐位相同（QR 规范要求双副本一致）。
+test "t2e_format_dual_copy_layout" {
+  let ecls : Array[Int] = [0, 1, 2, 3]
+  let masks : Array[Int] = [0, 1, 2, 3, 4, 5, 6, 7]
+  let n = 21 // V05 size 固定 21
+  for ecl in ecls {
+    for mask in masks {
+      let m = create_matrix(4) // V05 = 序号 4
+      create_matrix_format_info(m, n, ecl, mask)
+      let fi = @constants.format_information(ecl, mask)
+      // 期望位流：bit14..bit0（MSB-first）
+      let bit_hi : Array[Int] = []
+      let mut k = 14
+      while k >= 0 {
+        bit_hi.push(if (fi & (1 << k)) != 0 { 1 } else { 0 })
+        k -= 1
+      }
+      // 副本 1：mat[n-1-k][8] (k=0..6) 再 mat[8][n-1-k] (k=0..7)
+      let copy1 : Array[Int] = []
+      let mut k1 = 0
+      while k1 < 7 {
+        copy1.push(value_of(px(m, n, n - 1 - k1, 8)))
+        k1 += 1
+      }
+      k1 = 0
+      while k1 < 8 {
+        copy1.push(value_of(px(m, n, 8, n - 8 + k1)))
+        k1 += 1
+      }
+      let mut i = 0
+      while i < 15 {
+        if copy1[i] != bit_hi[i] {
+          fail(
+            "format copy1 bit" +
+            (14 - i).to_string() +
+            " mismatch ecl=" +
+            ecl.to_string() +
+            " mask=" +
+            mask.to_string() +
+            " got=" +
+            copy1[i].to_string() +
+            " want=" +
+            bit_hi[i].to_string(),
+          )
+        }
+        i += 1
+      }
+      // 副本 2：mat[8][0..5], mat[8][7], mat[8][8], mat[7][8], mat[5..0][8]
+      let copy2 : Array[Int] = []
+      copy2.push(value_of(px(m, n, 8, 0)))
+      copy2.push(value_of(px(m, n, 8, 1)))
+      copy2.push(value_of(px(m, n, 8, 2)))
+      copy2.push(value_of(px(m, n, 8, 3)))
+      copy2.push(value_of(px(m, n, 8, 4)))
+      copy2.push(value_of(px(m, n, 8, 5)))
+      copy2.push(value_of(px(m, n, 8, 7)))
+      copy2.push(value_of(px(m, n, 8, 8)))
+      copy2.push(value_of(px(m, n, 7, 8)))
+      copy2.push(value_of(px(m, n, 5, 8)))
+      copy2.push(value_of(px(m, n, 4, 8)))
+      copy2.push(value_of(px(m, n, 3, 8)))
+      copy2.push(value_of(px(m, n, 2, 8)))
+      copy2.push(value_of(px(m, n, 1, 8)))
+      copy2.push(value_of(px(m, n, 0, 8)))
+      i = 0
+      while i < 15 {
+        if copy2[i] != bit_hi[i] {
+          fail(
+            "format copy2 bit" +
+            (14 - i).to_string() +
+            " mismatch ecl=" +
+            ecl.to_string() +
+            " mask=" +
+            mask.to_string() +
+            " got=" +
+            copy2[i].to_string() +
+            " want=" +
+            bit_hi[i].to_string(),
+          )
+        }
+        i += 1
+      }
+      // 双副本必须逐位一致
+      i = 0
+      while i < 15 {
+        if copy1[i] != copy2[i] {
+          fail(
+            "format dual-copy differs at bit" +
+            (14 - i).to_string() +
+            " ecl=" +
+            ecl.to_string() +
+            " mask=" +
+            mask.to_string(),
+          )
+        }
+        i += 1
+      }
+    }
+  }
+}
