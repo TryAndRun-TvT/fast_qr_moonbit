@@ -280,25 +280,27 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 
 ## 测试
 
-**现状**：`moon test` **111 个用例全绿**，16 个测试文件按「就近式三载体」分层
+**现状**：`moon test` **121 个用例全绿**（含 wasm-gc 回归），19 个测试文件按「就近式三载体」分层
 （`*_test.mbt` 黑盒 / `*_wbtest.mbt` 白盒 / 源码内联 `test {}` 目前未使用）：
 
 | 层 | 覆盖 |
 |----|------|
-| 黑盒（37 例） | 公共枚举与 `select_capacity` 四态、`QRBuilder` 链式等价、SVG 全串、终端画、**21 个**端到端全矩阵 hex 快照 |
-| 白盒（74 例） | 位流、常量表交叉不变量、三模式编码、GF(256) 交织、4 条评分规则、8 种掩码、放置位序 |
-| 黄金值来源 | 参考 fast_qr v0.14.0 侧由 `scripts/snapshot_gen_s6.rs` 生成（**禁止手抄**） |
+| 黑盒 | 公共枚举与 `select_capacity` 四态、`QRBuilder` 链式等价、SVG 全串、终端画、**21 个**端到端全矩阵 hex 快照 |
+| 白盒 | 位流、常量表交叉不变量 + **全表值级校验（T1-f）**、三模式编码、GF(256) 交织 + **黄金余数/交织向量（T1-c/T1-d）**、4 条评分规则、8 种掩码、放置位序、**Format 双副本布局（T2-e）**、**独立数字真值（T0-c）**、**属性测试四则（T4-a）** |
+| 黄金值来源 | 参考 fast_qr commit `53e8c99` 侧由脚本产出（**禁止手抄**）：`snapshot_gen_s6.rs`（全矩阵）、`snapshot_gen_tables.py`（常量表全表指纹）、`snapshot_gen_rs_vectors.rs`（division/structure）、`snapshot_gen_default.py`（Python `qrcode` 独立真值）；一键校验 `bash scripts/gen-goldens.sh --verify` |
 
 **测试完善路线**见 [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md)（**测试维护入口**）。
-该路线已实跑两项验证，结论比「覆盖更多代码」更有信息量：
+该路线已实跑三项验证，结论比「覆盖更多代码」更有信息量：
 
-- **强负向对照（变异检测）**：就地植入 10 类最小缺陷 → **8 类被现有测试检出，2 类漏检**
-  （复跑 `bash scripts/test-audit.sh mutation`）。漏检的两条**同源**：常量表的**「非抽查点」**
-  ——容量表改**中间项**、Format 表改**非抽查 `(ECL,mask)`** 都不会让任何测试变红
-  （结构不变量只约束分组/度/最小性，不约束数值）→ 列为 P0 补测项。
+- **强负向对照（变异检测）**：就地植入 **17 类**最小缺陷 → **17 类全部被现有测试检出**
+  （复跑 `bash scripts/test-audit.sh mutation`）。初版曾漏检两条**同源**项：常量表的**「非抽查点」**
+  ——容量表改**中间项**、Format 表改**非抽查 `(ECL,mask)`** 都不会让任何测试变红；
+  现由 **T1-f（全表值指纹）** 与 **T2-e（Format 32 组 + 双副本逐位）** 修复。
 - **独立第三方解码回读**：用纯 JS 解码器 `jsqr` 对矩阵做像素化解码，三基准点（V03H/V10H/V40H）
   **全部读回原文**；`--mutate` 负向对照组（破坏定位图案）**全部解码失败**——
   证明该证据链「能红、可信」（入口 `bash scripts/test-audit.sh decode`，口径与像素标定见 S10 附录 D）。
+- **证据链钉版可复现**：所有「与参考逐位一致」的黄金值均可由 `scripts/gen-goldens.sh`
+  在钉版参考上重建/校验（`--verify` 零差异），并已实测检出「中间项改值」「布局偏移」类缺陷。
 
 **测试铁律**（摘要，完整七条见 S10 §5）：黄金值必须有脚本出处 · 黑盒锁契约/白盒锁实现 ·
 **禁止 `actual == actual`** · 断言失败必须能定位到模块/行/格 · **负向优先于正向** ·
@@ -408,6 +410,7 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 | 体积基准 | `bench-size.sh` + `wasm-size.mjs`（同规则口径 + 纯库探针 + 语义护栏） | ❌ |
 | 外部检出 | `build-fast-qr-wasm.sh`（fast_qr 侧产物，检出副本不入库） | ❌ |
 | 测试审计 | `test-audit.sh`（变异检测 + 解码回读）+ `apply-mutation.py` + `qr-decode-check.mjs` | ❌ |
+| 黄金值/规模 | `gen-goldens.sh`（钉版重建 + `--verify`）+ `snapshot_gen_tables.py` / `snapshot_gen_default.py` / `snapshot_gen_rs_vectors.rs` + `test-scale.sh`（单测试文件 ≤800 行护栏） | ❌ |
 | 资源生成 | `gen-readme-qr-svg.sh`（重建 `docs/assets/qr-example.svg`，临时包用完即删） | ❌ |
 
 ---

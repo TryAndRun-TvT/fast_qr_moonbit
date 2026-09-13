@@ -40,6 +40,11 @@ M8|QRCode::set 改回共享数组|lib/qr.mbt|let data = self.data.copy()|let dat
 M9|is_data_byte 类型位放宽|lib/internal/matrix/module.mbt|((b >> 1) & 7) == 0|((b >> 1) & 3) == 0
 M11|容量表 Numeric-L 中间项 +1|lib/internal/constants/capacity.mbt|1022, 1101, 1250,|1022, 1101, 1251,
 M12|Format 表 M-mask3 值 -1|lib/internal/constants/hardcode.mbt|21522, 20773, 24188, 23371|21522, 20773, 24188, 23370
+M13|Format 双副本左下列序偏移|lib/internal/matrix/matrix.mbt|m[(n - 6 + i) * n + 8] = b|m[(n - 7 + i) * n + 8] = b
+M14|division 余数首字节 +1|lib/internal/reedsolomon/reedsolomon.mbt|rem[r] = buf[256 - by.length() + r]|rem[r] = (buf[256 - by.length() + r].to_int() + (if r == 0 { 1 } else { 0 })).to_byte()
+M15|structure 首块起点偏移|lib/internal/reedsolomon/reedsolomon.mbt|let sidx = gi * g1s|let sidx = gi * g1s + 1
+M16|功能图案类型号 finder 改 2|lib/internal/matrix/module.mbt|pub let module_type_finder : Int = 1|pub let module_type_finder : Int = 2
+M17|percent_score 表中间项改值|lib/internal/constants/hardcode.mbt|0, 0, 0, 10, 10, 10, 10, 10, 20, 20, 20|0, 0, 1, 10, 10, 10, 10, 10, 20, 20, 20
 MUT
 }
 

@@ -89,7 +89,45 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 
 ---
 
-## 三、文档管理
+## 三、测试约定（S10 收口）
+
+### 1. 三载体分工
+
+| 载体 | 运行位置 | 可访问范围 | 用途 |
+|------|---------|-----------|------|
+| `*_test.mbt` | 包**外**（黑盒） | 仅 `pub` API | 锁公共契约 |
+| `*_wbtest.mbt` | 包**内**（白盒） | 私有实现 | 锁实现细节 |
+| 源码内联 `test {}` | 包内 | 私有 | 贴近实现的单行不变量（当前未使用） |
+
+测试文件放**所属包目录内**；单测试文件 ≤800 行（`bash scripts/test-scale.sh` 校验），超长按主题拆分。
+
+### 2. 七条铁律（详见 `docs/S10-测试用例设计与完善roadmap.md` §5）
+
+1. **黄金值必须有脚本出处**：参考值一律由 `scripts/` 下生成器在**钉版参考**
+   （fast_qr commit `53e8c99`）上产出，禁止手抄、禁止「跑一遍写下自己的输出」；
+   可用 `bash scripts/gen-goldens.sh --verify` 校验未漂移。
+2. **黑盒锁契约、白盒锁实现**：公共 API 语义变化必须先体现在 `*_test.mbt`。
+3. **禁止 `actual == actual`**：断言两端不得来自同一段实现逻辑。
+4. **每个断言可定位**：失败信息须能指出模块 + 函数 + 行/列/格 + 版本/ECL 等参数。
+5. **负向优先于正向**：先证明「测试能红」（`bash scripts/test-audit.sh mutation`），再谈覆盖率；
+   禁止把运行结果拼成断言字符串。
+6. **真值集合而非用例数**：评审看「独立真值点数 / 参数叉积」，拒绝机械展开的重复断言。
+7. **测试不得有破坏性副作用**：不写临时文件、不改全局状态、不依赖执行顺序。
+
+### 3. 例行检查
+
+```bash
+bash scripts/test.sh          # moon test（黑盒 + 白盒）
+bash scripts/test-scale.sh    # 单测试文件 ≤800 行护栏
+bash scripts/test-audit.sh mutation   # 变异检测：确认「实现被改坏时有测试变红」
+bash scripts/gen-goldens.sh --verify  # 黄金值未漂移（需 fast_qr 检出）
+```
+
+> 新增/修改一个模块的实现后，建议重跑 `test-audit.sh mutation`，确认该模块仍有有效测试。
+
+---
+
+## 四、文档管理
 
 - 文档统一放 `docs/`，命名用连字符分隔的小写词段（kebab-case，允许中英混排，
   如 `wasm-编译与运行-结果分析.md`）。
@@ -100,7 +138,7 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 
 ---
 
-## 四、参考
+## 五、参考
 
 - 项目文档索引见 [README.md](./README.md)「文档」表。
 - MoonBit 技能库：<https://github.com/moonbitlang/skills>

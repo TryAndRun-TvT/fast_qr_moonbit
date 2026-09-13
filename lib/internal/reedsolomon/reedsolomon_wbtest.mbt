@@ -99,3 +99,43 @@ test "division_len" {
   let rem = division(data, gen)
   assert_eq(rem.length(), gen.length() - 1)
 }
+
+///|
+/// hex 串 → Array[Byte]（每字节两位）。共享 helper（同包）：
+/// 供 division/structure 黄金向量文件复用，避免重复定义。
+fn hex_bytes(s : String) -> Array[Byte] {
+  let out : Array[Byte] = []
+  let chars = s.to_array()
+  let mut i = 0
+  while i + 1 < chars.length() {
+    out.push((hex_digit(chars[i]) * 16 + hex_digit(chars[i + 1])).to_byte())
+    i += 2
+  }
+  out
+}
+
+///|
+/// hex 串 → Array[Int]（期望值比对用）。
+fn hex_ints(s : String) -> Array[Int] {
+  let out : Array[Int] = []
+  let chars = s.to_array()
+  let mut i = 0
+  while i + 1 < chars.length() {
+    out.push(hex_digit(chars[i]) * 16 + hex_digit(chars[i + 1]))
+    i += 2
+  }
+  out
+}
+
+///|
+/// 单字符 hex → 0..15。
+fn hex_digit(c : Char) -> Int {
+  let n = c.to_int()
+  if n >= 48 && n <= 57 {
+    n - 48
+  } else if n >= 97 && n <= 102 {
+    n - 87
+  } else {
+    n - 55
+  }
+}

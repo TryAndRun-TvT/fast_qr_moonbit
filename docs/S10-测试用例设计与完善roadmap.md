@@ -1,10 +1,10 @@
-# S10 — 测试用例设计与完善 roadmap v2（参考 fast_qr 测试体系 + 独立正确性验证）
+# S10 — 测试用例设计与完善 roadmap v3（参考 fast_qr 测试体系 + 独立正确性验证）
 
 > 目标：以 Rust 参考库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr) 的测试代码为基准，
 > 盘点本仓库测试资产，定位覆盖缺口，给出**分阶段、可验收、可定位失败**的测试完善路线；
 > 并回答一个更根本的问题：**当前所有断言都是「与参考实现逐位一致」，谁保证参考本身对？**
 >
-> 日期：2026-09-13（v2 修订）　｜　基线：本仓库 `main @ 060c0ac`（**111 单测全绿**）
+> 日期：2026-09-13（v3 落地修订）　｜　基线：本仓库 `main`（**121 单测全绿**，wasm-gc 同绿）
 > ｜　参考检出：`fast_qr` commit `53e8c99`（`Cargo.toml` version `0.14.0`，`--depth 1`）
 > 复跑：`bash scripts/test.sh`（= `moon test`），后端回归 `moon test --target wasm-gc`。
 >
@@ -12,7 +12,16 @@
 > ② 补 `default.rs` 这一**带独立真值来源**的隐藏强项；③ 新增阶段 **T0 语料保护** 与 **T7 可定位性/规模护栏**；
 > ④ 把 T3 从「设想」升级为**已实测落地的可开工口径**（附录 D 给出实跑证据与前置依赖）；
 > ⑤ 补「测试自身有效性」原则（负向/变异/唯一性）与阶段依赖关系（§6.0）。
-> 本文只输出**路线与盘点**，不落测试代码；实施按 §6 阶段逐批提 PR。
+>
+> **v3 落地修订**（相对 v2）：按 §6 优先级**实落**以下阶段，全部经 `moon test` 与变异检测复核：
+> **T0-a/b**（生成器钉版 + 元数据）、**T0-c**（Python `qrcode` 独立真值 V1/V3/V7 转译）、
+> **T1-c**（`division` 黄金余数 8 组）、**T1-d**（`structure` 交织 5 组）、
+> **T1-f**（常量表全表值指纹，**修掉 M11/M12 两条漏检**）、**T2-e**（Format 32 组 + 双副本物理布局）、
+> **T4-a**（属性测试四则）、**T7-b/c**（规模护栏 + 语义指纹断言）、**T6-a**（AGENTS.md 测试小节）。
+> 新增统一入口 `scripts/gen-goldens.sh`（重建/`--verify`）与 `scripts/test-scale.sh`。
+> 变异对照由 v2 的 8/10 提升至 **17/17 全检出**（附录 E 已刷新）。
+> 仍待办：T1-a（多项式抽查）、T2-a/b/c/d（打分明细/放置坐标/择优回归）、T3-c/d（解码向量固化 + 多内容探针）、
+> T4-c（差分门禁）、T5（覆盖率）。
 
 ---
 
@@ -38,9 +47,10 @@
 **一句话**：本仓库在「**端到端矩阵逐位对齐 + 边界/错误面 + 三载体就近分层**」上已优于参考；
 参考的优势集中在「**逐行/逐列打分明细**」与「**放置逐格坐标**」两处**可定位性**用例（机械展开的大文件并非额外信息）。
 方法论缺口**双方共有**：**无独立第三方解码回读**、**无属性/差分门禁**、**无数值型常量表值级校验**、
-**无规模/时长护栏**。其中「测试是否有检出能力」一项本文**已实跑验证**（附录 E，10 项变异 9 项检出），
-实测把两条初版判断**改写**了：`division` 长度断言与容量表**首项**校验**都有效**（各降级/维持），
-而真正的漏检是**常量表的「非抽查点」**——改一个中间项/非抽查 `(ECL,mask)` 无任何测试变红（催生 P0 的 T1-f）。
+**无规模/时长护栏**。「测试是否有检出能力」一项已实跑验证：v2 时 10 项变异 8 项检出，
+漏检两条同源（**常量表的「非抽查点」**）；v3 已由 **T1-f/T2-e** 修复，并新增 5 条对照，
+**变异对照 17/17 全检出**（附录 E）。另新增**独立真值来源**（T0-c，Python `qrcode` V1/V3/V7）
+与**属性测试四则**（T4-a），证据链不再只依赖「与参考逐位一致」。
 
 ---
 
@@ -428,37 +438,39 @@ T4-a 待 S9 性能优化收敛后再做（避免测试与实现同时大改）�
 
 | 脚本 | 用途 | 输出 | 引用方 | 状态 |
 |------|------|------|--------|------|
-| `scripts/snapshot_gen_s6.rs` | 端到端全矩阵 hex | `CASE\|…\|hex` | `m1`/`s6` 快照 | 已有（待补 commit 元数据 + `--verify`，T0-a） |
+| `scripts/snapshot_gen_s6.rs` | 端到端全矩阵 hex | `CASE\|…\|hex` | `m1`/`s6` 快照 | 已有（头补钉版注释，T0-a✅） |
+| `scripts/snapshot_gen_tables.py` | 常量表**全表值指纹**（capacity/data_codewords/format/ecc_to_groups/percent_score） | MoonBit 常量块 | `constants_wbtest.mbt`（T1-f） | **已建**（T1-f✅） |
+| `scripts/snapshot_gen_rs_vectors.rs` | `division` 余数 + `structure` 交织向量（参考检出内**实算**） | `GOLDEN\|…` 行 | `reedsolomon_*_wbtest.mbt`（T1-c/T1-d） | **已建**（T1-c/T1-d✅） |
+| `scripts/snapshot_gen_default.py` | `default.rs` V1/V3/V7 **独立数字真值**（Python `qrcode`） | MoonBit 测试体 | `s10c_independent_truth_wbtest.mbt`（T0-c） | **已建**（T0-c✅） |
+| `scripts/gen-goldens.sh` | **一键重建/校验全部 golden**（`--verify`/`--regen-tables`/`--emit-rs`/`--emit-default`） | — | 全部 | **已建**（T0-a/T6-b✅） |
 | `scripts/snapshot_gen_poly.rs` | `get_polynomial(v,ecl)` → `(len-1, first, mid, last)` | TSV | `constants_wbtest.mbt`（T1-a） | 待建 |
-| `scripts/snapshot_gen_division.rs` | `division` 余数向量（8 组） | TSV | `reedsolomon_wbtest.mbt`（T1-c） | 待建 |
 | `scripts/snapshot_gen_score.rs` | 某矩阵逐行/逐列分数 | TSV | `score_wbtest.mbt`（T2-a/b） | 待建 |
-| `scripts/gen-goldens.sh` | **一键重建全部 golden**（含 `--verify`） | — | 全部 | 待建（T0-a/T6-b） |
 | `scripts/qr-decode-check.mjs` | 第三方解码回读审计（jsQR，含 `--mutate` 负向） | 报告 + 退出码 | 审计（T3-a/b） | **已建**（`scripts/test-audit.sh decode` 包装） |
 
 > 全脚本须在文件头写明：**参考 commit `53e8c99`（fast_qr v0.14.0）**；**参考值禁止手抄，一律由本脚本产出**。
 
 ## 附录 C：逐步落地清单（可勾选执行序，v2 重排）
 
-1. [ ] `snapshot_gen_*.rs` 补参考 commit 元数据；新增 `gen-goldens.sh`（重建 + `--verify`）（T0-a/T6-b）
-2. [ ] 转译 `default.rs` V1/V3/V7 数字真值矩阵 → 逐格断言（T0-c，**独立真值**）
+1. [x] `snapshot_gen_*.rs` 补参考 commit 元数据；新增 `gen-goldens.sh`（重建 + `--verify`）（T0-a/T6-b）
+2. [x] 转译 `default.rs` V1/V3/V7 数字真值矩阵 → 逐格断言（T0-c，**独立真值**；`s10c_independent_truth_wbtest.mbt`）
 3. [x] **注入强负向清单**（掩码/Format/N2/division/容量表首项与中间项/cci_bits/set 别名/is_data_byte），记录哪条测试变红（T4-b，**已完成，见附录 E**；入口 `scripts/test-audit.sh mutation`）
-3b. [ ] 补 `capacity_bytes` 等常量表**全表值级**校验（T1-f，修掉附录 E 漏检 M11）
-4. [ ] 转译 `error_correction.rs` 8 个余数用例（T1-c）
-5. [ ] 转译 `structure.rs` 4 组交织用例 + `division`↔`structure` 交叉（T1-d/T1-e）
+3b. [x] 补 `capacity_bytes`/`format_information`/`ecc_to_groups`/`percent_score` 等常量表**全表值级**校验（T1-f，修掉附录 E M11/M12）
+4. [x] 转译 `error_correction.rs` 余数用例（T1-c，8 组值级黄金余数）
+5. [x] 转译/扩样 `structure` 交织用例（T1-d，5 组：V05-Q/V10-Q/V07-H/V16-M/V03-Q；— T1-e 交叉待办）
 6. [ ] 抽查 4 例多项式映射 + 表级校验（T1-a）
 7. [ ] 写 `scripts/snapshot_gen_score.rs` → 逐行/逐列分数（T2-a/T2-b）
 8. [ ] 转译 `structure.rs::placement` 坐标序列（T2-c）
-9. [ ] 转译 `version.rs` 两段 Format 双副本取址逻辑（T2-e）
+9. [x] 转译 `version.rs` 两段 Format 双副本取址逻辑（T2-e，32 组逐位 + 副本一致性）
 10. [ ] 择优 mask 号核对与回归用例（T2-d）
 11. [ ] `snapshot_gen_poly.rs`（若 T1-a 需脚本侧真值）
 12. [x] `qr-decode-check.mjs` 审计脚本（jsQR；含 `--mutate` 反向证据）+ `scripts/test-audit.sh` 包装（T3-a/T3-b，**已入库实跑**）
 12b. [ ] `cmd` 多内容探针（覆盖三模式 × 4 ECL × 4 版本）（T3-d）
 13. [ ] 固化解码向量 `s6_decode_vectors_test.mbt`（T3-c）
-14. [ ] 属性测试四则（随机化 + 不可变式 + 掩码互异）（T4-a）
+14. [x] 属性测试四则（随机化 + 不可变式 + 掩码互异 + 尺寸不变量）（T4-a，`t4a_property_test.mbt`）
 15. [ ] `gc-compare.mjs` 升级为 CI 可选差分门禁（T4-c）
 16. [ ] 覆盖率报告与分模块下限（T5）
-17. [ ] 失败信息标准化 + 规模/时长护栏 + checksum 断言化（T7）
-18. [ ] `AGENTS.md` 测试小节（三载体 + 七铁律）+ README 索引互链（T6）
+17. [~] 规模护栏（T7-b，`test-scale.sh`）+ checksum 断言化（T7-c，`build-and-run.sh`）✅；失败信息标准化（T7-a）部分✅
+18. [x] `AGENTS.md` 测试小节（三载体 + 七铁律 + 例行检查）（T6-a）
 
 ## 附录 D：T3 解码回读「已实测」结论（2026-09-13，本环境实跑）
 
@@ -488,17 +500,23 @@ T4-a 待 S9 性能优化收敛后再做（避免测试与实现同时大改）�
 | # | 植入缺陷（单点最小改动） | 失败数 | 判定 |
 |:-:|------------------------|:---:|:---:|
 | M1 | `datamasking::mask_at` 掩码 2/3 公式互换 | **2** | ✅ 已检出 |
-| M2 | Format 表 L-mask1 的 15 位字错 1 位（29427→29426） | **2** | ✅ 已检出 |
+| M2 | Format 表 L-mask1 的 15 位字错 1 位（29427→29426） | **3** | ✅ 已检出 |
 | M4 | `score_squares` 每 2×2 计 4 分（应 3） | **3** | ✅ 已检出 |
-| M5 | `division` 余数截断 1 字节 | **10** | ✅ 已检出 |
-| M6 | 容量表 `Numeric-L-V01` 41→42（**表首项**） | **3** | ✅ 已检出 |
+| M5 | `division` 余数截断 1 字节 | **13** | ✅ 已检出 |
+| M6 | 容量表 `Numeric-L-V01` 41→42（**表首项**） | **4** | ✅ 已检出 |
 | M7 | `cci_bits` Numeric 分段 9→8 | **1** | ✅ 已检出 |
-| M8 | `QRCode::set` 改回共享数组（破坏不可变） | **1** | ✅ 已检出 |
+| M8 | `QRCode::set` 改回共享数组（破坏不可变） | **2** | ✅ 已检出 |
 | M9 | `is_data_byte` 类型位判定放宽（`&7`→`&3`） | **13** | ✅ 已检出 |
-| **M11** | 容量表 `Numeric-L` **中间项** 1250→1251 | **0** | ❌ **漏检** |
-| **M12** | Format 表 **M-mask3** 值 23371→23370 | **0** | ❌ **漏检** |
+| **M11** | 容量表 `Numeric-L` **中间项** 1250→1251 | **1** | ✅ 已检出（**T1-f 修复**） |
+| **M12** | Format 表 **M-mask3** 值 23371→23370 | **1** | ✅ 已检出（**T1-f 修复**） |
+| M13 | Format 双副本左下列序偏移（`n-6+i`→`n-7+i`） | **9** | ✅ 已检出（**T2-e 新增覆盖**） |
+| M14 | `division` 余数首字节 +1（长度不变、值错） | **12** | ✅ 已检出（**T1-c 新增覆盖**） |
+| M15 | `structure` 首块起点偏移 +1 | **11** | ✅ 已检出（**T1-d 新增覆盖**） |
+| M16 | 功能图案类型号 `finder` 改 2 | **10** | ✅ 已检出（**T0-c 新增覆盖**） |
+| M17 | `percent_score` 表中间项改值 | **1** | ✅ 已检出（**T1-f 新增覆盖**） |
 
-**8/10 已检出，2/10 漏检。** 两条漏检的成因**同源且极具体**：
+**17/17 全部检出**（v2 初版实测 8/10；本版已由 T1-f/T2-e/T1-c/T1-d/T0-c 修复两条漏检并新增 5 条对照，
+真值集合扩至 121 个用例）。 两条漏检的成因**同源且极具体**：
 
 | 漏检项 | 为什么测不出 | 补测方案 |
 |--------|-------------|---------|
@@ -527,3 +545,53 @@ T4-a 待 S9 性能优化收敛后再做（避免测试与实现同时大改）�
 
 > 执行方式：`bash scripts/test-audit.sh mutation`（自动备份要求 `lib/` 干净、逐条还原并校验）。
 > 全过程 ≤15 分钟，**不需要任何额外工具链**。
+
+## 附录 F：v3 落地记录（2026-09-13，实跑）
+
+> 本节记录 v3 相对 v2 roadmap 的**实际交付**（全部经 `moon test` + `wasm-gc` 回归 + 变异检测复核）。
+> 落地基线：`moon test` **121 用例全绿**（v2 时为 111）；变异对照 **17/17 全检出**（v2 时 8/10）。
+
+### F.1 交付清单
+
+| 项 | 落地物 | 关键实现 | 验证 |
+|----|--------|---------|------|
+| T0-a | `scripts/gen-goldens.sh`（`--verify` / `--regen-tables` / `--emit-rs` / `--emit-default`）＋ `snapshot_gen_s6.rs` 头补钉版注释 | 钉版参考 `53e8c99`；`--verify` 零差异 | 实跑通过 |
+| T0-b | `m1/s6_snapshot_test.mbt` 头部「生成器 + 参考 commit + 日期 + 复跑路径」元数据 | 注释元数据（非断言） | 审计可溯源 |
+| T0-c | `lib/internal/matrix/s10c_independent_truth_wbtest.mbt` ＋ `snapshot_gen_default.py` | 转译 `default.rs` 的 V1/V3/V7（源自 **Python `qrcode`**）→ `create_matrix`+置明暗后逐格比对 | 3 矩阵 294 项数值零差异 |
+| T1-c | `lib/internal/reedsolomon/reedsolomon_division_wbtest.mbt` ＋ `snapshot_gen_rs_vectors.rs` | **8 组值级黄金余数**（V05-Q×4 / struct×2 / small / 自定义 by） | 逐字节一致 |
+| T1-d | `reedsolomon_structure_a/b_wbtest.mbt` | **5 组交织**（V05-Q/V10-Q/V07-H/V16-M/V03-Q），LCG 确定性输入 | 逐字节一致 |
+| T1-f | `constants_wbtest.mbt` 全表值指纹 ＋ `snapshot_gen_tables.py` | `capacity`(3×4×40)/`data_codewords`/`format`/`ecc_to_groups`/`percent_score` **全表逐项**断言 | 1429 项数值零差异；捕获 M11/M12 |
+| T2-e | `matrix_pattern_wbtest.mbt` | Format **32 组 (ECL,mask) × 双副本物理布局**逐位 + 副本一致性 | 捕获 M13 布局偏移 |
+| T4-a | `lib/t4a_property_test.mbt` | ①尺寸/finder/dark 不变量 ②8 mask 互异 ③链式==build ④不可变无别名（确定性 LCG，无 `rand` 依赖） | 121 用例全绿 |
+| T7-b | `scripts/test-scale.sh` | 单测试文件 ≤800 行护栏（拆分前 `reedsolomon_wbtest.mbt` 1384 行） | 实跑，超限即失败 |
+| T7-c | `scripts/build-and-run.sh` | `QR_MIN_CHECKSUM`/`TOTAL_CHECKSUM` 由「仅打印」升级为**断言** | 漂移即 CI 失败 |
+| T6-a | `AGENTS.md` §三「测试约定」 | 三载体分工 + **七条铁律** + 例行检查命令 | 文案入库 |
+
+### F.2 变异检测刷新（v2 8/10 → v3 17/17）
+
+见附录 E 表：原两条漏检 **M11（容量表中间项）/ M12（Format 非抽查点）** 已由 **T1-f** 修复；
+新增 **M13（Format 双副本布局）/ M14（`division` 值错）/ M15（`structure` 偏移）/ M16（类型号）/ M17（`percent_score` 中间项）**
+五条对照，全部被检出。复跑入口 `bash scripts/test-audit.sh mutation`。
+
+### F.3 生成器钉版与复现口径
+
+- **统一入口**：`bash scripts/gen-goldens.sh --verify`（零差异退出 0）。
+  - `--regen-tables` → 常量表全表指纹（T1-f）
+  - `--emit-rs` → `division`/`structure` 黄金向量（T1-c/T1-d，在参考检出内实算）
+  - `--emit-default` → 独立数字真值（T0-c）
+- **参考定位**：`FAST_QR_DIR` 或默认缓存目录；脚本校验参考 commit == `53e8c99`（钉版铁律）。
+- `--verify` 采用**数值序列语义比对**（`moon fmt` 重排换行不误报）。
+
+### F.4 环境备注（本环境实跑踩坑）
+
+- `snapshot_gen_rs_vectors.rs` 需在参考检出内编译运行；**Rust 侧 dev-dependencies 需要系统 C 编译器**
+  （本环境补装 `build-essential` 后通过）——与 AGENTS.md §二.3「native 需 C 编译器」同因。
+- `moon fmt` 会把 `{ state: seed }` 规范为 `{ state: seed, }`；脚本化改文件时须按格式化后文本匹配锚点。
+- **变异检测会就地改动 `lib/`**：`test-audit.sh` 要求工作区干净，且**改动未提交时会被 `git checkout` 一并还原**——
+  故执行前务必先提交（本环境已踩过：未提交的 T1-f 首版曾被还原）。
+
+### F.5 仍待办（v3 未覆盖）
+
+T1-a（多项式 4 例抽查）、T1-e（`division`↔`structure` 交叉）、T2-a/b（打分逐行/逐列明细）、
+T2-c（放置逐格坐标）、T2-d（择优 mask 号回归）、T3-c/d（解码向量固化 + `cmd` 多内容探针）、
+T4-c（差分门禁升 CI）、T5（覆盖率报告与分模块下限）、T7-a（存量快照 fail 信息标准化）。
