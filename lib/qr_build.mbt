@@ -136,9 +136,8 @@ pub fn QRCode::build_fixed(
 
 ///|
 /// S5 自动择优入口（mask 可 None）：`None` 走 8 轮 clone+score 择优主循环（自动 mask），
-/// `Some(m)` 走固定 mask 快速路径：直接应用一次用户 mask、跳过冗余 8 轮评分（输出等价参考
-/// fast_qr 的强制掩码旁路——参考虽照跑评分但用用户 mask 覆盖，本实现直接跳过为等价优化）。
-/// 编排队列：select_capacity → encode → structure → （mask None→ create_auto_qr 择优 / Some→create_fixed_qr）。
+/// `Some(m)` **委托 `QRCode::build_fixed`** 走固定 mask 快速路径（消双份实现，S11 §3.2）。
+/// 编排队列：select_capacity → encode → structure → （mask None→ create_auto_qr 择优 / Some→build_fixed）。
 /// 返回完整 `QRCode`（data 含最终明暗、mask 元数据为实际应用的那个掩码）。
 pub fn QRCode::build(
   input : Array[Byte],
@@ -147,26 +146,23 @@ pub fn QRCode::build(
   version : Version?,
   mask : Mask?,
 ) -> Result[QRCode, QRCodeError] {
-  let (mode_idx, ecl_idx, version_idx) = match
-    QRCode::select_capacity(input, mode, ecl, version) {
-    Ok(t) => t
-    Err(e) => return Err(e)
-  }
-  let compact = @data_encoding.encode(input, ecl_idx, mode_idx, version_idx)
-  let interleaved = @reedsolomon.structure(compact.data(), ecl_idx, version_idx)
   match mask {
-    // 指定固定掩码：走 create_fixed_qr 快速路径——直接应用用户 mask、跳过冗余 8 轮评分
-    // （输出等价参考 place_on_matrix 强制掩码旁路，跳过为合理优化，未改行为）
-    Some(m) => {
-      let packed = @matrix.create_fixed_qr(
-        interleaved,
-        version_idx,
-        ecl_idx,
-        m.to_int(),
-      )
-      Ok(wrap_packed(packed, version_idx, ecl_idx, m.to_int(), mode_idx))
-    }
+    // 指定固定掩码：**委托 `build_fixed`**，避免「select_capacity → encode → structure →
+    // create_fixed_qr → wrap_packed」两处逐字重复导致的静默漂移（S11 §3.2 / §10.6 P0-3）。
+    // 快速路径语义不变：直接应用用户 mask、跳过冗余 8 轮评分（等价参考 place_on_matrix 的强制掩码旁路）。
+    Some(m) => QRCode::build_fixed(input, mode, ecl, version, m)
     None => {
+      let (mode_idx, ecl_idx, version_idx) = match
+        QRCode::select_capacity(input, mode, ecl, version) {
+        Ok(t) => t
+        Err(e) => return Err(e)
+      }
+      let compact = @data_encoding.encode(input, ecl_idx, mode_idx, version_idx)
+      let interleaved = @reedsolomon.structure(
+        compact.data(),
+        ecl_idx,
+        version_idx,
+      )
       let (packed, best_mask) = @matrix.create_auto_qr(
         interleaved, version_idx, ecl_idx,
       )
