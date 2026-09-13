@@ -246,29 +246,34 @@ test "t2b3_n1_exact_five_then_color_change" {
 /// `create_auto_qr` 的主循环用 `score < best_score`（严格小于）→ 并列时**先到的低位 mask 胜出**。
 /// 变异 M21（改成 `<=`）在既有夹具上**零检出**，说明「并列判定」此前无覆盖。
 ///
-/// 本用例不依赖「恰好构造出并列输入」（脆弱），而是**直接复算全部 8 轮得分**：
-/// 断言返回的 `best_mask` 等于「得分最小者中的**最小 mask 号**」。这样：
-///   - `<=` 变异会把并列时的胜者改成最大号 → 与断言不符 → 变红；
-///   - 语义与实现文档（"并列取先到的低位 mask"）一致，与夹具无关，故不会随机地红。
+/// 本用例用**实跑搜出的真并列输入**（V05-L 的 determinism 码字，mask 5 与 mask 6 同分 1514）：
+///   - 严格 `<` → 选低位 mask 5；
+///   - `<=`     → 取高位 mask 6 → 变红。
+/// 断言同时验证「返回的 best_mask 等于并列组中的最小号」。
 ///
-/// 说明：`create_auto_qr` 内部逐轮 `apply_mask` + `score`，本用例在测试侧**重放同一 8 轮**，
-/// 属铁律 3 的 `actual == actual` 型护栏；其价值是**把并列规则钉死**，而非提供正确性真值。
-/// 正确性真值由 `t2c`/`t2e`/`t1c`/`t1d` 的黄金向量承担。
+/// 说明：测试侧重放 8 轮 `apply_mask` + `score`，与实现同序（铁律 3 的护栏型），
+/// 价值在**把并列规则钉死**；正确性真值由 `t2c`/`t2e`/`t1c` 的黄金向量承担。
 
 ///|
 test "t2d2_auto_mask_tie_break_lowest" {
-  // 选一个能容纳、且 8 轮得分分布多样的 structure（V05-L，108 数据码字）。
-  let structure : Array[Byte] = []
-  let mut i = 0
-  while i < 135 {
-    structure.push(((i * 97 + 11) & 0xFF).to_byte())
-    i += 1
-  }
+  let structure : Array[Byte] = [
+    80, 41, 2, 219, 180, 141, 102, 63, 24, 241, 202, 163,
+    124, 85, 46, 7, 224, 185, 146, 107, 68, 29, 246, 207,
+    168, 129, 90, 51, 12, 229, 190, 151, 112, 73, 34, 251,
+    212, 173, 134, 95, 56, 17, 234, 195, 156, 117, 78, 39,
+    0, 217, 178, 139, 100, 61, 22, 239, 200, 161, 122, 83,
+    44, 5, 222, 183, 144, 105, 66, 27, 244, 205, 166, 127,
+    88, 49, 10, 227, 188, 149, 110, 71, 32, 249, 210, 171,
+    132, 93, 54, 15, 232, 193, 154, 115, 76, 37, 254, 215,
+    176, 137, 98, 59, 20, 237, 198, 159, 120, 81, 42, 3,
+    220, 181, 142, 103, 64, 25, 242, 203, 164, 125, 86, 47,
+    8, 225, 186, 147, 108, 69, 30, 247, 208, 169, 130, 91,
+    52, 13, 230,
+  ]
   let ver = 4 // V05
   let ecl = 0 // L
   let size = ver * 4 + 21
   let (m, best_mask) = create_auto_qr(structure, ver, ecl)
-  // 测试侧重放 8 轮：构造 base = create_matrix + place_on_matrix_data（与实现同序）。
   let base = create_matrix(ver)
   place_on_matrix_data(base, size, structure)
   let mut best_score = 2147483647
@@ -288,8 +293,20 @@ test "t2d2_auto_mask_tie_break_lowest" {
       best_mask.to_string() +
       " want=" +
       want_mask.to_string() +
-      "（若 got 更大，说明用了 `<=`，并列时取了高位 mask）",
+      "（got 更大说明用了 `<=`，并列时取了高位 mask）",
     )
+  }
+  // 固化「本夹具确实存在并列」这一前提，避免夹具漂移后本用例静默失去检出力。
+  let mut tie = 0
+  let mut j = 0
+  while j < 8 {
+    if score(apply_mask(base, size, j), size) == best_score {
+      tie += 1
+    }
+    j += 1
+  }
+  if tie < 2 {
+    fail("t2d2: 夹具已无并列（tie=" + tie.to_string() + "），本用例失去检出力，请更换输入")
   }
   if m.length() != size * size {
     fail(
