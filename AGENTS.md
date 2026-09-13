@@ -79,7 +79,8 @@ moon fmt && moon info && moon check --deny-warn && moon test
 for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done
 ```
 
-> CI 会执行 `moon fmt --check`、`moon check --deny-warn` 与 wasm-gc release 回归，
+> CI 会执行 `moon fmt --check`、`moon check --deny-warn`、`test-scale`、`docs-link-check`
+> 与 wasm-gc release 回归，
 > 本地先跑一遍可避免推送后失败。可选启用本地钩子：
 > `git config core.hooksPath .githooks`（属个人本地配置，仓库不代设）。
 
@@ -118,11 +119,14 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 
 ```bash
 bash scripts/test.sh          # moon test（黑盒 + 白盒）
-bash scripts/test-scale.sh    # 单测试文件 ≤800 行护栏
+bash scripts/test-scale.sh    # 单测试文件 ≤800 行护栏（进 push CI）
+bash scripts/docs-link-check.sh       # 文档互链死链检查（进 push CI）
 bash scripts/test-audit.sh mutation   # 变异检测：确认「实现被改坏时有测试变红」
+bash scripts/test-audit.sh decode     # 第三方解码回读（jsqr；含 T3-d 54 组语料）
 bash scripts/gen-goldens.sh --verify  # 黄金值未漂移（需 fast_qr 检出）
 bash scripts/diff-gate.sh     # 与参考 wasm 逐位 sha256（无制品时显式 skipped）
-bash scripts/coverage.sh      # 覆盖率报告（仅报告，不设阈值）
+bash scripts/coverage.sh              # 覆盖率报告（T5-a，仅报告）
+bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
 ```
 
 > 新增/修改一个模块的实现后，建议重跑 `test-audit.sh mutation`，确认该模块仍有有效测试。
@@ -140,6 +144,22 @@ bash scripts/coverage.sh      # 覆盖率报告（仅报告，不设阈值）
   不能指望随机夹具撞上，须用「实跑搜出的输入」或穷举显式锁定（如 T2-d2 / T5-b）。
 - **参考侧实算器**（`snapshot_gen_*.rs`）需在参考检出内编译，**Rust 侧需系统 C 编译器**；
   优先写成**自包含夹具**，避免依赖参考测试模块的可见性。
+
+### 5. 小步提交纪律（v5 补充，实跑踩坑）
+
+- **每完成一处有意义的改动就 `git commit`**，不要攒到最后统一提交。
+  本环境曾出现「改完 `lib/` 后工作区在两次命令之间被还原」，导致修复丢失需重做。
+- 这与 §三.4 的「变异检测会 `git checkout -- lib/`」是**两个不同陷阱**：
+  前者是审计脚本的**预期行为**，后者是**环境态**——必须靠「小步提交」而不是「小心」来防。
+
+### 6. 覆盖率与文档门禁（v5 新增）
+
+- **T5-b 覆盖率「不下降」**：`bash scripts/coverage.sh --floor` 读取
+  `docs/S10b-测试覆盖率报告.md` 顶部 `<!-- coverage-floor: lib_uncovered=N -->`
+  （只按 `lib/**` 计，**不含 `cmd/*` 探针包**）。新增代码拉高未覆盖行时，
+  要么补测（优先负向/契约用例），要么在报告里写明理由并更新该标记——**两条路都要评审可见**。
+- **T6-c 文档死链**：`bash scripts/docs-link-check.sh` 检查受版本控制 Markdown 的
+  **相对链接**（跳过外链/锚点，忽略代码块）。新增文档须同步更新 `README.md` 索引，否则 CI 红。
 
 ---
 
