@@ -59,23 +59,23 @@ run_mutation() {
     exit 1
   fi
   echo "=== E) 强负向对照（变异检测，S10 附录 E）==="
-  echo "基线：$(moon test </dev/null 2>&1 | tail -1)"
+  echo "基线：$(moon test </dev/null 2>&1 | tail -1 || true)"
   echo
   printf '%-4s %-30s %-8s %s\n' "编号" "植入缺陷" "失败数" "判定"
   printf '%-4s %-30s %-8s %s\n' "----" "------------------------------" "------" "----"
   # 变异表落盘，循环用专用 fd 3 读：`moon test` 会**消费 stdin**，
   # 若用 `<<<"$table"` 直接喂 stdin，第一条之后剩余行会被吃掉、循环提前结束（实测踩过）。
   local table; table="$(mktemp)"; mutations >"$table"
-  echo "ROWS=$(wc -l <"$table")"
   local id desc file from to out failed verdict
   while IFS='|' read -r id desc file from to <&3; do
-    echo "GOT id=[$id]"
     if [ -z "$id" ]; then continue; fi
     if ! python3 scripts/apply-mutation.py "$file" "$from" "$to" 2>/dev/null; then
       printf '%-4s %-30s %-8s %s\n' "$id" "$desc" "-" "⚠️ 锚点失效（实现已变，需同步更新清单）"
       git checkout -- lib/; continue
     fi
-    out="$(moon test </dev/null 2>&1 | tail -1)"
+    # `moon test` 在有失败用例时返回非 0；`set -e` 下必须用 `|| true` 兜住，
+    # 否则脚本会在「已检出」这一步静默退出（实测踩过：一行都不打印）。
+    out="$(moon test </dev/null 2>&1 | tail -1 || true)"
     failed="$(sed -n 's/.*failed: \([0-9]*\)\..*/\1/p' <<<"$out")"
     verdict="✅ 已检出"
     if [ "${failed:-0}" = "0" ]; then verdict="❌ 漏检"; fi
