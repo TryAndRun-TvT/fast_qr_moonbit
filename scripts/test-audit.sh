@@ -49,6 +49,8 @@ M18|生成多项式度 18 系数改值|lib/internal/constants/hardcode.mbt|    (
 M19|放置之字形首列起点偏移|lib/internal/matrix/placement.mbt|let mut c = size - 1|let mut c = size - 2
 M20|N1 行运行结算阈值 5->6|lib/internal/matrix/score.mbt|if count >= 5 {\n        run = run + count - 2\n      }\n      count = 0\n      current = val|if count >= 6 {\n        run = run + count - 2\n      }\n      count = 0\n      current = val
 M21|择优并列取最高位 mask|lib/internal/matrix/placement.mbt|if s < best_score {|if s <= best_score {
+M22|select_capacity 丢弃显式模式（回退 Numeric 预算）|lib/qr_build.mbt|let min_v = @constants.version_for(mode_idx, ecl_idx, len)|let min_v = @constants.version_for(0, ecl_idx, len)
+M23|显式版本丢弃模式校验|lib/qr_build.mbt|if !@constants.fits_at_version(mode_idx, ecl_idx, uv.to_int(), len) {|if !@constants.fits_at_version(0, ecl_idx, uv.to_int(), len) {
 MUT
 }
 
