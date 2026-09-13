@@ -45,6 +45,10 @@ M14|division 余数首字节 +1|lib/internal/reedsolomon/reedsolomon.mbt|rem[r] 
 M15|structure 首块起点偏移|lib/internal/reedsolomon/reedsolomon.mbt|let sidx = gi * g1s|let sidx = gi * g1s + 1
 M16|功能图案类型号 finder 改 2|lib/internal/matrix/module.mbt|pub let module_type_finder : Int = 1|pub let module_type_finder : Int = 2
 M17|percent_score 表中间项改值|lib/internal/constants/hardcode.mbt|0, 0, 0, 10, 10, 10, 10, 10, 20, 20, 20|0, 0, 1, 10, 10, 10, 10, 10, 20, 20, 20
+M18|生成多项式度 18 系数改值|lib/internal/constants/hardcode.mbt|    (215).to_byte(),\n    (234).to_byte(),\n    (158).to_byte(),|    (215).to_byte(),\n    (233).to_byte(),\n    (158).to_byte(),
+M19|放置之字形首列起点偏移|lib/internal/matrix/placement.mbt|let mut c = size - 1|let mut c = size - 2
+M20|N1 行运行结算阈值 5->6|lib/internal/matrix/score.mbt|if count >= 5 {\n        run = run + count - 2\n      }\n      count = 0\n      current = val|if count >= 6 {\n        run = run + count - 2\n      }\n      count = 0\n      current = val
+M21|择优并列取最高位 mask|lib/internal/matrix/placement.mbt|if s < best_score {|if s <= best_score {
 MUT
 }
 
@@ -55,7 +59,7 @@ run_mutation() {
     exit 1
   fi
   echo "=== E) 强负向对照（变异检测，S10 附录 E）==="
-  echo "基线：$(moon test </dev/null 2>&1 | tail -1)"
+  echo "基线：$(moon test </dev/null 2>&1 | tail -1 || true)"
   echo
   printf '%-4s %-30s %-8s %s\n' "编号" "植入缺陷" "失败数" "判定"
   printf '%-4s %-30s %-8s %s\n' "----" "------------------------------" "------" "----"
@@ -64,14 +68,17 @@ run_mutation() {
   local table; table="$(mktemp)"; mutations >"$table"
   local id desc file from to out failed verdict
   while IFS='|' read -r id desc file from to <&3; do
-    [ -z "$id" ] && continue
+    if [ -z "$id" ]; then continue; fi
     if ! python3 scripts/apply-mutation.py "$file" "$from" "$to" 2>/dev/null; then
       printf '%-4s %-30s %-8s %s\n' "$id" "$desc" "-" "⚠️ 锚点失效（实现已变，需同步更新清单）"
       git checkout -- lib/; continue
     fi
-    out="$(moon test </dev/null 2>&1 | tail -1)"
+    # `moon test` 在有失败用例时返回非 0；`set -e` 下必须用 `|| true` 兜住，
+    # 否则脚本会在「已检出」这一步静默退出（实测踩过：一行都不打印）。
+    out="$(moon test </dev/null 2>&1 | tail -1 || true)"
     failed="$(sed -n 's/.*failed: \([0-9]*\)\..*/\1/p' <<<"$out")"
-    verdict="✅ 已检出"; [ "${failed:-0}" = "0" ] && verdict="❌ 漏检"
+    verdict="✅ 已检出"
+    if [ "${failed:-0}" = "0" ]; then verdict="❌ 漏检"; fi
     printf '%-4s %-30s %-8s %s\n' "$id" "$desc" "${failed:-?}" "$verdict"
     git checkout -- lib/
   done 3<"$table"

@@ -82,20 +82,38 @@ test "m1_fixed_mask_snapshots" {
     let (ver, eclv, maskv, hexs) = cases[idx]
     let got = build_raw(ver, eclv, maskv)
     let want = parse_hex(hexs)
+    // T7-a：失败信息含「模块.函数 + 参数指纹（version/ecl/mask）+ 格坐标」。
+    let tag = "m1.fixed[case=" +
+      idx.to_string() +
+      " V" +
+      (ver.to_int() + 1).to_string() +
+      " ecl=" +
+      eclv.to_int().to_string() +
+      " mask=" +
+      maskv.to_int().to_string() +
+      "]"
     if got.length() != want.length() {
-      fail("case " + idx.to_string() + " length mismatch")
+      fail(
+        tag +
+        " length mismatch got=" +
+        got.length().to_string() +
+        " want=" +
+        want.length().to_string(),
+      )
     }
+    let n = ver.to_int() * 4 + 17
     let mut k = 0
     while k < got.length() {
       if got[k] != want[k] {
         fail(
-          "case " +
-          idx.to_string() +
-          " cell " +
-          k.to_string() +
-          ": got " +
+          tag +
+          " cell (row=" +
+          (k / n).to_string() +
+          ",col=" +
+          (k % n).to_string() +
+          ") got=" +
           got[k].to_int().to_string() +
-          " want " +
+          " want=" +
           want[k].to_int().to_string(),
         )
       }
@@ -213,31 +231,48 @@ test "s5_auto_mask_snapshots" {
   while idx < auto_cases.length() {
     let (input, ver, eclv, modev, mask_want, hexs) = auto_cases[idx]
     let (got, got_mask) = build_auto(input, ver, eclv, modev)
+    // T7-a：失败信息含「模块.函数 + 参数指纹（version/ecl/mode）+ 期望 mask/格坐标」。
+    let tag = "m1.auto[case=" +
+      idx.to_string() +
+      " V" +
+      (ver.to_int() + 1).to_string() +
+      " ecl=" +
+      eclv.to_int().to_string() +
+      " mode=" +
+      modev.to_int().to_string() +
+      "]"
     if got_mask != mask_want {
       fail(
-        "case " +
-        idx.to_string() +
-        " mask got " +
+        tag +
+        " mask got=" +
         got_mask.to_string() +
-        " want " +
+        " want=" +
         mask_want.to_string(),
       )
     }
     let want = parse_hex(hexs)
     if got.length() != want.length() {
-      fail("case " + idx.to_string() + " length mismatch")
+      fail(
+        tag +
+        " length mismatch got=" +
+        got.length().to_string() +
+        " want=" +
+        want.length().to_string(),
+      )
     }
+    let n = ver.to_int() * 4 + 17
     let mut k = 0
     while k < got.length() {
       if got[k] != want[k] {
         fail(
-          "case " +
-          idx.to_string() +
-          " cell " +
-          k.to_string() +
-          ": got " +
+          tag +
+          " cell (row=" +
+          (k / n).to_string() +
+          ",col=" +
+          (k % n).to_string() +
+          ") got=" +
           got[k].to_int().to_string() +
-          " want " +
+          " want=" +
           want[k].to_int().to_string(),
         )
       }
