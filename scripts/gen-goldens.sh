@@ -10,6 +10,8 @@
 #   bash scripts/gen-goldens.sh --verify         # 只校验（默认；零差异退出 0）
 #   bash scripts/gen-goldens.sh --regen-tables   # 生成常量表全表指纹（T1-f）
 #   bash scripts/gen-goldens.sh --emit-rs        # 发射 division/structure 黄金向量（T1-c/T1-d）
+#   bash scripts/gen-goldens.sh --emit-default   # 抽取独立数字真值矩阵（T0-c）
+#   bash scripts/gen-goldens.sh --verify-default # 校验独立数字真值未漂移（T0-c）
 #
 # 环境变量:
 #   FAST_QR_DIR   参考检出目录（默认 $HOME/.cache/fast_qr_wasm/fast_qr，回退 $HOME/.cache/fast_qr）
@@ -50,6 +52,16 @@ case "$MODE" in
   --verify)
     echo "=== 校验常量表全表指纹（T1-f） ==="
     python3 "$SCRIPT_DIR/snapshot_gen_tables.py" --ref "$REF" --verify
+    echo "=== 校验独立数字真值（T0-c） ==="
+    python3 "$SCRIPT_DIR/snapshot_gen_default.py" --ref "$REF" --verify
+    ;;
+  --emit-default)
+    echo "=== 抽取独立数字真值矩阵（T0-c） ==="
+    python3 "$SCRIPT_DIR/snapshot_gen_default.py" --ref "$REF"
+    ;;
+  --verify-default)
+    echo "=== 校验独立数字真值（T0-c） ==="
+    python3 "$SCRIPT_DIR/snapshot_gen_default.py" --ref "$REF" --verify
     ;;
   --regen-tables)
     echo "=== 重建常量表全表指纹（T1-f） ==="

@@ -11,9 +11,11 @@
 /// 断言方式与参考 `from_bool_v*` 同构：`create_matrix(version)` 布好功能图案类型后，
 /// 逐格置入独立 bool 真值的明暗，再与参考**带类型**的期望矩阵逐格比对。
 /// 说明：internal 不可从黑盒 _test.mbt 触达，故本文件为白盒 *_wbtest.mbt。
+/// BEGIN GENERATED (snapshot_gen_default.py)
+/// END GENERATED
 
 ///|
-/// bool 真值（每行一个 '0'/'1' 串）→ 带类型矩阵（白盒直触 create_matrix/set_value）。
+/// bool 真值（'0'/'1' 连续串，行主序）→ 带类型矩阵（白盒直触 create_matrix/set_value）。
 fn build_from_bool_truth(ver_idx : Int, n : Int, bits : String) -> Array[Int] {
   let m = create_matrix(ver_idx)
   let chars = bits.to_array()
@@ -50,8 +52,6 @@ fn hex_digit(c : Char) -> Int {
     n - 55
   }
 }
-
-///|
 
 ///|
 test "t0c_independent_truth_default" {
