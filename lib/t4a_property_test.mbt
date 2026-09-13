@@ -14,18 +14,19 @@
 /// 确定性 LCG（Numerical Recipes 参数），返回 [0, 2^31) 序列。
 /// 用结构体承载状态，避免依赖全局可变状态（铁律 7）。
 struct Lcg {
-  state : Int
+  state : Ref[Int]
 }
 
 ///|
 fn Lcg::new(seed : Int) -> Lcg {
-  { state: seed }
+  { state: { val: seed, }, }
 }
 
 ///|
 fn Lcg::next(self : Lcg) -> Int {
-  self.state = (self.state * 1103515245 + 12345) & 0x7FFFFFFF
-  self.state
+  let v = (self.state.val * 1103515245 + 12345) & 0x7FFFFFFF
+  self.state.val = v
+  v
 }
 
 ///|
@@ -71,9 +72,8 @@ test "t4a1_size_and_finder_invariant" {
     match QRBuilder::new(input).ecl(ecl).version(ver).build() {
       Ok(qr) => {
         ok += 1
-        let want = ver.to_int() * 4 + 17 + 17 // to_int()=版本号-1 → +17 修正为边长
         let sz = qr.size()
-        // 期望边长 = 版本号*4+17；ver.to_int() 是序号（V01=0）
+        // 期望边长 = 版本号*4+17；ver.to_int() 是序号（V01=0）→ 版本号 = to_int()+1
         let exp = (ver.to_int() + 1) * 4 + 17
         if sz != exp {
           fail(
@@ -89,7 +89,6 @@ test "t4a1_size_and_finder_invariant" {
             exp.to_string(),
           )
         }
-        let _ = want
         // finder 外角类型号 = finder
         if qr.get(0, 0).module_type().to_int() != 1 ||
           qr.get(0, sz - 1).module_type().to_int() != 1 ||
@@ -112,9 +111,8 @@ test "t4a1_size_and_finder_invariant" {
           )
         }
       }
-      Err(_) => {
-        // 内容短于容量却失败 → 记录（不作硬失败，仅统计）
-      }
+      // 内容短于容量却失败：只统计不硬失败（参数配置边界）
+      Err(_) => ()
     }
     trial += 1
   }
@@ -139,7 +137,8 @@ test "t4a2_masks_distinct" {
     Mask::Meadow,
   ]
   for m in masks {
-    match QRBuilder::new(input).ecl(ECL::L).version(Version::V05).mask(m).build() {
+    match
+      QRBuilder::new(input).ecl(ECL::L).version(Version::V05).mask(m).build() {
       Ok(qr) => mats.push(qr.data())
       Err(_) => fail("t4a2: build failed for mask=" + m.to_int().to_string())
     }
@@ -168,7 +167,12 @@ test "t4a2_masks_distinct" {
 /// 属性 ③：QRBuilder 链式 == QRCode::build，在随机 (ecl, version, mask) 参数下恒等。
 test "t4a3_builder_equals_build" {
   let rng = Lcg::new(777)
-  let vl : Array[Version] = [Version::V01, Version::V05, Version::V10, Version::V40]
+  let vl : Array[Version] = [
+    Version::V01,
+    Version::V05,
+    Version::V10,
+    Version::V40,
+  ]
   let el : Array[ECL] = [ECL::L, ECL::M, ECL::Q, ECL::H]
   let ml : Array[Mask] = [
     Mask::Checkerboard,
@@ -185,7 +189,7 @@ test "t4a3_builder_equals_build" {
     let a = QRBuilder::new(input).ecl(ecl).version(ver).mask(mask).build()
     let b = QRCode::build(input, None, Some(ecl), Some(ver), Some(mask))
     match (a, b) {
-      (Ok(qa), Ok(qb)) => {
+      (Ok(qa), Ok(qb)) =>
         if qa.data() != qb.data() {
           fail(
             "t4a3: chain != build trial=" +
@@ -198,7 +202,6 @@ test "t4a3_builder_equals_build" {
             mask.to_int().to_string(),
           )
         }
-      }
       (Err(_), Err(_)) => ()
       _ => fail("t4a3: Result 形态不一致 trial=" + trial.to_string())
     }
@@ -226,7 +229,9 @@ test "t4a4_immutable_no_alias" {
       while i < before.length() {
         if before[i].byte() != after[i].byte() {
           fail(
-            "t4a4: 源对象被 set 副作用修改，cells[" + i.to_string() + "]",
+            "t4a4: 源对象被 set 副作用修改，cells[" +
+            i.to_string() +
+            "]",
           )
         }
         i += 1
