@@ -23,11 +23,10 @@ def main():
     ap.add_argument("--ref", required=True)
     ap.add_argument("--verify", action="store_true")
     args = ap.parse_args()
-    script = os.path.join(HERE, "gen-goldens.sh")
     env = {**os.environ, "FAST_QR_DIR": args.ref}
     env["PATH"] = os.path.expanduser("~/.cargo/bin") + os.pathsep + env.get("PATH", "")
     out = subprocess.run(
-        ["bash", script, "--emit-placement"],
+        ["bash", os.path.join(HERE, "gen-goldens.sh"), "--emit-placement"],
         capture_output=True, text=True, env=env,
     ).stdout
     ref = []
@@ -41,17 +40,26 @@ def main():
             print(">> 跳过校验（参考侧不可达）")
             return 0
         return 1
-    # 展开仓库段表
+
+    # 展开仓库段表：不做文本级元组解析（`moon fmt` 会把长元组折行，正则易错），
+    # 改为「按序扫描源码」—— 找每个 `("P"/"S", <列>, [ ... ])`，用括号配对定位行列表。
     src = open(WB, encoding="utf-8").read()
-    seg_start = src.index("let place_segments")
-    # 段块以行首 `]` 结束
-    seg_end = src.index("\n]", seg_start)
-    body = src[seg_start:seg_end]
-    segs = re.findall(r'\("([PS])",\s*(\d+),\s*\[([^\]]*)\]\)', body)
+    i = src.index("let place_segments")
+    j = src.index("\n]", i)
+    body = src[i:j]
     cur = []
-    for mode, x, rows in segs:
-        x = int(x)
-        for tok in rows.split(","):
+    pos = 0
+    while True:
+        # 段头形如：`("P", 24, [ ... ])`，`moon fmt` 会把长段折成多行
+        # （`(\n    "P",\n    14,\n    [ ... ],\n  ),`），故用「模式字符 + 列号 + 方括号块」扫描。
+        m = re.search(r'"([PS])"\s*,\s*(\d+)\s*,\s*\[', body[pos:], re.S)
+        if not m:
+            break
+        mode, x = m.group(1), int(m.group(2))
+        lb = pos + m.end()  # 指向 `[` 之后
+        rb = body.index("]", lb)
+        rows_txt = body[lb:rb]
+        for tok in rows_txt.split(","):
             tok = tok.strip()
             if not tok:
                 continue
@@ -59,10 +67,14 @@ def main():
             cur.append((r, x))
             if mode == "P":
                 cur.append((r, x - 1))
+        pos = rb + 1
     if cur == ref:
         print(">> verify: T2-c 放置坐标序零差异（%d 格）" % len(ref))
         return 0
-    print("!! verify: T2-c 放置坐标序漂移 repo=%d ref=%d" % (len(cur), len(ref)), file=sys.stderr)
+    print(
+        "!! verify: T2-c 放置坐标序漂移 repo=%d ref=%d" % (len(cur), len(ref)),
+        file=sys.stderr,
+    )
     for i, (a, b) in enumerate(zip(cur, ref)):
         if a != b:
             print("   第 %d 项: repo=%s reference=%s" % (i, a, b), file=sys.stderr)
