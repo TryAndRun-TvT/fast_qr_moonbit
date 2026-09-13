@@ -115,4 +115,3 @@ pub fn Module::toggle(self : Module) -> Module {
 pub fn Module::byte(self : Module) -> Byte {
   self.byte
 }
-

@@ -443,13 +443,14 @@ test "public_qrcode_empty" {
 /// （Numeric-Q V01 上限 27 位，28 位需 V02 → 强制 V01 应报错）。
 test "public_build_fixed_specified_version_too_small" {
   let input = Array::make(28, b'1')
-  match QRCode::build_fixed(
-    input,
-    Some(Mode::Numeric),
-    Some(ECL::Q),
-    Some(Version::V01),
-    Mask::Checkerboard,
-  ) {
+  match
+    QRCode::build_fixed(
+      input,
+      Some(Mode::Numeric),
+      Some(ECL::Q),
+      Some(Version::V01),
+      Mask::Checkerboard,
+    ) {
     Ok(_) =>
       fail(
         "qr_build.build_fixed(id='1'*28, Numeric-Q, V01): got=Ok want=Err(SpecifiedVersion)",
@@ -467,13 +468,14 @@ test "public_build_fixed_specified_version_too_small" {
 /// `QRCode::build_fixed` 数据过大早退：Byte-Q 超 V40(1663) → `Err(EncodedData)`。
 test "public_build_fixed_data_too_big" {
   let input = Array::make(2000, b'A')
-  match QRCode::build_fixed(
-    input,
-    Some(Mode::Byte),
-    Some(ECL::Q),
-    None,
-    Mask::Checkerboard,
-  ) {
+  match
+    QRCode::build_fixed(
+      input,
+      Some(Mode::Byte),
+      Some(ECL::Q),
+      None,
+      Mask::Checkerboard,
+    ) {
     Ok(_) =>
       fail(
         "qr_build.build_fixed(2000 bytes, Byte-Q): got=Ok want=Err(EncodedData)",

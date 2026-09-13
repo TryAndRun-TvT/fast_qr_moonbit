@@ -339,7 +339,9 @@ test "t5b_n3_quiet_zone_dual_sided_pattern_via_line_score" {
   let got = test_line_pattern(fn(i) { pack(bits[i], module_type_data) }, 11)
   if got != 80 {
     fail(
-      "t5b N3 quiet-zone: got=" + got.to_string() + " want=80（双侧各 +40）",
+      "t5b N3 quiet-zone: got=" +
+      got.to_string() +
+      " want=80（双侧各 +40）",
     )
   }
 }

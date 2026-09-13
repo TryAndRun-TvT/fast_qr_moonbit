@@ -161,7 +161,8 @@ pub fn apply_mask(m : Array[Int], size : Int, mask_idx : Int) -> Array[Int] {
     5 | 6 | 7 => mask_period6(out, size, mask_idx)
     _ =>
       abort(
-        "apply_mask: mask_idx 越界（应为 0..=7），got " + mask_idx.to_string(),
+        "apply_mask: mask_idx 越界（应为 0..=7），got " +
+        mask_idx.to_string(),
       )
   }
   out
