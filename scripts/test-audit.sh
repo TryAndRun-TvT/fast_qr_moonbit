@@ -100,10 +100,16 @@ run_decode() {
     echo ">> 跳过：未安装 jsqr（本地审计用依赖：npm i jsqr，不入库、不入 CI）"; return 0
   fi
   moon build cmd/bench --target wasm-gc --release >/dev/null
+  # ① 既有三基准点（固定输入 https://example.com/）
   node scripts/qr-decode-check.mjs \
     --moon-gc "_build/wasm-gc/release/build/cmd/bench/bench.wasm" \
     --moonrun "$(command -v moonrun)" \
     --expr "https://example.com/" --points V03,V10,V40
+  # ② T3-d 全语料（54 组：三模式 × 4 ECL × 4 版本 + 6 组自动版本靶点）
+  echo
+  node scripts/qr-decode-check.mjs \
+    --moon-gc "_build/wasm-gc/release/build/cmd/bench/bench.wasm" \
+    --moonrun "$(command -v moonrun)" --corpus
 }
 
 case "$MODE" in

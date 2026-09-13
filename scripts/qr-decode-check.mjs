@@ -15,7 +15,15 @@
 // 用法:
 //   node scripts/qr-decode-check.mjs --moon-gc <bench.wasm> [--moonrun <path>]
 //        [--expr "https://example.com/"] [--points V03,V10,V40] [--scale 4] [--margin 4] [--mutate]
+//   node scripts/qr-decode-check.mjs --moon-gc <bench.wasm> --corpus   # T3-d 全语料（54 组，含 auto 靶点）
 //   （bash 包装见 scripts/test-audit.sh decode）
+
+// `--corpus`（T3-d）：走 `cmd/bench --dump-case <i>` 的 **54 组多内容语料**
+//   （三模式 × 4 ECL × {V01,V05,V10,V40} = 48 组 grid + 6 组 `version=None` 自动版本靶点），
+//   逐组断言 jsQR 读回原文 == 期望内容（按模式构造）。
+//   为什么这批语料不可省：它是 **v5 `select_capacity` 模式语义 bug 的唯一可复现证据**——
+//   旧实现在 `version=None` 时按 Numeric 预算选版本，Byte/Alnum 长输入被写进装不下它的
+//   数据区（实测 4 组 auto 语料解码返回 NULL）。
 
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -34,6 +42,7 @@ const POINTS = arg('--points', 'V03,V10,V40').split(',').map((x) => x.trim()).fi
 const SCALE = Number(arg('--scale', '4'));
 const MARGIN = Number(arg('--margin', '4'));
 const MUTATE = has('--mutate');
+const CORPUS = has('--corpus');
 
 if (!MOON_GC) {
   console.error('用法: node scripts/qr-decode-check.mjs --moon-gc <bench.wasm> [--moonrun <path>]');
@@ -100,6 +109,51 @@ function mutate(rows) {
     }
   }
   return out.map((r) => r.join(''));
+}
+
+// ── T3-d 全语料模式 ────────────────────────────────────────────────────────
+if (CORPUS) {
+  const listOut = execFileSync(MOONRUN, [MOON_GC, '--dump-case', 'list'], {
+    encoding: 'utf8', maxBuffer: 1 << 28,
+  });
+  const cases = listOut.trimEnd().split('\n').filter((l) => l.startsWith('QR_CASE_LIST'))
+    .map((l) => {
+      const g = (k) => new RegExp(`${k}=([^ ]+)`).exec(l)[1];
+      return { index: Number(g('index')), kind: g('kind'), mode: g('mode'),
+        ecl: g('ecl'), version: g('version'), content_len: Number(g('content_len')) };
+    });
+  console.log(`# 独立解码回读审计（jsqr）—— T3-d 全语料（${cases.length} 组）`);
+  console.log(`> MoonBit 侧 = ${MOON_GC}；像素化 scale=${SCALE}、margin=${MARGIN}\n`);
+  let cbad = 0;
+  for (const c of cases) {
+    const out = execFileSync(MOONRUN, [MOON_GC, '--dump-case', String(c.index)], {
+      encoding: 'utf8', maxBuffer: 1 << 28,
+    }).trimEnd().split('\n');
+    const li = out.findIndex((l) => l.startsWith('QR_MATRIX'));
+    if (li < 0) { console.log(`❌ case ${c.index} 无 QR_MATRIX`); cbad++; continue; }
+    const size = Number(/size=(\d+)/.exec(out[li])[1]);
+    const rows = out.slice(li + 1, li + 1 + size);
+    if (rows.length !== size) { console.log(`❌ case ${c.index} 行数不符`); cbad++; continue; }
+    let r = null;
+    try { r = decode(rows, SCALE, MARGIN); } catch (e) {
+      console.log(`⚠️ case ${c.index} jsQR 抛异常：${e.message}`); cbad++; continue;
+    }
+    const pad = c.mode === 'Numeric' ? '9' : c.mode === 'Alphanumeric' ? 'A' : 'z';
+    const want = pad.repeat(c.content_len);
+    const ok = Boolean(r) && r.data === want;
+    if (!ok) {
+      cbad++;
+      console.log(`❌ case ${c.index} ${c.kind} ${c.mode}/${c.ecl}/${c.version} ` +
+        `读回 ${r ? JSON.stringify(r.data).slice(0, 40) + `(len=${r.data.length})` : 'NULL'}，` +
+        `期望 ${c.content_len} 个 '${pad}'`);
+    }
+  }
+  if (cbad > 0) {
+    console.error(`\n❌ T3-d 语料 ${cbad}/${cases.length} 组未达预期，退出码 1。`);
+    process.exit(1);
+  }
+  console.log(`\n✅ T3-d 语料 ${cases.length}/${cases.length} 组第三方解码读回原文一致。`);
+  process.exit(0);
 }
 
 console.log(`# 独立解码回读审计（jsqr）\n> 输入 ${JSON.stringify(EXPR)}；MoonBit 侧 = ${MOON_GC}`);
