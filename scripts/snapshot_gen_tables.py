@@ -223,19 +223,23 @@ def main():
     if args.verify:
         with open(WB, encoding="utf-8") as f:
             cur = f.read()
-        m = re.search(r"/// BEGIN GENERATED: snapshot_gen_tables\.py\n(.*?)/// END GENERATED", cur, re.S)
+        m = re.search(r"/// BEGIN GENERATED: snapshot_gen_tables\.py(.*?)/// END GENERATED", cur, re.S)
         if not m:
             print("!! 仓库 wbtest 缺少 GENERATED 指纹块", file=sys.stderr)
             return 1
-        cur_block = "/// BEGIN GENERATED: snapshot_gen_tables.py\n" + m.group(1) + "/// END GENERATED\n"
-        if cur_block == gen:
-            print(">> verify: 全表指纹零差异")
+        # 语义比对：moon fmt 会重排换行，故只比「数字序列」，不做文本 diff。
+        def nums(text):
+            return [int(x) for x in re.findall(r"-?\d+", text)]
+        a, b = nums(m.group(1)), nums(gen)
+        if a == b:
+            print(">> verify: 全表指纹零差异（%d 项数值）" % len(a))
             return 0
-        import difflib
-        print("!! verify: 指纹漂移", file=sys.stderr)
-        for line in difflib.unified_diff(cur_block.splitlines(), gen.splitlines(),
-                                         "repo", "reference", lineterm=""):
-            print(line, file=sys.stderr)
+        print("!! verify: 指纹漂移（数值序列不一致）", file=sys.stderr)
+        for i, (x, y) in enumerate(zip(a, b)):
+            if x != y:
+                print(f"   第 {i} 项: repo={x} reference={y}", file=sys.stderr)
+                break
+        print(f"   长度 repo={len(a)} reference={len(b)}", file=sys.stderr)
         return 1
     sys.stdout.write(gen)
     return 0
