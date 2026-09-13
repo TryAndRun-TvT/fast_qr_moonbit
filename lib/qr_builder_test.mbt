@@ -146,8 +146,10 @@ test "t2d_mask_selection_considers_columns" {
               "（若为 2=VerticalLines 说明列未参与评分，参考 issue #77）",
             )
           }
-        None => fail("t2d: 自动择优路径应写入 mask 元数据，got=None")
+        None =>
+          fail("t2d: 自动择优路径应写入 mask 元数据，got=None")
       }
-    Err(_) => fail("t2d: 构建失败（输入应可容纳于自动择版本）")
+    Err(_) =>
+      fail("t2d: 构建失败（输入应可容纳于自动择版本）")
   }
 }

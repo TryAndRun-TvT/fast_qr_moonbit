@@ -146,7 +146,9 @@ test "t1a_polynomial_spotcheck_4cases" {
   }
   let v07m = get_polynomial(6, 1)
   if v07m.length() != 19 {
-    fail("t1a: V07-M degree got=" + (v07m.length() - 1).to_string() + " want=18")
+    fail(
+      "t1a: V07-M degree got=" + (v07m.length() - 1).to_string() + " want=18",
+    )
   }
   if v07m[0].to_int() != 0 ||
     v07m[1].to_int() != 215 ||
@@ -172,7 +174,9 @@ test "t1a_polynomial_spotcheck_4cases" {
   }
   let v40l = get_polynomial(39, 0)
   if v40l.length() != 31 {
-    fail("t1a: V40-L degree got=" + (v40l.length() - 1).to_string() + " want=30")
+    fail(
+      "t1a: V40-L degree got=" + (v40l.length() - 1).to_string() + " want=30",
+    )
   }
   if v40l[0].to_int() != 0 ||
     v40l[1].to_int() != 41 ||
@@ -198,7 +202,9 @@ test "t1a_polynomial_spotcheck_4cases" {
   }
   let v14q = get_polynomial(13, 2)
   if v14q.length() != 21 {
-    fail("t1a: V14-Q degree got=" + (v14q.length() - 1).to_string() + " want=20")
+    fail(
+      "t1a: V14-Q degree got=" + (v14q.length() - 1).to_string() + " want=20",
+    )
   }
   if v14q[0].to_int() != 0 ||
     v14q[1].to_int() != 17 ||
@@ -237,9 +243,7 @@ test "t1a_polynomial_spotcheck_4cases" {
 
 ///|
 test "t1a_polynomial_derived_referenced_degrees" {
-  let degrees : Array[Int] = [
-    7, 10, 13, 15, 16, 17, 18, 20, 22, 24, 26, 28, 30,
-  ]
+  let degrees : Array[Int] = [7, 10, 13, 15, 16, 17, 18, 20, 22, 24, 26, 28, 30]
   for degree in degrees {
     let poly_ref = poly_ref_derive(degree)
     let mut v = 0
@@ -296,6 +300,7 @@ test "t1a_polynomial_derived_referenced_degrees" {
 }
 
 ///|
+
 ///|
 /// T1-a ③：独立推导 GF(256) 的**自证**（防「推导本身写错」）。
 /// 校验 `poly_exp_value` 与已知定点：α^0=1、α^1=2、α^8=29（0x11D 首次归约）、α^255=1（周期）。
@@ -309,12 +314,18 @@ test "t1a_gf256_prime_poly_selfcheck" {
     fail("t1a-selfcheck: α^1 got=" + poly_exp_value(1).to_string() + " want=2")
   }
   if poly_exp_value(8) != 29 {
-    fail("t1a-selfcheck: α^8 got=" + poly_exp_value(8).to_string() + " want=29")
+    fail(
+      "t1a-selfcheck: α^8 got=" + poly_exp_value(8).to_string() + " want=29",
+    )
   }
   if poly_exp_value(255) != 1 {
-    fail("t1a-selfcheck: α^255 got=" + poly_exp_value(255).to_string() + " want=1")
+    fail(
+      "t1a-selfcheck: α^255 got=" + poly_exp_value(255).to_string() + " want=1",
+    )
   }
   if poly_log_value(29) != 8 {
-    fail("t1a-selfcheck: log(29) got=" + poly_log_value(29).to_string() + " want=8")
+    fail(
+      "t1a-selfcheck: log(29) got=" + poly_log_value(29).to_string() + " want=8",
+    )
   }
 }

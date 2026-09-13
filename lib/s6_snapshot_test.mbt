@@ -99,21 +99,37 @@ fn s6_assert_matrix(
       want.length().to_string(),
     )
   }
+  // T7-a：失败信息含「模块.函数 + 参数指纹 + 格坐标（row,col）」。
+  let n = sqrt_len(got.length())
   let mut k = 0
   while k < got.length() {
     if got[k] != want[k] {
       fail(
         tag +
-        " cell " +
-        k.to_string() +
-        ": got " +
+        " cell (row=" +
+        (k / n).to_string() +
+        ",col=" +
+        (k % n).to_string() +
+        ") got=" +
         got[k].to_int().to_string() +
-        " want " +
+        " want=" +
         want[k].to_int().to_string(),
       )
     }
     k += 1
   }
+}
+
+///|
+/// 由矩阵格数还原边长（平方数；非平方数时回退 0）。
+
+///|
+fn sqrt_len(total : Int) -> Int {
+  let mut n = 0
+  while n * n < total {
+    n += 1
+  }
+  n
 }
 
 ///|

@@ -37,3 +37,9 @@ $:
         # 注意：不要加 native 阶段 —— 需系统 C 编译器，本镜像未安装。
         - name: build-and-run
           script: bash scripts/build-and-run.sh
+        # T4-c 差分门禁（S10 §6 T4-c）：与参考 wasm 制品逐位对齐 sha256。
+        #   有制品 → 三点 sha256 零差异则通过；无制品/无 node → 显式打印 skipped 并通过。
+        #   之所以放在 push CI 而不必给参考制品：脚本自带「明确且可见的跳过语义」，不阻塞主流程，
+        #   从而把「参考侧对齐」从纯打印升级为一条**有日志可查**的门禁。
+        - name: diff-gate
+          script: bash scripts/diff-gate.sh

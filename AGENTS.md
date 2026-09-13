@@ -121,9 +121,25 @@ bash scripts/test.sh          # moon test（黑盒 + 白盒）
 bash scripts/test-scale.sh    # 单测试文件 ≤800 行护栏
 bash scripts/test-audit.sh mutation   # 变异检测：确认「实现被改坏时有测试变红」
 bash scripts/gen-goldens.sh --verify  # 黄金值未漂移（需 fast_qr 检出）
+bash scripts/diff-gate.sh     # 与参考 wasm 逐位 sha256（无制品时显式 skipped）
+bash scripts/coverage.sh      # 覆盖率报告（仅报告，不设阈值）
 ```
 
 > 新增/修改一个模块的实现后，建议重跑 `test-audit.sh mutation`，确认该模块仍有有效测试。
+
+### 4. 变异检测 / 黄金值的操作纪律（v4 补充，均为实跑踩坑）
+
+- **跑变异检测前 `lib/` 必须干净**：脚本会就地改写并 `git checkout -- lib/` 还原，
+  **未提交的改动会被一并清掉**。脚本自带校验，但人工 `git commit` 前请再 `git status -- lib/` 看一眼
+  （本环境曾把「被变异状态」的源码误提交）。
+- **`set -e` 与 `moon test`**：`moon test` 在有失败用例时返回非 0，`set -e` 下必须
+  `out="$(moon test ... || true)"` 兜住，否则脚本会**静默退出**（表头打印后一行都没有）。
+- **新增变异项必须首跑**：首跑出现 ❌ 是**正常且有价值**的（说明找到了真漏检），
+  必须补测到 ✅ 再收口；不要因为「首跑就红」而删掉该变异项。
+- **契约型行为要有显式用例**：并列取谁、越界回退到哪、优先级顺序——这类**语义契约**
+  不能指望随机夹具撞上，须用「实跑搜出的输入」或穷举显式锁定（如 T2-d2 / T5-b）。
+- **参考侧实算器**（`snapshot_gen_*.rs`）需在参考检出内编译，**Rust 侧需系统 C 编译器**；
+  优先写成**自包含夹具**，避免依赖参考测试模块的可见性。
 
 ---
 

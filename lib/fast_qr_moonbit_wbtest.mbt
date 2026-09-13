@@ -140,3 +140,120 @@ test "qr_code_set_immutable_no_alias" {
   // 源对象保持不受影响
   assert_eq(qr.get(0, 0).value(), false)
 }
+
+///|
+/// T5-b（缺口 G8）：枚举**全量** `to_int` / `from_int` 回环 + 越界回退。
+///
+/// 背景：覆盖率报告（`bash scripts/coverage.sh`）显示 `Version::to_int` / `from_int`
+/// 的分支有 12 行未覆盖——因为既有用例只抽查 V01/V10/V40。
+/// 本用例按「回环 + 边界回退」穷举，既补覆盖也锁契约（G8：`from_*` 未知值回退未测）。
+///
+/// 口径：
+///   - `Version`：40 个枚举全量回环；越界（负/40+）回退 V40；
+///   - `ECL`/`Mode`/`Mask`：全量回环；越界按各自契约回退。
+test "t5b_full_enum_roundtrip_and_bounds" {
+  // Version：0..39 回环
+  let mut i = 0
+  while i < 40 {
+    let v = Version::from_int(i)
+    if v.to_int() != i {
+      fail(
+        "t5b: Version 回环 V" +
+        (i + 1).to_string() +
+        " got=" +
+        v.to_int().to_string(),
+      )
+    }
+    // width 契约：版本号*4+17
+    if v.width() != (i + 1) * 4 + 17 {
+      fail(
+        "t5b: Version::width V" +
+        (i + 1).to_string() +
+        " got=" +
+        v.width().to_string() +
+        " want=" +
+        ((i + 1) * 4 + 17).to_string(),
+      )
+    }
+    i += 1
+  }
+  // Version 越界回退 V40（契约：最大版本）
+  if Version::from_int(-1).to_int() != 39 {
+    fail(
+      "t5b: Version::from_int(-1) 应回退 V40(39)，got=" +
+      Version::from_int(-1).to_int().to_string(),
+    )
+  }
+  if Version::from_int(40).to_int() != 39 {
+    fail(
+      "t5b: Version::from_int(40) 应回退 V40(39)，got=" +
+      Version::from_int(40).to_int().to_string(),
+    )
+  }
+  // ECL：0..3 回环；越界回退 H(3)
+  let mut e = 0
+  while e < 4 {
+    if ECL::from_int(e).to_int() != e {
+      fail("t5b: ECL 回环 " + e.to_string())
+    }
+    e += 1
+  }
+  if ECL::from_int(-1).to_int() != 3 || ECL::from_int(4).to_int() != 3 {
+    fail("t5b: ECL 越界应回退 H(3)")
+  }
+  // Mode：0..2 回环；越界回退 Byte(2)
+  let mut m = 0
+  while m < 3 {
+    if Mode::from_int(m).to_int() != m {
+      fail("t5b: Mode 回环 " + m.to_string())
+    }
+    m += 1
+  }
+  if Mode::from_int(-1).to_int() != 2 || Mode::from_int(3).to_int() != 2 {
+    fail("t5b: Mode 越界应回退 Byte(2)")
+  }
+  // Mask：0..7 回环；越界回退 Meadow(7)
+  let mut k = 0
+  while k < 8 {
+    if Mask::from_int(k).to_int() != k {
+      fail("t5b: Mask 回环 " + k.to_string())
+    }
+    k += 1
+  }
+  if Mask::from_int(-1).to_int() != 7 || Mask::from_int(8).to_int() != 7 {
+    fail("t5b: Mask 越界应回退 Meadow(7)")
+  }
+}
+
+///|
+/// T5-b（缺口 G8）：`Shape::from_name` 回环 + 未知名回退。
+/// 既有 `s7_svg_test.mbt` 只测了 6 个内置形状的输出，未测名字解析面。
+test "t5b_shape_from_name_roundtrip" {
+  // 6 个内置形状的名字 ↔ 枚举**双向回环**（name() → from_name() 恒等）。
+  let shapes : Array[Shape] = [
+    Shape::Square,
+    Shape::Circle,
+    Shape::RoundedSquare,
+    Shape::Vertical,
+    Shape::Horizontal,
+    Shape::Diamond,
+  ]
+  for sh in shapes {
+    let n = sh.name()
+    let back = Shape::from_name(n)
+    if back != sh {
+      fail("t5b: Shape 名字回环失败 name=" + n)
+    }
+  }
+  // 大小写不敏感（契约：ASCII 折叠）
+  if Shape::from_name("SQUARE") != Shape::Square {
+    fail("t5b: Shape::from_name 应大小写不敏感（SQUARE）")
+  }
+  if Shape::from_name("DiAmOnD") != Shape::Diamond {
+    fail("t5b: Shape::from_name 应大小写不敏感（DiAmOnD）")
+  }
+  // 未知名回退契约：回退 Square（对齐参考 From<String> for Shape）
+  if Shape::from_name("not-a-shape") != Shape::Square {
+    fail("t5b: Shape::from_name 未知名应回退 Square")
+  }
+}
