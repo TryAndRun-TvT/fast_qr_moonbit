@@ -143,25 +143,13 @@ fn mask_period6(m : Array[Int], size : Int, mask_idx : Int) -> Unit {
 }
 
 ///|
-/// 通用回退（越界掩码号沿用旧语义：按 `mask_at` 的 `_` 分支＝掩码 7 公式逐格判定）。
-fn apply_mask_general(out : Array[Int], size : Int, mask_idx : Int) -> Unit {
-  let mut y = 0
-  while y < size {
-    let mut x = 0
-    while x < size {
-      let idx = y * size + x
-      if is_data_byte(out[idx]) && mask_at(x, y, mask_idx) {
-        out[idx] = toggle_value(out[idx])
-      }
-      x += 1
-    }
-    y += 1
-  }
-}
-
-///|
 /// 对整张矩阵应用掩码 mask_idx：只翻转「Data 类模块 且 公式为 true」的格子。
 /// 返回新矩阵（不可变式），不原地改源。按掩码号分派到特化循环（S9n P0），语义与逐格判定等价。
+///
+/// **前置不变式**：`mask_idx ∈ 0..=7`（二维码只有 8 种掩码）。
+/// 越界为编程错误，`_` 分支改 **`abort` 护栏**（S11 §4.1/§10.6 P1-1）——原先的
+/// `apply_mask_general` 逐格回退是「不可达兜底」，删除后把不变式变成**机器可查**：
+/// 若未来有调用方越界，会在开发/测试期立刻暴露，而不是静默沿用掩码 7 公式。
 pub fn apply_mask(m : Array[Int], size : Int, mask_idx : Int) -> Array[Int] {
   let out = m.copy()
   match mask_idx {
@@ -171,7 +159,10 @@ pub fn apply_mask(m : Array[Int], size : Int, mask_idx : Int) -> Array[Int] {
     3 => mask_3(out, size)
     4 => mask_4(out, size)
     5 | 6 | 7 => mask_period6(out, size, mask_idx)
-    _ => apply_mask_general(out, size, mask_idx)
+    _ =>
+      abort(
+        "apply_mask: mask_idx 越界（应为 0..=7），got " + mask_idx.to_string(),
+      )
   }
   out
 }
