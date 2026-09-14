@@ -452,6 +452,9 @@ done
 **处置**：
 
 - README 中 **45 条 `./docs/**` + 2 条 `./AGENTS.md`** 相对链接 → 全部转为方案 A 的绝对链接；
+- **头部示例二维码**（`<img src="./docs/assets/qr-example.svg">`）同属归档外目标 →
+  改**仓库绝对直链** `.../-/git/raw/main/docs/assets/qr-example.svg`（实测 `Content-Type: image/svg+xml`、1957 B；
+  `/-/raw/` 与 `?raw=true` 实测返回 **text/html**，不能用于 `<img>`）；
 - **保留相对链接仅 2 类**：`./LICENSE`、`./cmd/main/main.mbt`——它们**在归档内**（`moon package --list` 成员）；
 - 锚点**继续有效**：绝对链接的 `#fragment` 在**渲染页**（CNB blob）上可滚动定位——
   这正是方案 A 优于 B 的关键（B 的原始 markdown 上片段无效）。
@@ -480,6 +483,8 @@ done
   凡解析后**不在归档成员集**内（如 `docs/**`、`AGENTS.md`）即判失败；
 - **与 `docs-link-check.sh` 的分工**：后者查「仓库内目标文件是否存在」并**跳过锚点**；
   ⑤ 查「**归档读者**能否点到」——两个判据互补，缺一不可（报告 §3.1 指出这正是原门禁的盲区）；
+- **覆盖形态**：Markdown 链接 `[x](path)`、图片 `![x](path)` **以及** HTML 内联
+  `<img src="...">` / `<a href="...">`（含单/双引号）——后者的漏检曾让头部示例二维码在归档外（本轮补齐）；
 - **可选网络档**：`PUBLISH_LINK_NET=1 bash scripts/publish-check.sh` 追加对 README 的
   `https://` 外链做 HEAD 校验（默认关闭，避免离线环境误红）。
 
@@ -494,6 +499,7 @@ done
 | README 中 `./docs/**` 相对链接 | 45 | **0** |
 | README 中 `./AGENTS.md` 相对链接 | 2 | **0** |
 | README 中指向归档外的相对链接（发布面） | **47（全 404）** | **0** |
+| README 头部示例图 `src` | `./docs/assets/**`（归档外，**404**） | 仓库绝对直链（`image/svg+xml`） |
 | README 行数 / 字节 | 280 / 16983 | 300 / 21646（+20 行 = 「链接约定」小节） |
 | 受门禁保护的示例 | 1（`mbt check`） | **1**（未变） |
 | 发布面链接门禁 | 无 | `publish-check.sh` ⑤（离线 + 可选网络） |

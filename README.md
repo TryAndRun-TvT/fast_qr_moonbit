@@ -11,7 +11,7 @@
 **项目状态**：功能对齐收口（M0–M3 里程碑 ✅），`moon test` 全绿（含快照与 README 文档测试），
 仅 `wasm-gc` 后端回归通过。
 
-<img src="./docs/assets/qr-example.svg" alt="由 fast_qr_moonbit 生成的二维码：内容 https://example.com/" width="220" height="220">
+<img src="https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/git/raw/main/docs/assets/qr-example.svg" alt="由 fast_qr_moonbit 生成的二维码：内容 https://example.com/" width="220" height="220">
 
 示例二维码（内容 `https://example.com/`，由 `SvgBuilder` 生成、**SVG 矢量**，缩放不失真）；
 复跑 `moon run cmd/main` 可同时看到终端字符画与 SVG 输出。
@@ -242,6 +242,7 @@ moon test --target wasm-gc
 | `README.md` / `LICENSE` / `cmd/main/**`（**在归档内**） | 相对链接 | [`./cmd/main/main.mbt`](./cmd/main/main.mbt) |
 | `docs/**` / `AGENTS.md`（**不在归档内**） | **仓库绝对链接**（`https://cnb.cool/.../-/blob/main/...`） | 见上表「我想… → 去哪」 |
 | 本页内锚点 | 相对锚点 | [快速开始](#快速开始) |
+| 图片资产 `docs/assets/**`（**不在归档内**） | **仓库绝对直链**（`/-/git/raw/main/...`，实测 `image/svg+xml`） | 本页头部示例二维码 |
 
 > **硬约束（门禁 ⑤ 断言）**：本页**不含**任何 `./docs/**` 或 `./AGENTS.md` 相对链接——
 > 否则归档读者必 404。在仓库内需要相对导航时，请到

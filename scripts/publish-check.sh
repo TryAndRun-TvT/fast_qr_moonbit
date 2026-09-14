@@ -165,11 +165,20 @@ for f in "${PUB_READMES[@]}"; do
     inblock { next }
     { line = $0
       while (match(line, /`[^`]*`/)) { line = substr(line, 1, RSTART - 1) " " substr(line, RSTART + RLENGTH) }
+      # Markdown 链接/图片 [x](path) / ![x](path)
       while (match(line, /!?\[[^]]*\]\([^)]*\)/)) {
         seg = substr(line, RSTART, RLENGTH)
         sub(/^!?\[[^]]*\]\(/, "", seg); sub(/\)$/, "", seg)
         gsub(/^[[:space:]]+|[[:space:]]+$/, "", seg)
         sub(/[[:space:]]+".*"$/, "", seg)
+        print seg
+        line = substr(line, RSTART + RLENGTH)
+      }
+      # HTML 内联 <img src="..."> / <a href="...">（含单/双引号）
+      line = $0
+      while (match(line, /(src|href)=["'"'"'][^"'"'"']*["'"'"']/)) {
+        seg = substr(line, RSTART, RLENGTH)
+        sub(/^(src|href)=["'"'"']/, "", seg); sub(/["'"'"']$/, "", seg)
         print seg
         line = substr(line, RSTART + RLENGTH)
       }
