@@ -6,9 +6,9 @@
 [![star](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/badge/star)](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit)
 [![fork](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/badge/fork)](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit)
 [![latest release](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/badge/release)](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/releases)
-![license](https://cnb.cool/svg/badge/Apache--2.0?message=Apache--2.0&color=green)
+[![license](https://cnb.cool/svg/badge/license?message=Apache-2.0&color=green)](./LICENSE)
 
-**项目状态**：功能对齐收口（M0–M3 里程碑 ✅），`moon test` 全绿（**147** 个用例，含快照与 README 文档测试），
+**项目状态**：功能对齐收口（M0–M3 里程碑 ✅），`moon test` 全绿（含快照与 README 文档测试），
 仅 `wasm-gc` 后端回归通过。
 
 <img src="./docs/assets/qr-example.svg" alt="由 fast_qr_moonbit 生成的二维码：内容 https://example.com/" width="220" height="220">
@@ -99,35 +99,35 @@ import {
 }
 ```
 
-然后即可用 `QRBuilder` 生成二维码（链式设置纠错/版本/掩码）：
+然后即可用 `QRBuilder` 生成二维码——下面的示例**由门禁真编译真运行**（`mbt check` 文档测试），
+可运行版本另见 [`cmd/main/main.mbt`](./cmd/main/main.mbt)（`moon run cmd/main` 输出字符画 + SVG）。
 
-```moonbit nocheck
+```mbt check
 ///|
-/// 由字符串输入构建 QRCode（缺省全部自动：mode 自动、ECL=Q、version 最小、mask 择优）。
-fn gen() -> @lib.QRCode {
-  match @lib.QRBuilder::from_string("https://example.com/").build() {
-    Ok(q) => q
-    Err(_) => abort("content too large")
+test "readme_quick_start" {
+  let qr = @lib.QRBuilder::from_string("https://example.com/").build()
+  match qr {
+    Ok(q) => {
+      // V02 → 边长 4*2+17 = 25；访问器返回 Option（手搓 QRCode 无元数据）
+      assert_eq(q.size(), 25)
+      assert_eq(q.version().unwrap().width(), q.size())
+      assert_eq(q.ecl().unwrap(), @lib.ECL::Q)
+      assert_true(q.to_str().length() > 0)
+      let svg = @lib.SvgBuilder::default()
+        .module_color("#0000ff")
+        .background_color("#ffffff")
+        .shape(@lib.Shape::RoundedSquare)
+        .to_str(q)
+      assert_true(svg.has_prefix("<svg"))
+    }
+    Err(_) => abort("README 示例内容构建失败")
   }
-}
-
-///|
-fn main {
-  let qr = gen()
-  // 输出终端 Unicode 半块字符画（含边距）
-  println(qr.to_str())
-  // 输出 SVG 字符串（默认黑色方块 + 白色背景、margin=4），链式定制颜色与模块形状
-  let svg = @lib.SvgBuilder::default()
-    .module_color("#0000ff")
-    .background_color("#ffffff")
-    .shape(@lib.Shape::RoundedSquare)
-    .to_str(qr)
-  println(svg[:200].to_owned() + "...")
 }
 ```
 
-上述示例的**可运行版本就是 [`cmd/main/main.mbt`](./cmd/main/main.mbt)**：`moon run cmd/main` 即可复跑
-（终端字符画 + SVG 打印，wasm-gc 实测通过）。
+> 上面的 `mbt check` 块是 **document test**：`moon test` 会真编译、真运行它——
+> 改公共 API 而不同步改示例，测试直接变红。机制与踩坑见
+> [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) §6.3。
 
 主要公共类型一览（完整说明见 [文档索引](#文档索引) 各实现方案/记录）：
 
@@ -166,41 +166,6 @@ println(drawn.to_str())
 > 命名/形状等辅助入口：`Shape::from_name("circle")`（按名取形状）、
 > `ECL::to_char(ECL::Q)`（级别显示字符）、`SvgBuilder::default().module_color(...)`（链式配色）。
 
-### 文档示例会被自动校验（`mbt check`）
-
-下面的示例**不是截图、不是手抄**：它写在 `README.mbt.md` 的 **`mbt check` 代码块**里，
-由 `moon check` / `moon test` **每次构建都真编译、真运行**——示例一旦与实现脱节，测试立刻变红。
-
-```mbt check
-///|
-test "readme_quick_start" {
-  // ① 构建：缺省全部自动（mode 自动、ECL=Q、version 最小、mask 择优）
-  let qr = @lib.QRBuilder::from_string("https://example.com/").build()
-  match qr {
-    Ok(q) => {
-      // ② 元数据：V02 = 边长 4*2+17 = 25（由实现推出，非手抄常量）
-      //    注意 version()/ecl() 等访问器返回 Option（默认构造出的 QRCode 无元数据）
-      assert_eq(q.size(), 25)
-      assert_eq(q.version().unwrap().width(), q.size())
-      assert_eq(q.ecl().unwrap(), @lib.ECL::Q)
-      // ③ 两种输出都不为空
-      assert_true(q.to_str().length() > 0)
-      let svg = @lib.SvgBuilder::default()
-        .module_color("#0000ff")
-        .background_color("#ffffff")
-        .shape(@lib.Shape::RoundedSquare)
-        .to_str(q)
-      assert_true(svg.has_prefix("<svg"))
-    }
-    Err(_) => abort("README 示例内容构建失败")
-  }
-}
-```
-
-> **维护约束**：README 正文与 `README.mbt.md` 是同一份内容（前者为后者的**符号链接**），
-> 示例只写在 `mbt check` 块里。改了公共 API 而不改示例 → `moon test` 立即失败。
-> 口径见 [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) 与
-> [README示例二维码-SVG资源与生成.md](./docs/README示例二维码-SVG资源与生成.md)。
 
 ---
 
@@ -287,11 +252,9 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 
 > 引用的性能数字仅作选型与迭代基线，**不代表对 fast_qr 的追赶承诺**；逐条口径见 S9 系列文档。
 
-复跑入口：`bash scripts/bench-host.sh`（**宿主调用面**：JS 反复带参调 wasm）·
-`bash scripts/bench-host-var.sh`（**统计稳定性**：同一产物重复测量，给 CV / 单跑失稳率 / 漂移判定）·
-`bash scripts/bench-layer2.sh`（层② vs fast_qr）· `bash scripts/bench.sh`（层① 后端基准）·
-`bash scripts/bench-size.sh`（体积）。口径：输入 `https://example.com/`=20B、ECL H、强制 V03/V10/V40、
-mask 自动择优；数字均为同 run 多轮取最小。核心结论：
+复跑入口：`bash scripts/bench-host.sh`（宿主调用面）· `bench-host-var.sh`（统计稳定性）·
+`bench-layer2.sh`（层② vs fast_qr）· `bench.sh`（层① 后端）· `bench-size.sh`（体积）。
+统一口径：输入 `https://example.com/`=20B、ECL H、强制 V03/V10/V40、mask 自动择优。核心结论：
 
 | 对比 | 结果 | 出处 |
 |------|------|------|
@@ -304,11 +267,9 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 
 ### ① vs fast_qr-wasm32：性能明细
 
-**主口径 = 宿主调用面（[S9p](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md)）**：
-宿主**一次** `compile` + **一次** `Instance`，随后在同一实例上**反复把 JS 参数传给 wasm**
-（`cmd/host-probe` 导出 `qr_generate(content: String, version: Int) -> Int`，走 JS String
-Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与 fast_qr `qr_with` 调用形态对称。
-**MoonBit 侧 = `wasm-gc`（默认后端、实际分发形态）**，两侧逐位对齐 sha256 零差异：
+**主口径 = 宿主调用面（[S9p](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md)）**：宿主一次 `compile`
++ 一次 `Instance`，随后在同一实例上反复带参调 wasm（`cmd/host-probe` 的
+`qr_generate(content, version)`），与 fast_qr `qr_with` 形态对称、逐位 sha256 零差异：
 
 | 点 | 模块数 | 本仓库 MoonBit(wasm-gc) | fast_qr-wasm32 | fast / ours | 每模块成本 ours / fast |
 |----|------:|------------------------:|---------------:|------------:|------------------------|
@@ -316,60 +277,33 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 | V10H | 3249 | 0.643 ms | 0.399 ms | 0.620×（慢 ≈1.6×） | 0.198 / 0.123 µs |
 | V40H | 31329 | 4.659 ms | 3.523 ms | 0.756×（慢 ≈1.3×） | 0.149 / 0.112 µs |
 
-> **旧命令形态口径**（`cmd/bench`，保留作对照）：**A** 每次新建 Instance
-> （与 fast_qr「一次调用」同形，会**系统性夸大**差距）fast/ours = 0.263 / 0.528 / 0.728×；
-> **B** 单实例摊薄 = 0.340 / 0.574 / 0.737×。三者对照见 S9p §4.1。
-> **护栏全绿**：宿主面 checksum 与 `cmd/bench <点> 1` **逐点相同**（41/81/230，证明两个口径
-> 是同一计算）· 同实例重复调用结果恒定 · 逐位对齐 sha256 三点相同 · Node shim vs `moonrun` 跨宿主一致。
-> **统计口径（[S9q](./docs/S9q-性能口径统计差异与取平均评估.md)）**：上表上行为「R=5 中位数」口径（`R=3` 回退取最小并与离散成对报出）。
-> 同一产物重复测量（15 轮 × 5 次）的比值 CV：V03H **5.98%** ≫ V10H **3.54%** > V40H **0.35%**——
-> **单次 build 越便宜，相对统计误差越大**（固定项占比）；V03H 单轮最坏可偏离真值 **+17.3%**。
-> 噪声非白噪声（lag-1 自相关 r1 = 0.28~0.68，存在热/频漂移），故**同一进程内加轮次收益有限**；
-> 更大偏差来自宿主调度态（6 线程满载竞争使三点一致慢 **1.43–1.50×**）与 Node 大版本（v22→v24 两侧共模 1.12–1.23×）。
-> 纪律：**只用「同 run 内成对比值」，不跨 run 加减绝对毫秒**；主数取**中位数**而非算术平均（分布右偏）。
-> 绝对毫秒数**绑定测量环境**（本表 Node v24.21.0 + 2026-09-14 宿主）：跨环境只比「同 run 成对比值」，
-> 方向性结论全环境成立，归因见 [S9h](./docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md)。
-> 生态另两个 QR 包（`qrc`/`moonbitqrcode`）缺完整择优/Format 等，不可同口径对齐，仅参考口径见 S9d。
+> 上表为「R=5 中位数」口径。**纪律**：只用「同 run 内成对比值」，不跨 run 加减绝对毫秒；
+> 绝对毫秒绑定测量环境（Node v24.21.0 + 2026-09-14 宿主），跨环境只比比值。
+> 统计口径与离散（V03H 比值 CV **5.98%** ≫ V10H 3.54% > V40H 0.35%；V03H 单轮最坏偏离 **+17.3%**）、
+> 调度态与 Node 版本量级、旧命令形态对照、生态另两个包不可同口径的原因——
+> 全部下沉到 [S9q](./docs/S9q-性能口径统计差异与取平均评估.md) · [S9p](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md) §4.1 ·
+> [S9h](./docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md) · [S9d](./docs/S9d-与moonbit生态QR包性能对比.md)。
+> **护栏全绿**：宿主面 checksum 与 `cmd/bench <点> 1` 逐点相同 · 逐位对齐 sha256 三点相同 · 跨宿主一致。
 
 ### 后续优化 Roadmap
 
-**成本分解**（[S9k](./docs/S9k-性能瓶颈与理论上限评估.md)，进程级差分实测）：V40H 单次 auto 约
-**68% 在 8 轮 `score`**（N1+N3 行/列 ≈37%、N2 ≈16%、N4 ≈15%）+ 11% `apply_mask`；
-**V03H 约 44% 在结果容器 `wrap_packed`**（固定 31329 槽 + 逐格 `Array[Module]` 对象），8 轮评分仅 ≈28%。
-优化优先级据此为 **P0 wrap/容器（利小版本）+ P1 score 减趟/掩码特化（利大版本）**。
-
-**参考库杠杆**（[S9l](./docs/S9l-参考fast_qr高性能实现分析.md) 受控实验）：fast_qr 的 **掩码特化**
-实测 **4–5.8×**、**容器逐格对象税** **≈10×**、**字节+切片评分** **仅 ≈1.26×**——
-即最大杠杆是**掩码与容器**，介质宽度本身有限。容器专项另评估官方查找表类型 `ReadOnlyArray`
-（[S9m](./docs/S9m-ReadOnlyArray适用性评估.md)）：它是 `FixedArray` 的零成本封装、适合只读字面量表，
-救不了 score/wrap 两大瓶颈。
-
-**已落地**（2026-09-12，明细见 [S9n §6](./docs/S9n-优化方案复评与wasm-gc收敛审计.md)）：
-**P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b N4 并入行趟**——**受控 A/B（`cmd/bench` 边际口径，
-非上表层② 口径）** V40H 单次 auto **5.97→4.42 ms（−26%）**、V10H **−24%**、V03H **−4%**，
-且 `TOTAL_CHECKSUM` 三项与基线**完全相同**（输出逐位不变，当次 `moon test` 全绿）。
-上表层② 重测值（V40H 4.808 ms）与本段的 `cmd/bench` 边际值（4.42 ms）**口径/宿主不同、不可直接对撞**。
-**ReadOnlyArray（T-R1/T-R2/T-R4）亦已落地**：RS/常量查找表
-与局部只读字面量全部只读化、`moon.mod` 启用 `prefer_readonly_array` lint 防回归——受控探针复验
-`division` **≈1.30–1.34×**（真实块长，两态 checksum 逐位一致），整 build **≈0.9%**
-（分辨率边缘；定性「类型对齐为主、非性能杠杆」，见 [S9n §6.6](./docs/S9n-优化方案复评与wasm-gc收敛审计.md)）。
-
-**待做与上限**：容器 P1 受阻于 `QRCode.data` 固定容量公共契约（须 API 评审）；P2b(N2)/P3/T-R5 待做。
-**理论上限 ≈ fast_qr-wasm32 同执行模型数字**（本环境层② V40 ≈3.55 ms）：按 S9l 叠加方案 V40 现实仍可
-收窄到 **≈3.6–4.2 ms**（fast/ours 0.74×→≈0.84–0.98×，乐观逼近）；V03 因每次 build 固定成本约束，
-上界 ≈0.09–0.11 ms（fast/ours 0.37×→≈0.75–0.95×，**仍慢约 1.1–1.4×、大概率不追平**）。
-历史路线与已否决项（T1/O1-a 就地翻转）见 [S9b](./docs/S9b-性能优化.md)；
-统一优先级清单见 [S9n §3](./docs/S9n-优化方案复评与wasm-gc收敛审计.md)。
-
+- **成本分解**（[S9k](./docs/S9k-性能瓶颈与理论上限评估.md)）：V40H 约 **68% 在 8 轮 `score`** + 11% `apply_mask`；
+  V03H 约 **44% 在结果容器 `wrap_packed`**。优先级据此定为 **P0 容器 / P1 score 减趟与掩码特化**。
+- **已落地**（[S9n §6](./docs/S9n-优化方案复评与wasm-gc收敛审计.md)）：P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b N4 并入行趟，
+  V40H 受控 A/B **−26%**（V10H −24%、V03H −4%），`TOTAL_CHECKSUM` 三项与基线完全相同（输出逐位不变）；
+  ReadOnlyArray 只读化 + `prefer_readonly_array` lint 亦已落地（**≈0.9%**，定性「类型对齐为主、非性能杠杆」）。
+- **待做与上限**：容器 P1 受阻于 `QRCode.data` 固定容量公共契约（须 API 评审）；P2b(N2)/P3/T-R5 待做。
+  理论上限≈ fast_qr 同执行模型（本环境 V40 ≈3.55 ms），现实可收窄到 V40 **≈3.6–4.2 ms**；
+  V03 受每次 build 固定成本约束，**仍慢约 1.1–1.4×、大概率不追平**。
+  已否决项（T1/O1-a 就地翻转）见 [S9b](./docs/S9b-性能优化.md)，统一优先级清单见 [S9n §3](./docs/S9n-优化方案复评与wasm-gc收敛审计.md)。
 
 ---
 
 ## 测试
 
-**现状**：`moon test` **146 个用例全绿**（含 wasm-gc 回归），**26 个**测试文件按「就近式三载体」分层
-（`*_test.mbt` 黑盒 / `*_wbtest.mbt` 白盒 / 源码内联 `test {}` 目前未使用）：
-用例数与文件数**以实跑为准**（`moon test` / `find lib cmd -name '*_test.mbt' -o -name '*_wbtest.mbt' | wc -l`），
-避免文档数字与实现漂移（详见 [S11 §10.4](./docs/S11-无效代码与冗余文档清理评估.md#104-硬伤-4v1-漏检readme-与实现脱节测试数与文件数陈旧)）。
+**现状**：`moon test` 全绿（含 wasm-gc 回归与 1 个 README 文档测试），测试文件按「就近式三载体」分层
+（`*_test.mbt` 黑盒 / `*_wbtest.mbt` 白盒）。**用例数与文件数不写进 README**——它们随实现变动，
+写死必然漂移（此处曾出现同一文件内 146/147 自相矛盾）；需要数字时以实跑为准：`moon test`。
 
 | 层 | 覆盖 |
 |----|------|
@@ -378,35 +312,21 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 | 黄金值来源 | 参考 fast_qr commit `53e8c99` 侧由脚本产出（**禁止手抄**）：`snapshot_gen_s6.rs`（全矩阵）、`snapshot_gen_tables.py`（常量表全表指纹）、`snapshot_gen_rs_vectors.rs`（division/structure）、`snapshot_gen_score.rs`（打分明细）、`snapshot_gen_placement.rs`（放置坐标）、`snapshot_gen_default.py`（Python `qrcode` 独立真值）；一键校验 `bash scripts/gen-goldens.sh --verify`（四项零差异） |
 
 **测试完善路线**见 [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md)（**测试维护入口**）。
-该路线已实跑三项验证，结论比「覆盖更多代码」更有信息量：
+关键结论（均已实跑）：
 
-- **强负向对照（变异检测）**：就地植入 **21 类**最小缺陷 → **21 类全部被现有测试检出**
-  （复跑 `bash scripts/test-audit.sh mutation`）。历次审计共发现 **4 条真漏检**，全部已修：
-  ① 容量表改**中间项**、② Format 表改**非抽查 `(ECL,mask)`**（初版，由 **T1-f/T2-e** 修复）；
-  ③ **N1 结算阈值 `5→6`**（「恰好 5 连后立刻变色」路径无覆盖，由 **T2-b2/b3** 修复）；
-  ④ **择优并列 `s < best` → `s <= best`**（并列规则是文档契约却无用例，由 **T2-d2** 修复）。
-  这两条**首跑即漏检**，是本轮审计最大的价值——**分支存在 ≠ 分支被测**、**契约必须显式锁定**。
-- **独立第三方解码回读**：用纯 JS 解码器 `jsqr` 对矩阵做像素化解码，
-  ① 三基准点（V03H/V10H/V40H）**全部读回原文**；
-  ② **T3-d 全语料 54 组**（三模式 × 4 ECL × 4 版本 + 6 组自动版本靶点）**全部读回原文**；
-  ③ `--mutate` 负向对照组（破坏定位图案）**全部解码失败**——证明该证据链「能红、可信」
-  （入口 `bash scripts/test-audit.sh decode`，口径与标定见 S10 附录 D）。
-- **⚠️ 测试基础设施抓到了一条真 bug（v5）**：T3-d 探针首跑即暴露
-  `QRCode::select_capacity` 的**模式语义缺陷**——显式 `mode` 未参与容量判定，
-  较长 Alphanumeric/Byte 输入被**静默按 Numeric 选版本**，数据区装不下实际位流
-  → **矩阵不可解码**（旧实现下 4/54 组 jsQR 返回 `NULL`）。
-  修复后与参考在 **83,160 组参数**上零差异；详见
-  [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md)。
-- **证据链钉版可复现**：所有「与参考逐位一致」的黄金值均可由 `scripts/gen-goldens.sh`
-  在钉版参考上重建/校验（`--verify` 四项零差异），并已实测检出「中间项改值」「布局偏移」「系数改值」类缺陷。
-- **差分门禁**：`scripts/diff-gate.sh`（**T4-c**，本地/按需；已并入 `gates.sh`），把「与参考 wasm 逐位 sha256」
-  从仅打印升级为门禁；无参考制品时**显式打印 skipped**，避免静默假绿。
-- **覆盖率**：`bash scripts/coverage.sh`（**T5-a** 报告，见 [S10b](./docs/S10b-测试覆盖率报告.md)）；
-  `--floor` 为 **T5-b「不下降」门禁**（`lib/**` 未覆盖行 ≤ S10b 顶部 `coverage-floor` 标记）。
-  **不设绝对百分比阈值**——覆盖率是变异检测的补充而非替代（铁律 3），绝对阈值会诱发造无信息量用例。
-- **文档互链死链检查**：`bash scripts/docs-link-check.sh`（**T6-c**，本地/按需；已并入 `gates.sh`）；
-  检查受版本控制 Markdown 的**相对链接**存在性（跳过外链/锚点、忽略代码块），当前 **487 条零死链**。
-- **测试规模护栏**：`bash scripts/test-scale.sh`（**T7-b**，本地/按需；已并入 `gates.sh`），单测试文件 ≤800 行。
+- **强负向对照（变异检测）**：`bash scripts/test-audit.sh mutation` 就地植入 **21 类**最小缺陷 →
+  **21 类全部被检出**；历次审计共发现 **4 条真漏检**（容量表中间项、Format 非抽查点、N1 结算阈值 `5→6`、
+  择优并列 `s < best`）全部已修——**分支存在 ≠ 分支被测、契约必须显式锁定**。
+- **独立第三方解码回读**：`bash scripts/test-audit.sh decode` 用纯 JS `jsqr` 回读，
+  三基准点 + **T3-d 全语料 54 组**全部读回原文；`--mutate` 负向组全部解码失败（证明证据链「能红、可信」）。
+- **⚠️ 测试基础设施抓到一条真 bug（v5）**：T3-d 探针首跑暴露 `QRCode::select_capacity`
+  显式 `mode` 未参与容量判定 → 长 Alphanumeric/Byte 输入被静默按 Numeric 选版本、矩阵不可解码。
+  修复后与参考在 **83,160 组参数**上零差异，见
+  [S10c](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md)。
+- **可复现门禁**：`gen-goldens.sh --verify`（黄金值钉版重建，四项零差异）·
+  `diff-gate.sh`（与参考 wasm 逐位 sha256，无制品显式 skipped）·
+  `coverage.sh --floor`（T5-b 不下降，**不设绝对百分比**——覆盖率是变异检测的补充）·
+  `docs-link-check.sh`（相对链接零死链）· `test-scale.sh`（单测试文件 ≤800 行）。均已并入 `gates.sh`。
 
 **测试铁律**（摘要，完整七条见 S10 §5）：黄金值必须有脚本出处 · 黑盒锁契约/白盒锁实现 ·
 **禁止 `actual == actual`** · 断言失败必须能定位到模块/行/格 · **负向优先于正向** ·
@@ -422,26 +342,26 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 | 文档 | 说明 |
 |------|------|
 | [moonbit-项目目录设置-最佳实践.md](./docs/moonbit-项目目录设置-最佳实践.md) | 目录/包/测试设置的官方依据 + 实证验证 + 落地清单 |
-| [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成；附录含仓库初始化与云原生构建配置记录 |
+| [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成 |
 | [mooncakes-发布方案.md](./docs/mooncakes-发布方案.md) | **发布入口**：mooncakes.io 发布流程核验、元数据/命名/归档面评估、`.moonignore` 治理、版本策略与发布前门禁清单 |
-| [mooncakes-发布阻塞项3-4-落地方案.md](./docs/mooncakes-发布阻塞项3-4-落地方案.md) | **发布落地**：阻塞项 #3（归档面收敛 `.moonignore`，155→32 项）与 #4（发布前门禁 `publish-check.sh`）的深挖、实测与负向验证 |
-| [模块名迁移与发布链路核验.md](./docs/模块名迁移与发布链路核验.md) | **迁移记录**：mooncakes 账户定为 `TryAndRun-TvT` 后的全仓改名清单、`Cannot find import ...` 报错根因、`moon publish --dry-run` 退出码实测与 push 流水线移除后的本地门禁执行方式 |
-| [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md) | 性能/体积测试脚本位置、参数口径与可复现路径（公开评审/审计入口） |
+| [mooncakes-发布阻塞项3-4-落地方案.md](./docs/mooncakes-发布阻塞项3-4-落地方案.md) | **发布落地**：归档面收敛（`.moonignore` 155→32 项）+ 发布前门禁 `publish-check.sh` 的实测与负向验证 |
+| [模块名迁移与发布链路核验.md](./docs/模块名迁移与发布链路核验.md) | **迁移记录**：改为 `TryAndRun-TvT` 的全仓改名清单 + `moon publish --dry-run` 实测 |
+| [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md) | 性能/体积脚本的参数口径与可复现路径（**审计入口**） |
 | [S9i-纯库调用体积探针与库实际体积.md](./docs/S9i-纯库调用体积探针与库实际体积.md) | **库实际体积口径**（`cmd/qr-min` 纯库调用探针；体积金字塔 + 引用规范） |
-| [S9j-层②统一Node对比-wasm-gc与fast_qr.md](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md) | 层② MoonBit 侧收敛为 `wasm-gc`；Node 进程内 shim 直测（**性能主口径**） |
+| [S9j-层②统一Node对比-wasm-gc与fast_qr.md](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md) | 层② `wasm-gc` vs fast_qr（Node 进程内 shim 直测） |
 | [S9k-性能瓶颈与理论上限评估.md](./docs/S9k-性能瓶颈与理论上限评估.md) | 进程级差分把 auto build 拆为 5 段：瓶颈定位与理论上限（**roadmap 依据**） |
-| [S9n-优化方案复评与wasm-gc收敛审计.md](./docs/S9n-优化方案复评与wasm-gc收敛审计.md) | 收敛审计 + **单一优化优先级清单** + P0/P2/P2b 与 ReadOnlyArray **落地记录** |
+| [S9n-优化方案复评与wasm-gc收敛审计.md](./docs/S9n-优化方案复评与wasm-gc收敛审计.md) | 收敛审计 + **优化优先级清单** + 已落地项记录 |
 | [README示例二维码-SVG资源与生成.md](./docs/README示例二维码-SVG资源与生成.md) | README 头部示例码为何用 **SVG** + 资产规格 + 生成脚本 + 一致性核验 |
-| [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) | README 优化总账：**冗余清单**（§1–§5）、官方约定对照与取舍，**§6 徽章/自校验示例/SVG 渲染修正**（含「模块根为何需要一个空包」的关键实测） |
-| [S9o-性能与体积数据重测-与README冗余清理.md](./docs/S9o-性能与体积数据重测-与README冗余清理.md) | **本轮重测记录**：性能/体积数据刷新方法与归因 + README 去冗余清单 |
-| [S9p-宿主调用面性能口径-JS向wasm传参.md](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md) | **宿主调用面主口径**：JS 反复带参调 wasm（`cmd/host-probe` + `bench-host.sh`）；wasm-gc 传字符串的技术路径与踩坑（**性能主口径**） |
-| [S9q-性能口径统计差异与取平均评估.md](./docs/S9q-性能口径统计差异与取平均评估.md) | **统计口径**：为什么 R 轮取最小≠真值；轮次级重抽样的 CV / 单跑失稳率 / 漂移判定；调度态与 Node 版本的量级对照；**主数取中位数 + 必须报离散** |
+| [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) | README 优化总账：冗余清单、官方约定对照，**§6 徽章/文档测试/SVG**、**§7 符号链接方向回正与精简** |
+| [S9o-性能与体积数据重测-与README冗余清理.md](./docs/S9o-性能与体积数据重测-与README冗余清理.md) | 性能/体积数据刷新方法与归因 |
+| [S9p-宿主调用面性能口径-JS向wasm传参.md](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md) | **宿主调用面主口径**：JS 反复带参调 wasm（`cmd/host-probe`） |
+| [S9q-性能口径统计差异与取平均评估.md](./docs/S9q-性能口径统计差异与取平均评估.md) | **统计口径**：R 轮取最小≠真值；CV / 单跑失稳率 / 漂移判定；**主数取中位数 + 报离散** |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | 布局规则、`lib/` + `lib/internal/` 文件级职责、无环依赖、测试规划（**维护者入口**） |
-| [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md) | **测试 roadmap v6**：参考 fast_qr 测试体系盘点（含证据等级）+ 覆盖差距矩阵（G1–G15）+ 分阶段 T0–T7 路线 + 七条铁律；**附录 D/E/F/G/H 为实跑结论**（第三方解码回读、变异检测 **21/21**、v3/v4/v5 落地 + v6 订正记录）（**测试维护入口**） |
-| [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md) | **v5 真 bug 修复记录**：T3-d 探针首跑暴露的「显式模式未参与容量判定」缺陷——现象/根因/实测证据/修法/**与参考 83,160 组参数对照**/回归与变异项 |
+| [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md) | **测试 roadmap v6**：覆盖差距矩阵 + T0–T7 路线 + 七条铁律；附录为实跑结论（**测试维护入口**） |
+| [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md) | **v5 真 bug 修复记录**：显式模式未参与容量判定（含与参考 83,160 组对照） |
 | [S10b-测试覆盖率报告.md](./docs/S10b-测试覆盖率报告.md) | **T5-a 覆盖率报告**（行级，`scripts/coverage.sh` 产出）+ **T5-b 不下降门禁**（顶部 `coverage-floor` 机器可读标记） |
-| [S11-无效代码与冗余文档清理评估.md](./docs/S11-无效代码与冗余文档清理评估.md) | **清理评估入口**：无效/冗余代码与文档的判定口径、实测清单、分级处置队列与执行纪律（Issue #63）；**§10 二次复核**（修正 v1 的「能力缺口」误判）。逐轮落地记录见下条分册 |
-| [S11b-清理落地记录-v3-v5.md](./docs/S11b-清理落地记录-v3-v5.md) | **清理落地记录分册**：**§11 v3 P0/P1 落地**（删冗余符号、消 2 处双份实现、补 `QRCode::empty`、覆盖率 26→15）、**§12 v4 文件级「无实践内容」**（删纯注释文件 `fast_qr_moonbit.mbt`、合并薄委托文件 `qr_output.mbt`、删 3 个零信息符号）、**§13 v5 注释级过期口径巡检**（6 源码文件 9 处注释 + 11 文档订正，第 5 把尺子「口径引用有效性」） |
+| [S11-无效代码与冗余文档清理评估.md](./docs/S11-无效代码与冗余文档清理评估.md) | **清理评估入口**：无效代码/文档的判定口径与处置队列 |
+| [S11b-清理落地记录-v3-v5.md](./docs/S11b-清理落地记录-v3-v5.md) | **清理落地记录分册**：v3 删冗余符号/消双份实现、v4 文件级清理、v5 注释级过期口径巡检 |
 | [AGENTS.md](./AGENTS.md) | AI/协作者硬性约定：密钥安全、MoonBit 布局、文档死链零容忍（**贡献前必读**） |
 | ⤷ [S1–S9n 实现系列文档](./docs/S1-数据结构.md) | 按阶段编号的实现方案/记录/评审与性能评估全套（**按需深入，从 S1 进入**） |
 | ⤷ [fast_qr 移植参考](./docs/移植参考/fast-qr-索引.md) | Rust 参考库 v0.14.0 的架构/接口/概念分析语料（**由索引统辖**） |
