@@ -2,11 +2,11 @@
 /// helpers.mbt —— 终端输出工具（Unicode 半块字符画）
 /// 对应参考：fast_qr v0.14.0 `src/helpers.rs`（roadmap 批次 B11 / S7 输出层）。
 /// 职责：把 `QRCode` 渲染为「含边距的终端字符画」字符串（两行模块合一为一行字符），
-///       供 `QRCode::to_str()` / `QRCode::print()` 便捷方法委托（见 qr.mbt §S7）。
+///       并就近承载 `QRCode::to_str()` / `QRCode::print()` 便捷方法（本文件，S11 v4 合并）。
 /// 语义对齐（逐字符核对参考 helpers.rs `print_line`/`print_matrix_with_margin`）：
 ///   - 四态映射：(真,真)→' '、 (真,假)→'▄'、 (假,真)→'▀'、 (假,假)→'█'（真 = Module DARK）。
 ///   - 上下各补一条两模块高边距，左右各补一模块边距；末奇数行单独与全亮空行合并。
-///   - 顶层返回纯字符串，`print` 的 stdout 副作用由 qr.mbt 承担，与参考分工同构。
+///   - 顶层返回纯字符串；stdout 副作用只由本文件的 `QRCode::print` 承担（与参考分工同构）。
 
 ///|
 /// 半块字符：两行模块里「上暗下亮」取 TOP（上面那半块）。

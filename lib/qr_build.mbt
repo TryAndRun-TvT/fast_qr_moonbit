@@ -15,8 +15,8 @@
 /// - `ecl=None` → 默认 Quartile（Q）；`Some(e)` 用指定纠错。
 /// - `v=None` → 取 `version_for` 返回的最小适配版本；`Some(uv)` 且 `uv >= 最小` 用 uv。
 /// - 数据过大（V40 装不下）→ `Err(EncodedData)`；指定版本 < 最小适配 → `Err(SpecifiedVersion)`。
-/// 供 S4 create_matrix 与后续 QRBuilder（S6）复用：本阶段只做容量选择，矩阵放置随 S4 接入
-/// 此路径产出的版本号构建完整 QRCode（见 S3 方案 §3.5/§6）。
+/// 容量选择是 `build`/`build_fixed` 的公共前置步：二者以本函数产出的版本号接入矩阵装配
+/// （S4 `create_matrix` → 放置 → Format 覆写），QRBuilder 亦经 `QRCode::build` 复用本路径。
 ///
 /// **两类容量校验（对齐参考 fast_qr `Version::get` + `QRCode::new` 的两段式判定）**：
 /// ① 无显式版本（`v=None`）：按**声明模式**求最小适配版本，直接查 `version_for(mode_idx, …)`。

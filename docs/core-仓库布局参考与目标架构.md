@@ -120,7 +120,8 @@ core 布局是「数十个互相依赖的功能包子包」+「跨包基准/性�
 编码细节下沉 `lib/internal/`」为骨架：
 
 ```
-lib/fast_qr_moonbit.mbt            # 公共包：对外 API（QrCode / encode 等）
+lib/                              # 公共包：对外 API（QRCode / encode 等）
+├── qr.mbt / helpers.mbt 等        #   公共类型与入口（按职责分文件，不设同名入口注释文件）
 ├── version.mbt                  #   版本/纠错等级/掩码等公共枚举与常量
 ├── encode.mbt                   #   公共编码入口：bytes/str → 码矩阵
 ├── *_test.mbt / *_wbtest.mbt    #   黑盒/白盒测试（公共行为）

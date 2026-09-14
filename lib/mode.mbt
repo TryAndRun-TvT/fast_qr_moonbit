@@ -1,9 +1,10 @@
 ///|
 /// mode.mbt —— 公共编码模式枚举（Numeric / Alphanumeric / Byte）
-/// 对应参考：fast_qr v0.14.0 `src/encode.rs` 的 Mode（roadmap 批次 B7 骨架）
+/// 对应参考：fast_qr v0.14.0 `src/encode.rs` 的 Mode（roadmap 批次 B7）。
 /// 职责：对外 API 的模式枚举与序号映射；编码进入内部时按序号选择编码路径。
-/// 语义：`to_int` 序号 Numeric=0/Alphanumeric=1/Byte=2（与 Rust 变体顺序一致）；
-///       S1 仅建骨架 + 序号映射，编码逻辑随批次 B7 落地。
+/// 语义：`to_int` 序号 Numeric=0/Alphanumeric=1/Byte=2（与 Rust 变体顺序一致）。
+/// 实现归属：本文件只承载公共枚举与序号映射；三模式编码实现在
+///       `lib/internal/data_encoding/encode.mbt`（批次 B7 已落地）。
 
 ///|
 /// 数据编码模式（Kanji 模式暂不支持，见 fast_qr 说明）。

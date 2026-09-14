@@ -1,8 +1,8 @@
 ///|
 /// version.mbt —— 公共版本枚举（V01-V40）
-/// 对应参考：fast_qr v0.14.0 `src/version.rs`（roadmap 批次 B2 骨架）
+/// 对应参考：fast_qr v0.14.0 `src/version.rs`（roadmap 批次 B2）。
 /// 职责：对外版本枚举与序号（0..=39）映射。容量/分组等元数据大表放
-///       `internal/constants/capacity.mbt`，S1 骨架阶段不实现查表。
+///       `lib/internal/constants/capacity.mbt`（批次 B2 已落地，本文件不做查表）。
 /// 语义：`to_int` 序号 = 版本号 - 1（V01=0 .. V40=39），与 Rust 判别值一致。
 
 ///|
