@@ -218,7 +218,7 @@ moon publish --dry-run     # ❌ 未登录（预期；非技术阻塞）
 
 **评估**：迁移到 `README.mbt.md` 能把 README 内的 MoonBit 示例纳入类型检查
 （对**发布质量**是加分项，能防「README 示例与 API 漂移」）。
-但代价是：① 全仓 `[xx](./docs/xx.md)` 相对链接基线不变但文件改名；
+但代价是：① 全仓 `[xx](docs/xx.md)` 形式的相对链接需批量改指向（基线不变，仅改文件名）；
 ② `docs-link-check.sh`、CI、`gen-readme-qr-svg.sh` 等引用需同步；
 ③ 符号链接在 CNB/Git 上行为需实测。
 

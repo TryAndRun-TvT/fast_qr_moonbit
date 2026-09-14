@@ -50,3 +50,9 @@ $:
         #   从而把「参考侧对齐」从纯打印升级为一条**有日志可查**的门禁。
         - name: diff-gate
           script: bash scripts/diff-gate.sh
+        # 发布前门禁（docs/mooncakes-发布方案.md §6-B2）：把「发布不可逆」前置为一条
+        #   可执行门禁——校验归档面条目数基线（防分发面悄悄膨胀）+ 内容白/黑名单
+        #   （防 scripts//docs//测试文件混入）+ 元数据齐备 + 质量基线。
+        #   纯只读、零网络，故可进 push CI。
+        - name: publish-check
+          script: bash scripts/publish-check.sh

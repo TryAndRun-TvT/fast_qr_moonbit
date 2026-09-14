@@ -11,6 +11,7 @@
 #   - `path#anchor` 只校验 `path` 部分存在（锚点不校验）。
 #   - 锚点内的 URL 编码（如 `%20`）会被解码后再判断。
 #   - **忽略代码块**：``` 围栏内的示例链接不参与检查（避免把示例文本当死链）。
+#   - **忽略行内 code span**：`...` 内的示例链接同样不参与检查（同上，示例非真链接）。
 #
 # 用法: bash scripts/docs-link-check.sh
 #   LINK_CHECK_VERBOSE=1 bash scripts/docs-link-check.sh   # 打印每条链接
@@ -58,6 +59,11 @@ for f in "${FILES[@]}"; do
     /^[[:space:]]*```/ { inblock = !inblock; next }
     inblock { next }
     { line = $0
+      # 剔除**行内 code span**（`...`）：其中的 `[x](path)` 是文档举例，不是真链接。
+      # 与上面「忽略 ``` 围栏」同源——示例文本不应被当作死链来源。
+      while (match(line, /`[^`]*`/)) {
+        line = substr(line, 1, RSTART - 1) " " substr(line, RSTART + RLENGTH)
+      }
       while (match(line, /!?\[[^]]*\]\([^)]*\)/)) {
         seg = substr(line, RSTART, RLENGTH)
         sub(/^!?\[[^]]*\]\(/, "", seg)
