@@ -77,9 +77,12 @@
 在项目根目录（`moon.mod` 所在处）添加本库为依赖：
 
 ```bash
-# 需本模块已发布至 mooncakes；发布前可 clone 本仓库按「从源码构建」体验
+# 需本模块已发布至 mooncakes；发布前的过渡期为 clone 本仓库按「从源码构建」体验
 moon add tryandrun/fast_qr_moonbit
 ```
+
+> **发布状态**：尚未发布（`0.1.0` 待发布）。发布流程、元数据/命名核验、归档面治理
+> 与发布前门禁清单见 [mooncakes-发布方案.md](./docs/mooncakes-发布方案.md)。
 
 在 `moon.pkg` 中声明依赖并起别名（本库包路径为 `.../lib`，别名默认即目录名 `lib`）：
 
@@ -374,6 +377,7 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 |------|------|
 | [moonbit-项目目录设置-最佳实践.md](./docs/moonbit-项目目录设置-最佳实践.md) | 目录/包/测试设置的官方依据 + 实证验证 + 落地清单 |
 | [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成；附录含仓库初始化与云原生构建配置记录 |
+| [mooncakes-发布方案.md](./docs/mooncakes-发布方案.md) | **发布入口**：mooncakes.io 发布流程核验、元数据/命名/归档面评估、`.moonignore` 治理、版本策略与发布前门禁清单 |
 | [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md) | 性能/体积测试脚本位置、参数口径与可复现路径（公开评审/审计入口） |
 | [S9i-纯库调用体积探针与库实际体积.md](./docs/S9i-纯库调用体积探针与库实际体积.md) | **库实际体积口径**（`cmd/qr-min` 纯库调用探针；体积金字塔 + 引用规范） |
 | [S9j-层②统一Node对比-wasm-gc与fast_qr.md](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md) | 层② MoonBit 侧收敛为 `wasm-gc`；Node 进程内 shim 直测（**性能主口径**） |
