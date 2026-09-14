@@ -3,7 +3,8 @@
 /// 对应参考：fast_qr v0.14.0 `src/qr.rs`（roadmap 批次 B8 骨架）
 /// 职责：`QRCode` 结果容器（固定矩阵 + size/version/ecl/mask/mode 元数据）与 `QRCodeError`。
 ///       版本/纠错/掩码/模式等**编排与构造**已随 S8 拆至 qr_build.mbt/qr_builder.mbt（同包内
-///       非 pub 符号跨文件亦可见），终端输出便捷方法拆至 qr_output.mbt。
+///       非 pub 符号跨文件亦可见）；终端输出便捷方法（to_str/print）随渲染引擎同放 helpers.mbt
+///       （S11 v4：原 qr_output.mbt 仅 2 个薄委托方法，已合并，消除「薄文件 + 无实现」）。
 /// 关键语义：矩阵为一维按行存储的固定容量容器（177×177=31329）；大小 = 版本*4+17。
 /// 架构决策（D1）：`QRCode.data` 使用公共 `Module`（lib 层呈现类型），不泄漏 internal 类型。
 /// 架构决策（D11，S8）：公共层文件级职责归位——本文件仅保留「结果容器/错误/访问器」，不涉及
@@ -11,11 +12,9 @@
 ///       docs/S8-内部结构归位与分层.md §3.2。
 
 ///|
-/// 最大矩阵边长（版本 40：40*4+17 = 177）。
-pub const QR_MAX_WIDTH : Int = 177
-
-///|
-/// 最大模块数：177 × 177 = 31329。
+/// 最大模块数：177 × 177 = 31329。既是矩阵存储的固定容量，也是「最大边长 177」的
+/// 单一事实源（`size <= 177` ⇒ `size*size <= QR_MAX_MODULES`）。宿主若需最大边长，
+/// 用 `Version::V40.width()` 表达语义更清晰（S11 v4 删除冗余常量 `QR_MAX_WIDTH`）。
 pub const QR_MAX_MODULES : Int = 31329
 
 ///|
@@ -54,26 +53,16 @@ pub fn QRCode::default(size : Int) -> QRCode {
 ///
 /// 语义对齐参考 fast_qr `QRCode::default(size)`，但把「版本」作为显式入参、
 /// 避免 `default(size)` 的「边长 + 元数据全 None」双重歧义（见 docs/S11 §3.1）。
+/// 历史上曾另设 `for_version` 别名，S11 v4 判定为「零生产引用的纯别名」而删除；
+/// 需要「按版本取空矩阵」时**只走本函数**（单一入口）。
 pub fn QRCode::empty(v : Version) -> QRCode {
-  QRCode::default(v.width()).with_version(v)
-}
-
-///|
-/// 以指定版本构造空 `QRCode`（`QRCode::empty` 的历史别名，语义完全一致）。
-pub fn QRCode::for_version(v : Version) -> QRCode {
-  QRCode::empty(v)
-}
-
-///|
-/// 覆写版本元数据（构造/读取时为清晰表达所用版本）。
-fn QRCode::with_version(self : QRCode, v : Version) -> QRCode {
   QRCode::{
-    data: self.data,
-    size: self.size,
+    data: Array::make(QR_MAX_MODULES, Module::data(false)),
+    size: v.width(),
     version: Some(v),
-    ecl: self.ecl,
-    mask: self.mask,
-    mode: self.mode,
+    ecl: None,
+    mask: None,
+    mode: None,
   }
 }
 

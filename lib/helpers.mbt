@@ -96,3 +96,17 @@ pub fn print_matrix_with_margin(qr : QRCode) -> String {
   sb.write_char(S7_BLOCK)
   sb.to_string()
 }
+
+///|
+/// `QRCode` 渲染便捷方法（原 `qr_output.mbt`，S11 v4 合并）：渲染终端 Unicode 半块
+/// 字符画（含边距）整串字符串。纯确定性、无 IO 副作用。
+/// 与渲染引擎同文件后，`to_str` ↔ `print_matrix_with_margin` 的委托关系一目了然。
+pub fn QRCode::to_str(self : QRCode) -> String {
+  print_matrix_with_margin(self)
+}
+
+///|
+/// 打印终端字符画到 stdout（唯一承担 stdout 副作用的方法，走 `println`）。
+pub fn QRCode::print(self : QRCode) -> Unit {
+  println(self.to_str())
+}
