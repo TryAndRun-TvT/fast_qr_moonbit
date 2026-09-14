@@ -23,9 +23,11 @@ export PATH="$HOME/.moon/bin:$PATH"
 
 # 归档面基线：`moon package --list` 条目数（不含 moon 自身日志行）。
 # 变更此值必须同步 docs/mooncakes-发布方案.md 的登记值并说明理由（评审可见）。
-BASELINE="${ARCHIVE_BASELINE:-32}"
+# 32 → 34（2026-09-14）：README 恢复官方布局（README.mbt.md + README.md 符号链接）并新增
+# 模块根空包 moon.pkg 作 README 文档测试宿主（见 docs/README优化-冗余清理与最佳实践.md §6）。
+BASELINE="${ARCHIVE_BASELINE:-34}"
 # 分发面顶层白名单（除 lib/ 外允许出现的条目）。
-ALLOW_TOP=$'LICENSE\nREADME.md\nmoon.mod\ncmd/main/main.mbt\ncmd/main/moon.pkg'
+ALLOW_TOP=$'LICENSE\nREADME.mbt.md\nREADME.md\nmoon.mod\nmoon.pkg\ncmd/main/main.mbt\ncmd/main/moon.pkg'
 # 分发面**禁止**出现的路径前缀/模式（须为空的负向断言）。
 DENY_PATTERNS=('/scripts/' '/docs/' '.cnb.yml' '.githooks' '.codebuddy' 'AGENTS.md' '_test.mbt' '_wbtest.mbt')
 
@@ -114,5 +116,5 @@ if (( fail )); then
   echo ">> 发布前门禁未通过：请按上面 ❌ 逐项修正后再发布（发布不可逆）。"
   exit 1
 fi
-echo ">> 发布前门禁通过：归档面 32 项、无维护者上下文混入、元数据齐备、质量基线全绿。"
+echo ">> 发布前门禁通过：归档面 ${count} 项、无维护者上下文混入、元数据齐备、质量基线全绿。"
 echo "   注：本门禁**不含**实际发布动作（需本地 moon login，见 docs/mooncakes-发布方案.md §6-C）。"

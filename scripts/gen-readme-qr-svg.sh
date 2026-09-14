@@ -99,12 +99,21 @@ for r in range(n):
 d = ''.join(f"M{x + margin},{y + margin}h{w}v{h}h-{w}z" for x, y, w, h in rects)
 # 注意：path 的 d 必须保持**单行**——librsvg（rsvg-convert / sharp 等）会把
 # d 属性内的换行当作无效数据并截断路径，导致图形残缺（实测）；标签之间换行无碍。
+# fill-rule="evenodd" 是**去掉该输出规则的前提**（2026-09-14 修正）：
+#   本脚本把暗格按「连续段 + 纵向贪心」合并为 122 个子路径，且**子路径方向一律同向**
+#   （矩形按顺序环绕，未做方向归一化）。默认 nonzero 规则对同向路径取「并集」，
+#   一旦出现「一个子路径完全包含另一个」的情况，被包含的**亮格会被填成暗** → 扫不出。
+#   evenodd 按「奇偶覆盖」判定，同向/反向都正确，从而对未做方向归一化的合并结果免疫。
+#   ⚠️ 诚实口径（实测）：以当前合并算法产出的这份资产**并没有发生**嵌套（122 子路径、
+#   两两无包含关系），故加不加 fill-rule 渲染**逐像素相同**；此项是**去风险的加固**，
+#   不是修复已发生的 bug。负向对照（2026-09-14 实跑）：手工注入一个包住全图的外层矩形后，
+#   无 fill-rule 版本 jsQR **解不出**、加 evenodd 后**可解回原文**。
 svg = (
     f'<svg viewBox="0 0 {W} {W}" role="img" aria-label="QR code for {content}" '
     'xmlns="http://www.w3.org/2000/svg">\n'
     f'<title>fast_qr_moonbit 生成的二维码：{content}</title>\n'
     f'<rect width="{W}" height="{W}" fill="#ffffff"/>\n'
-    f'<path d="{d}" fill="#000000"/>\n'
+    f'<path fill-rule="evenodd" d="{d}" fill="#000000"/>\n'
     '</svg>\n'
 )
 open(out, 'w', encoding='utf-8').write(svg)

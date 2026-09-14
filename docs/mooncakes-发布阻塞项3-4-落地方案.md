@@ -20,7 +20,7 @@
 
 | 阻塞项 | 结论 | 交付 |
 |:------:|------|------|
-| **#3 归档面未收敛** | ✅ **已解并落地**：`.moonignore` 把归档 **155 → 32 项**（解压 1886 → 179 KiB），并以**离线 registry 注入**实测证明 32 项归档下游可用（`moon add`/`build`/`run` 全通） | `.moonignore` |
+| **#3 归档面未收敛** | ✅ **已解并落地**：`.moonignore` 把归档 **155 → 32 项**（2026-09-14 起 34 项，解压 1886 → 179 KiB），并以**离线 registry 注入**实测证明 32 项归档下游可用（`moon add`/`build`/`run` 全通） | `.moonignore` |
 | **#4 发布前门禁缺口** | ✅ **已解并落地**：新增 `scripts/publish-check.sh` 四段式门禁（归档基线 + 内容白/黑名单 + 元数据 + 质量基线），原挂 push CI（**2026-09-14 push 流水线已整体移除**，门禁改为本地/发布前手跑，
 一键全量命令见 `.cnb.yml` 头部注释）；公共 API 文档缺口实测**仅 1 处**（非原估 13 处，见 §4.2） | `scripts/publish-check.sh` |
 | 附带修复 | 🔴→✅ **main 已红**：PR #72 引入 `docs-link-check` 死链误报（行内 code span 例子被当链接），已修脚本口径 + 正文 | `scripts/docs-link-check.sh` |
@@ -114,6 +114,10 @@ PR #72 给出的 4 个阻塞项：
 
 **最终分发面 32 项**：`lib/**`(27) + `cmd/main`(2) + `LICENSE`/`README.md`/`moon.mod`(3)。
 
+> **2026-09-14 增量（32 → 34）**：README 恢复官方布局（`README.mbt.md` + `README.md` 符号链接，+1）
+> 并新增模块根空包 `moon.pkg` 作 README 文档测试宿主（+1）。两项**均非维护者上下文**，
+> 前者是 mooncakes 首页展示的 README 正文，后者不含实现与导出，消费者无感（详见发布方案 §4.2.1）。
+
 ### 2.3 关键实测：排除测试文件是否安全？
 
 `.moonignore` 的一个反直觉行为（实测）：**根级 glob `/*_test.mbt` 不生效**，
@@ -191,7 +195,7 @@ cd consumer && moon run   cmd/main --target wasm-gc             # ✅ size=25 + 
 
 | 目标 | 理由 | 实现 |
 |------|------|------|
-| **能挡「归档膨胀」** | 归档面是最易被无意识破坏的（加个脚本/文档就变大） | 条目数基线 `BASELINE=32` |
+| **能挡「归档膨胀」** | 归档面是最易被无意识破坏的（加个脚本/文档就变大） | 条目数基线 `BASELINE=34`（2026-09-14 由 32 上调） |
 | **能挡「上下文泄漏」** | `scripts/`/`docs/` 混入是 `mooncakes` 生态的负面信号 | 黑名单断言（7 条模式） |
 | **能挡「缺件」** | 漏 `LICENSE` 会影响许可合规展示 | 白名单断言 |
 | **能挡「元数据漏字段」** | 官方要求 `license`/`keywords`/`repository`/`description`/`homepage` 展示 | 6 字段存在性断言 |
@@ -326,7 +330,7 @@ print(len(z.namelist()), 'items')"                                              
 # 去掉 .moonignore 后同法 -> 155
 
 # ── #4 发布前门禁 ─────────────────────────────────────────
-bash scripts/publish-check.sh                    # -> 全绿，32 项
+bash scripts/publish-check.sh                    # -> 全绿，34 项
 bash scripts/publish-check.sh 2>&1 | grep '❌'    # -> 无
 
 # 负向：削弱 .moonignore 后应红（验证门禁有效）

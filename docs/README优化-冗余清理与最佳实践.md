@@ -1,10 +1,12 @@
 # README 优化 · 最佳实践对照与冗余清理
 
 > 面向：README 维护者 / 审阅者。
-> 背景：ISSUE #47 第三轮要求「README 存在大量冗余内容，继续优化」。
-> 前置：第一轮（PR #48）补齐依赖用法/能力局限/性能速览；第二轮（PR #54）示例码改 SVG。
-> 日期：2026-09-12　｜　工具链：`moon 0.1.20260904`、`wasm-gc`
-> 影响面：**仅 README.md**（不改 lib / 公共 API / 快照 / 用例 / 脚本）。
+> 背景：ISSUE #47 多轮要求「README 优化 / 去冗余 / 继续优化」。
+> 前置：第一轮（PR #48）补齐依赖用法/能力局限/性能速览；第二轮（PR #54）示例码改 SVG；
+> 第一/二轮冗余清理（PR #55/#56，§1–§5 为本轮记录）；**第三轮见文末 §6（2026-09-14）**。
+> 日期：2026-09-12（§1–§5）｜ 2026-09-14（§6）　｜　工具链：`moon 0.1.20260904`、`wasm-gc`
+> 影响面：§1–§5 **仅 README.md**（不改 lib / 公共 API / 快照 / 用例 / 脚本）；
+> §6 起为「README 可达性与自校验」轮次，**新增根空包 `moon.pkg` + README 布局恢复官方形态**。
 
 ---
 
@@ -157,3 +159,104 @@ moon test --target wasm-gc                         # 111/111 通过
 - 对外口径来源：[S9j](./S9j-层②统一Node对比-wasm-gc与fast_qr.md) · [S9i](./S9i-纯库调用体积探针与库实际体积.md) ·
   [S9n](./S9n-优化方案复评与wasm-gc收敛审计.md)
 - 本仓库实码：`README.md`、`moon.mod`、`.cnb.yml`、`scripts/`、`docs/`
+
+---
+
+## 6. 第三轮（2026-09-14）：从「去冗余」到「可检出漂移」
+
+> 响应 ISSUE #47 新一轮「继续优化」。前两轮解决了**体积/重复**，本轮解决**可达性与可信度**：
+> README 该有的「入口信号」缺失、示例无门禁、唯一图形资产存在渲染缺陷。
+
+### 6.1 官方依据（本轮重新核验）
+
+| 来源 | 结论 | 本轮落地 |
+|------|------|---------|
+| [CNB 徽章文档](https://docs.cnb.cool/zh/develops/badge.md) | 仓库相关徽章路径 `https://cnb.cool/{group}/{repo}/-/badge/{star\|fork\|release}`，直接嵌 Markdown 即可 | README 头部新增 star / fork / latest release + Apache-2.0 四个徽章（**逐个实测 HTTP 200**） |
+| [MoonBit 包管理文档](https://docs.moonbitlang.com/en/latest/toolchain/moon/package-manage-tour.html) | `moon new` 产 `README.mbt.md` + `README.md` 符号链接；`moon.mod` 元数据与 README 一同展示在 mooncakes.io | 恢复官方布局（§6.2） |
+| [MoonBit Comments and Documentation](https://docs.moonbitlang.cn/zh-cn/latest/language/docs.html) | ```mbt check``` 代码块是 **document test**，由 `moon check`/`moon test` 运行 | README 示例改为文档测试（§6.3） |
+
+> 前两轮**刻意没做**的两件事（§1.1 记为「可选的下一步」），本轮做了其中 ①「README 迁 `README.mbt.md`」；
+> ②「`docs/索引.md`」仍未做（理由见 §6.6）。
+
+### 6.2 README 恢复官方布局：`README.mbt.md` + 符号链接
+
+- `git mv README.md README.mbt.md` + `ln -s README.mbt.md README.md`（与官方模板一致）；
+  `moon.mod` 的 `readme` 仍解析到 `README.md`（符号链接）→ **mooncakes/平台零影响**。
+- **代价（诚实声明）**：① 编辑链接需 **follow**（编辑器直接改 `README.md` 会写穿符号链接，
+  也能工作，但 git 侧仍是同一个 blob）；② `docs-link-check.sh` 跳过内容相同路径；
+  ③ 部分平台对符号链接的展示差异**未在本环境验证**（CNB 仓库页渲染待线上确认）。
+- **收益**：README 示例从此可被 `moon check` / `moon test` 真正编译运行。
+
+### 6.3 关键实测：模块根的 `.md` 何时才会被当作文档测试
+
+这是本轮**唯一的硬技术障碍**，三种布局各跑一遍（临时模块 + `moon.work` 引用本仓库）：
+
+| 布局 | `mbt check` 是否被执行 | 结论 |
+|------|:---------------------:|------|
+| 根 `README.mbt.md`，**根无 `moon.pkg`** | ❌ 完全不扫描 | 必需项缺失 → 文档测试静默失效 |
+| 根 `README.mbt.md` + **根空 `moon.pkg`** | ✅ `moon test --outline` 出现 `README.mbt.md:174 index=0 readme_quick_start` | **采用** |
+| 文档测试写在源码 `///` 注释里 | ✅ 同样被 `moon test` 执行 | 可作替代方案（但正文就不在 README 了） |
+
+**结论**：官方 README 布局要真正生效，**模块根必须有 `moon.pkg`**（哪怕只写 `warnings`）。
+本项目此前把「模块根零 `moon.pkg`」当作「方案 3」的标志，本轮把它修订为
+「**模块根不放库代码**；根空包仅作文档测试宿主」（`docs/moonbit-实现布局与文件职责.md` §1 已改写）。
+
+**`@lib` 的 `unused_package` 处理**：文档测试里的 `@lib` 对静态分析不可见 → 必须
+显式 `warnings = "-29"`，否则 `moon check --deny-warn` 直接失败（**实测**）。
+
+### 6.4 示例去重：正文示例与 `cmd/main` 合一
+
+第二轮已把 README「快速开始」的 `SvgBuilder` 链式示例落进 `cmd/main/main.mbt`（消除 §3.1 的
+「文档/CLI 不一致」）。本轮把 README 里那段 **13 行 `moonbit` 展示块**（正文示例的副本）
+替换为**指向 `cmd/main/main.mbt` 的一行说明**，示例本体只保留在 `mbt check` 块——
+**同一示例不再有两份载体**。
+
+### 6.5 SVG 资产加 `fill-rule="evenodd"`（**去风险加固，不是修复已发生的 bug**）
+
+> 本节按「**实测优先于叙述**」的口径重写。初稿曾称这是「修复了一个渲染缺陷」——**过头了**，
+> 复合验证后如实降级（见下「诚实结论」）。
+
+- **背景**：本脚本把暗格按「连续段 + 纵向贪心」合并为子路径，**子路径方向一律同向**（未归一化）。
+  默认 `nonzero` 对同向路径取并集，一旦出现「子路径 A 完全包含子路径 B」，
+  B 内部的**亮格会被填成暗**。
+- **机制验证（实跑）**：构造「外框包内框」的最小 SVG：
+  `nonzero` 中心像素 = 黑（被填充）、`evenodd` 中心像素 = 白（被抠空）——规则差异确实存在。
+- **对当前资产的实际影响（实跑）**：解析 `qr-example.svg` 的 **122 个子路径**，
+  两两做包含判定 → **0 对嵌套**；光栅化（resvg 512px）后加/不加 `fill-rule` 的 PNG
+  **字节相同**，`jsQR` 两者都能解回 `https://example.com/`。
+- **负向对照（证明加固有意义，实跑）**：手工往 `d` 头部注入一个包住全图的外层矩形后，
+  无 `fill-rule` 版本 `jsQR` **解不出**，加 `evenodd` 版本**可解回原文**。
+- **诚实结论**：
+  1. 当前资产**没有发生**嵌套 → 本项**不修复任何现存 bug**，是**去风险的加固**
+     （对合并算法未来演进、子路径顺序调整免疫）；
+  2. 生成脚本已同步注释该口径，避免后人误以为「不加就坏」；
+  3. 真正已被验证的结论只有两条：**`d` 必须单行**（librsvg 会截断，2026-09-12 实测）、
+     **嵌套时必须有 evenodd**（本次负向对照）。
+  4. 几何语义（暗格集合）未变，仍与库矩阵逐格一致。
+
+### 6.6 本轮数据与刻意取舍
+
+| 指标 | 本轮前 | 本轮后 |
+|------|:------:|:------:|
+| `moon test --target wasm-gc` | 146 | **147**（+1 README 文档测试） |
+| `moon fmt --check` / `moon check --deny-warn` | 绿 | 绿 |
+| `docs-link-check` | 556 链零死链 | **625 链零死链** |
+| README 头部徽章 | 0 | 4（all HTTP 200） |
+| SVG 渲染（resvg 512px + jsQR） | 可解 | 可解（加 `fill-rule` 前后**逐字节相同**） |
+| README 可被门禁校验的示例 | 0 | 1（`readme_quick_start`） |
+| 根 `moon.pkg` | 无 | 1（空包，仅文档测试宿主） |
+
+| 取舍 | 理由 |
+|------|------|
+| **不加 push CI 徽章** | 本仓库 push 流水线已于 2026-09-14 移除，徽章会长期显示 `unknown`（实测）→ 不诚实，不加 |
+| **未加 `docs/索引.md`** | README 索引已收敛到 15 行系列入口；再拆一层会与 AGENTS 的「文档索引即入口」重复 |
+| **未删任何 `docs/` 文档** | 同 §4：历史与实验依据，互链密集 |
+| **README 正文仍为中文单语** | 与既有文档一致；英文摘要属独立议题（真要国际化应整篇做） |
+
+### 6.7 一句话总结
+
+> 本轮把 README 从「写给人看、只能靠人维护」推进到「**示例能被门禁验证**」：
+> 头部有徽章（入口信号）、布局回归官方（`README.mbt.md` + 符号链接）、
+> 示例进 `mbt check`（146 → 147 用例，改 API 不改示例即红）、
+> 图形资产补上 `fill-rule="evenodd"`（**去风险加固**，非修复现存 bug，见 §6.5 的复合验证）。
+> 唯一的结构性代价是**模块根多了一个空 `moon.pkg`**——它不做任何事，只为让文档测试被看见。

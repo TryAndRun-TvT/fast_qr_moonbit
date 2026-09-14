@@ -131,3 +131,25 @@ bash scripts/gen-readme-qr-svg.sh     # 重新生成 docs/assets/qr-example.svg
 - 体积口径（`cmd/main` 含输出层的增量）：[S9i 纯库调用体积探针与库实际体积](./S9i-纯库调用体积探针与库实际体积.md)
 - 本仓库实码：`scripts/gen-readme-qr-svg.sh`（生成器）、`docs/assets/qr-example.svg`（资产）、
   `cmd/main/main.mbt`（字符画 + SVG 打印演示）
+
+---
+
+## 4. 2026-09-14 增补：`fill-rule="evenodd"` 与「d 必须单行」
+
+本轮（ISSUE #47 第三轮，见 [README优化-冗余清理与最佳实践.md](./README优化-冗余清理与最佳实践.md) §6.5）
+给 `<path>` 补了 `fill-rule="evenodd"`，生成脚本同步注释。**口径以实测为准，勿夸大**：
+
+| 事项 | 实测结论 |
+|------|---------|
+| `d` 属性**必须单行** | ✅ **已发生的实测缺陷**：librsvg（rsvg-convert / sharp）把 `d` 内换行当无效数据，路径被截断、图形只剩一角（2026-09-12 本地复现：折行解码失败、单行成功） |
+| `fill-rule="evenodd"` | ⚠️ **去风险加固，非修复现存 bug**：当前合并结果 **122 子路径两两无嵌套**，加/不加渲染**逐字节相同**、jsQR 均可解 |
+| 何时 `evenodd` 是必需的 | 负向对照（注入包住全图的外层矩形）：无 `fill-rule` → jsQR **解不出**；加 `evenodd` → **解回原文**。因合并出的子路径**方向一律同向**，`nonzero` 对嵌套取并集会把亮格填暗 |
+
+**维护动作**：改动合并算法（尤其是引入「子路径方向归一化」或「矩形排序」）后，
+请重跑 §3 的解码回读与本节的两条负向对照，确认资产仍可解。
+
+> 校验命令（本环境可复现）：
+> ```bash
+> npm i -g @resvg/resvg-js && npm i jsqr pngjs
+> # 光栅化 512px 后交给 jsQR，应解回 https://example.com/
+> ```
