@@ -5,16 +5,20 @@
 #   官方文档未给出 `yank`/撤回命令（实测 `moon publish --help` 无相关选项），
 #   故必须假设「已发布版本不可撤回」——发布前门禁必须先可执行、再谈发布。
 #
-# 本门禁做四件事（全部只读、零网络、秒级）：
+# 本门禁做五件事（全部只读、零网络、秒级）：
 #   ① 质量基线：fmt --check / check --deny-warn / test；
 #   ② 归档面基线：把 `moon package --list` 的条目数钉在**登记值**上，防「归档悄悄膨胀」；
 #   ③ 归档内容白名单：断言分发面只含 lib/** + cmd/main + 三件套，且**不含** scripts/docs/测试；
-#   ④ 元数据自检：moon.mod 必备字段齐备（name/version/license/readme/description/repository）。
+#   ④ 元数据自检：moon.mod 必备字段齐备（name/version/license/readme/description/repository）；
+#   ⑤ 发布面链接可达性（离线静态）：归档内文件（README/LICENSE/...）**不得**用相对链接指向
+#      **归档外**路径（`docs/**`、`AGENTS.md`），否则 mooncakes 落地页会 404。
 #
 # 用法: bash scripts/publish-check.sh
 #   ARCHIVE_BASELINE=<N> bash scripts/publish-check.sh   # 临时覆盖条目数基线
+#   PUBLISH_LINK_NET=1 bash scripts/publish-check.sh     # 额外对 README 的 https 链接做 HEAD 校验
 #
-# 条款来源：docs/mooncakes-发布方案.md §4.3（归档面治理）与 §6-B2（发布前冒烟）。
+# 条款来源：docs/mooncakes-发布方案.md §4.3（归档面治理）与 §6-B2（发布前冒烟）；
+#   ⑤ 为 v6 新增（ISSUE #47 / README 优化评估报告第二轮 P0-A）。
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -111,10 +115,111 @@ else
   fail=1
 fi
 
+# ---- ⑤ 发布面链接可达性（离线静态 + 可选网络） ------------------------------
+echo "--- ⑤ 发布面链接可达性（归档内 Markdown 不得有指向归档外的相对链接）---"
+# 机制：mooncakes 渲染 README 时把相对链接 r 重写为
+#   https://assets.mooncakes.io/source/<name>@<version>/<r>
+# 而 .moonignore 排除 /docs/ 与 /AGENTS.md → 这类链接在落地页 404。
+# 口径：**归档内**文件（moon package --list 的条目）中，若出现相对链接指向归档外的目标，
+#       即判定失败（要求改用仓库绝对链接，见 README「链接约定」）。
+# 说明：只查「归档内**以外**」的目标；指向归档内文件（LICENSE、cmd/main/main.mbt）的相对链接合法。
+# 注：`moon package --list` 的进度日志直接写终端，`2>/dev/null` 无法屏蔽；
+#     为稳定取条目，落临时文件后过滤（与 ② 同法）。
+declare -A ARCHIVE_MEMBER=()
+arch_tmp="$(mktemp)"
+moon package --list >"$arch_tmp" 2>&1 || true
+grep -vE '^(Running|Check|Finished|Package to|Warning|Error)' "$arch_tmp" \
+  | sed 's/:[0-9]*$//' | sed 's/[[:space:]]*$//' | grep -v '^$' >"$arch_tmp.items"
+while IFS= read -r m; do [[ -n "$m" ]] && ARCHIVE_MEMBER["$m"]=1; done <"$arch_tmp.items"
+rm -f "$arch_tmp" "$arch_tmp.items"
+
+# 需要检查的归档内 Markdown：moon.mod 的 readme 字段（去重）
+PUB_READMES=()
+while IFS= read -r rd; do
+  [[ -z "$rd" || ! -f "$rd" ]] && continue
+  dup=0; for x in "${PUB_READMES[@]:-}"; do [[ "$x" == "$rd" ]] && dup=1; done
+  (( dup )) || PUB_READMES+=("$rd")
+done < <(sed -n 's/^readme[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' moon.mod)
+[[ -f README.md ]] && { dup=0; for x in "${PUB_READMES[@]:-}"; do [[ "$x" == "README.md" ]] && dup=1; done; (( dup )) || PUB_READMES+=("README.md"); }
+
+bad_links=0
+checked_pub=0
+for f in "${PUB_READMES[@]}"; do
+  [[ -f "$f" ]] || continue
+  # 提取相对链接（跳过 http(s)/mailto/纯锚点/绝对路径），忽略代码块与行内 code span
+  while IFS= read -r target; do
+    [[ -z "$target" ]] && continue
+    case "$target" in http://*|https://*|mailto:*|tel:*|\#*|/*) continue ;; esac
+    path="${target%%#*}"
+    [[ -z "$path" ]] && continue
+    path="$(printf '%b' "${path//%/\\x}")"
+    # 归一化相对路径（折叠 ./ ../）
+    resolved="$(realpath -m --relative-to=. "$path" 2>/dev/null || echo "$path")"
+    checked_pub=$((checked_pub + 1))
+    if [[ -z "${ARCHIVE_MEMBER[$resolved]:-}" ]]; then
+      printf '  ❌ %s -> %s（解析为 %s，**不在发布归档内** → mooncakes 落地页会 404）\n' "$f" "$target" "$resolved"
+      bad_links=$((bad_links + 1))
+    fi
+  done < <(awk '
+    /^[[:space:]]*```/ { inblock = !inblock; next }
+    inblock { next }
+    { line = $0
+      while (match(line, /`[^`]*`/)) { line = substr(line, 1, RSTART - 1) " " substr(line, RSTART + RLENGTH) }
+      while (match(line, /!?\[[^]]*\]\([^)]*\)/)) {
+        seg = substr(line, RSTART, RLENGTH)
+        sub(/^!?\[[^]]*\]\(/, "", seg); sub(/\)$/, "", seg)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", seg)
+        sub(/[[:space:]]+".*"$/, "", seg)
+        print seg
+        line = substr(line, RSTART + RLENGTH)
+      }
+    }' "$f")
+done
+
+if (( bad_links > 0 )); then
+  echo "  ❌ 归档内文件出现 $bad_links 条「指向归档外」的相对链接（共查 $checked_pub 条）"
+  echo "     处置：改为仓库绝对链接 https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/<path>"
+  echo "           （口径见 README「链接约定」与 docs/README优化-冗余清理与最佳实践.md §9）"
+  fail=1
+else
+  echo "  ✅ 归档内文件（${PUB_READMES[*]}）共 $checked_pub 条相对链接，**全部**指向归档内成员"
+fi
+
+# 可选：网络校验 README 的 https 外链（默认关闭；CI/联网时用 PUBLISH_LINK_NET=1 打开）
+if [[ "${PUBLISH_LINK_NET:-0}" == "1" ]]; then
+  echo "  · 网络校验 README 的 https 链接（PUBLISH_LINK_NET=1）..."
+  net_bad=0
+  while IFS= read -r url; do
+    code="$(curl -s -o /dev/null -I -w '%{http_code}' --max-time 15 "$url" || echo "000")"
+    if [[ "$code" != 2* && "$code" != 3* ]]; then
+      printf '    ❌ %s -> HTTP %s\n' "$url" "$code"
+      net_bad=$((net_bad + 1))
+    fi
+  done < <(grep -oE 'https://[^)"'"'"' ]+' docs/README优化-冗余清理与最佳实践.md >/dev/null 2>&1; \
+           awk '
+             /^[[:space:]]*```/ { inblock = !inblock; next }
+             inblock { next }
+             { line = $0
+               while (match(line, /`[^`]*`/)) { line = substr(line, 1, RSTART - 1) " " substr(line, RSTART + RLENGTH) }
+               while (match(line, /!?\[[^]]*\]\([^)]*\)/)) {
+                 seg = substr(line, RSTART, RLENGTH)
+                 sub(/^!?\[[^]]*\]\(/, "", seg); sub(/\)$/, "", seg)
+                 if (seg ~ /^https?:\/\//) print seg
+                 line = substr(line, RSTART + RLENGTH)
+               }
+             }' README.md | sed 's/[[:space:]]*$//' | sort -u)
+  if (( net_bad > 0 )); then
+    echo "  ❌ $net_bad 条外链不可达"
+    fail=1
+  else
+    echo "  ✅ 外链可达性通过（或无可检外链）"
+  fi
+fi
+
 echo
 if (( fail )); then
   echo ">> 发布前门禁未通过：请按上面 ❌ 逐项修正后再发布（发布不可逆）。"
   exit 1
 fi
-echo ">> 发布前门禁通过：归档面 ${count} 项、无维护者上下文混入、元数据齐备、质量基线全绿。"
+echo ">> 发布前门禁通过：归档面 ${count} 项、无维护者上下文混入、元数据齐备、发布面链接可达、质量基线全绿。"
 echo "   注：本门禁**不含**实际发布动作（需本地 moon login，见 docs/mooncakes-发布方案.md §6-C）。"

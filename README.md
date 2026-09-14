@@ -19,14 +19,14 @@
 | | |
 |---|---|
 | **语言** | [MoonBit](https://www.moonbitlang.cn/)（**仅 `wasm-gc`**） |
-| **标准** | ISO/IEC 18004 二维码（版本 1–40，ECL L/M/Q/H，8 掩码评分择优） |
+| **标准** | ISO/IEC 18004 二维码（版本 V01–V40，ECL L/M/Q/H，8 掩码评分择优） |
 | **许可** | [Apache-2.0](./LICENSE) |
 | **参考** | Rust [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr) 逐位移植对齐 |
 | **性能/体积** | 单次 build 慢 fast_qr ≈1.3–2.5×（逐位零差异）· 库体积约 **0.69×**　→ [量级与出处](#性能与体积) |
 | **测试** | 三载体分层（黑盒/白盒/文档测试）· 变异检测 + 第三方解码回读全绿　→ [证据链](#测试) |
 
 > 本页是**落地页**：只给「能做什么 / 怎么用 / 边界在哪 / 去哪看细节」。
-> **数字、参数、实验设计与历史记录**一律在 [`docs/`](./docs/README-导航与索引.md)，
+> **数字、参数、实验设计与历史记录**一律在 [`docs/`](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README-导航与索引.md)，
 > 本页的每条结论都带出处链接。
 
 ---
@@ -68,15 +68,15 @@
 已知局限（诚实声明）：
 
 - **编码模式**仅支持 Byte/Alphanumeric/Numeric；**Kanji 模式暂不支持**（与参考 fast_qr 一致）。
-- 输入按 **ASCII 字节** 处理（非 ASCII 多字节字符的语义见 [S6 评审记录](./docs/S6-端到端对齐与公共API.md) 的优化建议）。
+- 输入按 **ASCII 字节** 处理（非 ASCII 多字节字符的语义见 [S6 评审记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S6-端到端对齐与公共API.md) 的优化建议）。
 - 产物形态面向 **wasm**：MoonBit `Int` 32 位、纠错位流 `KEEP_LAST=33`（取 Rust wasm32 分支），
-  对真实 QR 语义无差别（详见 [S9 评估记录](./docs/S9-性能基准.md) §2.4）。
+  对真实 QR 语义无差别（详见 [S9 评估记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9-性能基准.md) §2.4）。
 - **仅支持 `wasm-gc`**：`moon.mod` 声明 `supported_targets = "+wasm-gc"`，下游 `native`/JS 消费者会被构建系统
   直接拒绝（实测 `does not support target backend 'native'`）。库本身是纯 MoonBit，此为**有意的分发范围收缩**；
   其中 `native` 另需系统 C 编译器（当前 CI/本地镜像未装）。
 - **宿主需支持 wasm-gc（GC 提案）**：如 Node ≥ 22 / V8、启用 GC 的 wasmtime；CLI `println` 依赖
   `spectest.print_char` 导入（非标准 WASI）。`wasm`(WASI) 通用兜底已移除，宿主接入面相应变窄。
-  取舍与复核见 [S9n wasm-gc 收敛审计](./docs/S9n-优化方案复评与wasm-gc收敛审计.md) §1。
+  取舍与复核见 [S9n wasm-gc 收敛审计](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9n-优化方案复评与wasm-gc收敛审计.md) §1。
 
 ---
 
@@ -89,7 +89,8 @@
 moon add TryAndRun-TvT/fast_qr_moonbit
 ```
 
-> **发布状态**：尚未发布（`0.1.0` 待发布），故发布徽章可能显示 `none`。
+> **发布状态**：已发布 `0.1.0`（首个版本）；本页为**仓库当前文档**，
+> 可能领先于线上归档，精确版本以 [mooncakes 页面](https://mooncakes.io/docs/TryAndRun-TvT/fast_qr_moonbit) 为准。
 > 发布流程与发布前门禁见[文档索引](#文档索引) → 发布相关篇目；
 > 发布动作已脚本化：`bash scripts/publish.sh`（默认干跑，`--publish` 真发）。
 
@@ -129,10 +130,10 @@ test "readme_quick_start" {
 
 > 上面的 `mbt check` 块是 **document test**：`moon test` 会真编译、真运行它——
 > 改公共 API 而不同步改示例，测试直接变红。机制与踩坑见
-> [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) §6.3。
+> [README优化-冗余清理与最佳实践.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README优化-冗余清理与最佳实践.md) §6.3。
 
 **下一步**：可用类型一览、逐格矩阵读写与从零自建示例，见
-[公共 API 与矩阵读写明细](./docs/S9r-README性能体积长口径与公共API明细.md#3-公共类型一览readme-旧正文承接)；
+[公共 API 与矩阵读写明细](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#3-公共类型一览readme-旧正文承接)；
 完整公共契约以 `moon info` 的 `.mbti` 与 `lib/*.mbt` 为准。
 
 ---
@@ -169,28 +170,28 @@ moon test --target wasm-gc
 > 门禁改为**本地一键**：`bash scripts/gates.sh`（`fmt-check → check → test → docs-link-check →
 > test-scale → build-and-run → diff-gate → publish-check`；支持 `STAGES="check test"` / `SKIP_SLOW=1`）。
 > 提交前跑一遍是**必须**动作。脚本分组与逐个用途见
-> [S9r §4 脚本分组](./docs/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接)。
+> [S9r §4 脚本分组](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接)。
 
 `-Oz` 体积最优档的命令、`moon-wasm-opt` 参数与「为何要 `--disable-custom-descriptors`」，
-见 [S9r §1](./docs/S9r-README性能体积长口径与公共API明细.md#1-产物体积release-bash-scriptsbench-sizesh)。
+见 [S9r §1](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#1-产物体积release-bash-scriptsbench-sizesh)。
 
 ---
 
 ## 性能与体积
 
 > 数字仅作选型与迭代基线，**不代表对 fast_qr 的追赶承诺**。本页只给量级；
-> **表格、参数、统计离散与护栏**见 [S9r · 明细](./docs/S9r-README性能体积长口径与公共API明细.md#2-性能三口径核心结论表)。
+> **表格、参数、统计离散与护栏**见 [S9r · 明细](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#2-性能三口径核心结论表)。
 
 - **性能 vs fast_qr-wasm32**：单次 build 慢 **≈1.3–2.5×**（点数越小差距越大），
   **逐位对齐 sha256 零差异**；差距集中在 8 轮掩码择优主循环。
-  复跑 `bash scripts/bench-host.sh`　→ 口径 [S9p](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md) · 离散 [S9q](./docs/S9q-性能口径统计差异与取平均评估.md)
+  复跑 `bash scripts/bench-host.sh`　→ 口径 [S9p](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9p-宿主调用面性能口径-JS向wasm传参.md) · 离散 [S9q](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9q-性能口径统计差异与取平均评估.md)
 - **性能 vs 生态 `moonqr`**：全程快 **2.5–4.1×**（**历史口径**，未随最近一轮重测）。
-  复跑 `bash scripts/bench-layer2.sh`　→ [S9d](./docs/S9d-与moonbit生态QR包性能对比.md)
+  复跑 `bash scripts/bench-layer2.sh`　→ [S9d](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9d-与moonbit生态QR包性能对比.md)
 - **体积 vs fast_qr**：库对库对称锚点 **≈0.69×**（本仓库更小）；差距大头是**运行时地板**，非 QR 实现。
-  复跑 `bash scripts/bench-size.sh`　→ [S9i](./docs/S9i-纯库调用体积探针与库实际体积.md)
+  复跑 `bash scripts/bench-size.sh`　→ [S9i](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9i-纯库调用体积探针与库实际体积.md)
 - **优化状态**：已落地 P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b，V40H 受控 A/B **−26%**（输出逐位不变）；
-  待做与上限见 [S9n](./docs/S9n-优化方案复评与wasm-gc收敛审计.md) · [S9k](./docs/S9k-性能瓶颈与理论上限评估.md)
-- **报告纪律**：只引用**同 run 内成对比值**；绝对毫秒绑定 Node 版本与调度态，跨环境不可比（[S9q](./docs/S9q-性能口径统计差异与取平均评估.md)）。
+  待做与上限见 [S9n](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9n-优化方案复评与wasm-gc收敛审计.md) · [S9k](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9k-性能瓶颈与理论上限评估.md)
+- **报告纪律**：只引用**同 run 内成对比值**；绝对毫秒绑定 Node 版本与调度态，跨环境不可比（[S9q](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9q-性能口径统计差异与取平均评估.md)）。
 
 ## 测试
 
@@ -198,8 +199,8 @@ moon test --target wasm-gc
 - **证据链**：变异检测（植入最小缺陷须被检出）+ 第三方解码回读（jsQR 读回原文）+
   黄金值钉版重建 + 与参考 wasm 逐位 sha256 差分。
 - **门禁**：`bash scripts/gates.sh`（全量）· 单项 `scripts/test.sh`、`scripts/coverage.sh --floor`。
-- **维护入口**：[S10 测试 roadmap](./docs/S10-测试用例设计与完善roadmap.md)（覆盖矩阵 + 七条铁律）·
-  [S10b 覆盖率报告](./docs/S10b-测试覆盖率报告.md) · [S10c 真 bug 修复记录](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md)。
+- **维护入口**：[S10 测试 roadmap](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S10-测试用例设计与完善roadmap.md)（覆盖矩阵 + 七条铁律）·
+  [S10b 覆盖率报告](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S10b-测试覆盖率报告.md) · [S10c 真 bug 修复记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S10c-select-capacity模式语义缺陷-定位与修复.md)。
 
 > **用例数与文件数不写进 README**——它们随实现漂移，写死必然自相矛盾。需要数字时以 `moon test` 实跑为准。
 
@@ -207,26 +208,45 @@ moon test --target wasm-gc
 
 ## 文档索引
 
-> **本页只保留落地页所需的入口**；完整导航（按读者路径 / 按议题 / 全量清单）见
-> **[docs/README-导航与索引.md](./docs/README-导航与索引.md)**。
-> 文件名前缀 `S1`–`S9r` 为按实现顺序编号的阶段文档。
+> **本页只保留落地页所需的入口**；文件名前缀 `S1`–`S9r` 为按实现顺序编号的阶段文档。
+> 面向**本仓库读者**的完整导航（读者路径 / 按议题 / 全量清单）在
+> [`docs/README-导航与索引.md`](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README-导航与索引.md)；
+> 面向**发布归档读者（mooncakes 落地页）**的明细承接一律用**仓库绝对链接**（见文末「链接约定」）。
 
 | 我想… | 去哪 |
 |-------|------|
-| **用这个库** | 本页[快速开始](#快速开始) → [公共 API 与矩阵读写](./docs/S9r-README性能体积长口径与公共API明细.md#3-公共类型一览readme-旧正文承接) |
-| **看性能/体积明细** | [S9r 明细承接](./docs/S9r-README性能体积长口径与公共API明细.md) · [S9p](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9i](./docs/S9i-纯库调用体积探针与库实际体积.md) |
-| **看测试与证据链** | [S10 roadmap](./docs/S10-测试用例设计与完善roadmap.md) · [S10b 覆盖率](./docs/S10b-测试覆盖率报告.md) · [S10c 修复记录](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md) |
-| **发布到 mooncakes** | [mooncakes-发布方案.md](./docs/mooncakes-发布方案.md) · [发布阻塞项落地](./docs/mooncakes-发布阻塞项3-4-落地方案.md) · [模块名迁移核验](./docs/模块名迁移与发布链路核验.md) |
-| **改代码 / 提 PR** | [AGENTS.md](./AGENTS.md)（**硬性约定**）· [实现布局与文件职责](./docs/moonbit-实现布局与文件职责.md) · [目录设置最佳实践](./docs/moonbit-项目目录设置-最佳实践.md) |
-| **审计脚本与口径** | [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md) · [S9r §4 脚本分组](./docs/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接) |
-| **README 为何这样写** | [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) · [示例码资产与生成](./docs/README示例二维码-SVG资源与生成.md) |
-| **清理/收敛评估** | [S11 评估入口](./docs/S11-无效代码与冗余文档清理评估.md) · [S11b 落地记录](./docs/S11b-清理落地记录-v3-v5.md) |
-| **看实现系列文档** | ⤷ [S1 数据结构](./docs/S1-数据结构.md)（S1–S9 系列总入口）· ⤷ [fast_qr 移植参考](./docs/移植参考/fast-qr-索引.md) |
-| **看历史基线** | ⤷ [项目基础框架](./docs/项目基础框架-详细分析.md) · ⤷ [重写 roadmap](./docs/moonbit-重写-roadmap-详细分析.md) · ⤷ [wasm 编译运行分析](./docs/wasm-编译与运行-结果分析.md) |
+| **用这个库** | 本页[快速开始](#快速开始) → [公共 API 与矩阵读写](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#3-公共类型一览readme-旧正文承接) |
+| **看性能/体积明细** | [S9r 明细承接](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md) · [S9p](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9i](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9i-纯库调用体积探针与库实际体积.md) |
+| **看测试与证据链** | [S10 roadmap](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S10-测试用例设计与完善roadmap.md) · [S10b 覆盖率](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S10b-测试覆盖率报告.md) · [S10c 修复记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S10c-select-capacity模式语义缺陷-定位与修复.md) |
+| **发布到 mooncakes** | [mooncakes-发布方案.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/mooncakes-发布方案.md) · [发布阻塞项落地](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/mooncakes-发布阻塞项3-4-落地方案.md) · [模块名迁移核验](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/模块名迁移与发布链路核验.md) |
+| **改代码 / 提 PR** | [AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/AGENTS.md)（**硬性约定**）· [实现布局与文件职责](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/moonbit-实现布局与文件职责.md) · [目录设置最佳实践](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/moonbit-项目目录设置-最佳实践.md) |
+| **审计脚本与口径** | [性能测试脚本-公开评审说明.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/性能测试脚本-公开评审说明.md) · [S9r §4 脚本分组](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接) |
+| **README 为何这样写** | [README优化-冗余清理与最佳实践.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README优化-冗余清理与最佳实践.md) · [示例码资产与生成](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README示例二维码-SVG资源与生成.md) |
+| **清理/收敛评估** | [S11 评估入口](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S11-无效代码与冗余文档清理评估.md) · [S11b 落地记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S11b-清理落地记录-v3-v5.md) |
+| **看实现系列文档** | ⤷ [S1 数据结构](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S1-数据结构.md)（S1–S9 系列总入口）· ⤷ [fast_qr 移植参考](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/移植参考/fast-qr-索引.md) |
+| **看历史基线** | ⤷ [项目基础框架](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/项目基础框架-详细分析.md) · ⤷ [重写 roadmap](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/moonbit-重写-roadmap-详细分析.md) · ⤷ [wasm 编译运行分析](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/wasm-编译与运行-结果分析.md) |
 
 > **全量清单**（含 `docs/` 全部篇目与角色）在
-> [docs/README-导航与索引.md §8](./docs/README-导航与索引.md#8-全量文档清单按文件名供检索)。
+> [docs/README-导航与索引.md §8](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README-导航与索引.md#8-全量文档清单按文件名供检索)。
 > 新增文档须同步更新该文件与本表，否则 `bash scripts/docs-link-check.sh` 会红（死链零容忍）。
+
+### 链接约定（本仓库文档纪律）
+
+发布归档（mooncakes）**只收录随包分发面**（`README.md` / `LICENSE` / `lib/**` / `cmd/main` 等），
+`.moonignore` 显式排除 `/docs/` 与 `/AGENTS.md`。因此 README 里指向它们的**相对链接**
+在 mooncakes 落地页会被重写为 `assets.mooncakes.io/source/.../docs/...` 而 **404**。
+本页采用如下约定（由 `bash scripts/publish-check.sh` 的 ⑤ 断言兜底）：
+
+| 链接目标 | 形态 | 例 |
+|----------|------|-----|
+| `README.md` / `LICENSE` / `cmd/main/**`（**在归档内**） | 相对链接 | [`./cmd/main/main.mbt`](./cmd/main/main.mbt) |
+| `docs/**` / `AGENTS.md`（**不在归档内**） | **仓库绝对链接**（`https://cnb.cool/.../-/blob/main/...`） | 见上表「我想… → 去哪」 |
+| 本页内锚点 | 相对锚点 | [快速开始](#快速开始) |
+
+> **硬约束（门禁 ⑤ 断言）**：本页**不含**任何 `./docs/**` 或 `./AGENTS.md` 相对链接——
+> 否则归档读者必 404。在仓库内需要相对导航时，请到
+> [`docs/README-导航与索引.md`](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README-导航与索引.md)
+> （该文件在仓库内使用相对链接，属**仓库内导航面**；它不在归档内，故不受归档约束）。
 
 ---
 
@@ -260,13 +280,13 @@ moon test --target wasm-gc
 > **布局纪律**：模块根只放元数据；库代码一律 `lib/`，实现细节 `lib/internal/`，**不要建 `src/`**。
 > 唯一例外是根 `moon.pkg`（空包，README 文档测试宿主）。
 > 测试放所属包内，`*_test.mbt`（黑盒）与 `*_wbtest.mbt`（白盒）**不可混用**。
-> 文件级职责见 [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md)。
+> 文件级职责见 [moonbit-实现布局与文件职责.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/moonbit-实现布局与文件职责.md)。
 
 ---
 
 ## 工程约定与贡献
 
-- **硬性约定（贡献前必读）**：[AGENTS.md](./AGENTS.md)——密钥/Token 永不入库、
+- **硬性约定（贡献前必读）**：[AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/AGENTS.md)——密钥/Token 永不入库、
   不提交本地配置与构建产物、MoonBit 布局、文档死链零容忍、README 只保留结论+出处。
 - **门禁**：`bash scripts/gates.sh`（一键全量）。**没有 push CI**，本地跑是唯一自动闸门。
 - **发布**：`bash scripts/publish.sh`（默认干跑）。凭据属本地私有，**发布不进 CI**。
