@@ -137,8 +137,8 @@ test "qr_code_default_meta" {
 }
 
 ///|
-test "qr_code_for_version_size" {
-  let qr = QRCode::for_version(Version::V40)
+test "qr_code_empty_size" {
+  let qr = QRCode::empty(Version::V40)
   assert_eq(qr.size(), 177)
   assert_eq(qr.data().length(), 31329)
   let (v, _, _, _) = qr.meta()
@@ -147,7 +147,7 @@ test "qr_code_for_version_size" {
 
 ///|
 test "qr_code_get_set" {
-  let qr = QRCode::for_version(Version::V01)
+  let qr = QRCode::empty(Version::V01)
   // 默认全亮数据模块
   assert_eq(qr.get(0, 0).value(), false)
   let dark = Module::data(true)
@@ -158,7 +158,7 @@ test "qr_code_get_set" {
 ///|
 test "qr_code_set_immutable_no_alias" {
   // 回归：QRCode::set 需不可变——返回新 QRCode 不得改到源（别名/共享数组回归）
-  let qr = QRCode::for_version(Version::V01)
+  let qr = QRCode::empty(Version::V01)
   let dark = Module::data(true)
   let qr2 = qr.set(0, 0, dark)
   assert_eq(qr2.get(0, 0).value(), true)

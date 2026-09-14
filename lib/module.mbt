@@ -91,12 +91,6 @@ pub fn Module::data(value : Bool) -> Module {
 }
 
 ///|
-/// 便捷构造：明暗固定暗模块。
-pub fn Module::dark(value : Bool) -> Module {
-  Module::new(value, DarkModule)
-}
-
-///|
 /// 置/清明暗位（bit0）。
 pub fn Module::set(self : Module, value : Bool) -> Module {
   let b = self.byte.to_int()

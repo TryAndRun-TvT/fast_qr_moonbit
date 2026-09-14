@@ -35,17 +35,20 @@ test "public_module_value" {
 ///|
 test "public_module_type" {
   assert_eq(Module::new(false, FinderPattern).module_type().to_int(), 1)
-  assert_eq(Module::dark(true).module_type().to_int(), 6)
+  // DarkModule 走通用构造（S11 v4 删除了零语义增益的 Module::dark 便捷糖）
+  assert_eq(Module::new(true, DarkModule).module_type().to_int(), 6)
 }
 
 ///|
 test "public_qrcode_default" {
-  let qr = QRCode::for_version(Version::V40)
+  let qr = QRCode::empty(Version::V40)
   assert_eq(qr.size(), 177)
   // 默认矩阵全为亮色数据模块
   assert_eq(qr.get(0, 0).value(), false)
   assert_eq(qr.data().length(), QR_MAX_MODULES)
-  assert_eq(QR_MAX_WIDTH, 177)
+  // 最大边长与固定容量的一致性：177*177 == QR_MAX_MODULES（单一事实源口径，S11 v4）
+  assert_eq(Version::V40.width(), 177)
+  assert_eq(Version::V40.width() * Version::V40.width(), QR_MAX_MODULES)
 }
 
 ///|
@@ -412,7 +415,7 @@ test "public_builder_explicit_mode_uses_mode_encoder" {
 ///|
 /// `QRCode::empty(version)`（S11 §3.1/§10.6 P1-3）：公开的「空矩阵」构造——
 /// 边长由版本推导、矩阵全亮、仅 version 元数据置位，作为宿主自建矩阵的干净起点。
-/// 与历史别名 `for_version` 语义一致（等价护栏）。
+/// S11 v4：删除 `for_version` 别名后本函数成为**唯一**空矩阵入口（本用例锁该契约）。
 test "public_qrcode_empty" {
   let qr = QRCode::empty(Version::V01)
   assert_eq(qr.size(), 21)
@@ -430,10 +433,10 @@ test "public_qrcode_empty" {
   let built = qr.set(0, 0, Module::data(true))
   assert_eq(built.get(0, 0).value(), true)
   assert_eq(qr.get(0, 0).value(), false)
-  // 别名等价
-  let via_for_version = QRCode::for_version(Version::V01)
-  assert_eq(via_for_version.size(), qr.size())
-  assert_eq(via_for_version.meta().0, qr.meta().0)
+  // 版本 → 边长契约（V01=21），与 Version::width() 单一事实源一致
+  assert_eq(Version::V01.width(), 21)
+  // 另一版本交叉校验（非法入参不存在：Version 枚举穷尽 V01..V40）
+  assert_eq(QRCode::empty(Version::V40).size(), Version::V40.width())
 }
 
 ///|
