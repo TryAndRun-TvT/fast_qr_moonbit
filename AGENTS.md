@@ -31,8 +31,9 @@
 - **模块根只放元数据**（`moon.mod` / `README.md` / `docs/` 等），**模块根不是包**
   （无根 `moon.pkg`）；库包统一放 `lib/`，实现细节藏 `lib/internal/`。
 - 包按目录组织，每个目录一个 `moon.pkg`。
-- 库入口文件放 `lib/`：`lib/fast_qr_moonbit.mbt`（文件名可任取，沿用模块名便于识别）；
-  公共枚举/类型文件（ecl/version/mode/mask/qr/helpers 等）与入口同放 `lib/`。
+- 公共文件统一放 `lib/`，`.mbt` 文件名可任取、按职责命名（如 ecl/version/mode/mask/module/
+  qr/qr_build/qr_builder/helpers/shape/svg）；MoonBit 同包共享命名空间，**不设「入口注释文件」**
+  （公共 API 总览由 `README.md` + `docs/moonbit-实现布局与文件职责.md` 承载，见 [S11b](./docs/S11b-清理落地记录-v3-v5.md) §12）。
 - 测试文件放**所属包目录内**，分两类，**不可混用**：
 
   | 文件 | 运行位置 | 可访问范围 |

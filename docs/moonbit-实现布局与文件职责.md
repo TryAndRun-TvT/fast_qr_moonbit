@@ -4,9 +4,11 @@
 > [moonbit-重写-roadmap-详细分析](./moonbit-重写-roadmap-详细分析.md) 与
 > `moonbitlang/core` 实仓布局（模块根只放元数据、库为 feature 子目录包），
 > 并采纳「方案 3」：**取消模块根根包，库代码统一收入 `lib/` 子包**。
-> 当前阶段：代码 = 注释骨架（无逻辑），供后续按 roadmap 填充真实实现。
+> 当前阶段：**B1→B11 全部落地、S1–S11 收口完成**（测试 146 全绿；仅 `wasm-gc` 单后端）。
+> 本文的布局/职责结论仍然有效，但 §3 的「状态」列与 §6 的落地描述已按**当前真实状态**刷新
+> （2026-09-14，[S11b](./S11b-清理落地记录-v3-v5.md) §13「过期注释/口径巡检」）。
 >
-> 日期：2026-09-05
+> 日期：2026-09-05（布局决策）　｜　状态刷新：2026-09-14
 
 ---
 
@@ -17,18 +19,19 @@
 2. **库包在 `lib/`**：`lib/moon.pkg` + 公共文件（入口/枚举/容器）+ `lib/internal/` 实现子包；
    消费者通过 `import { "tryandrun/fast_qr_moonbit/lib" @lib }` 使用。
 3. **无环依赖（MoonBit 实测禁止 import 环）**：
-   - `lib`（未来实现到该步时）import `lib/internal/*`；
+   - `lib` import `lib/internal/*`（已落地）；
    - internal 永不反向 import `lib`；跨边界以**域序号（Int）**或本包类型传参；
    - 公共枚举（ECL/Version/Mode/Mask 等）只出现在 `lib/`（`.mbti` 对外契约）。
 4. **测试放所属包目录内**：`lib/*_test.mbt`（黑盒，`@lib` 别名 = 目录名，自动可用）、
    `lib/*_wbtest.mbt`（白盒）、贴近实现的断言用源码内联 `test {}`。
 5. **不提前声明 import**：依赖在实现到该步时、声明与使用同一批提交；骨架阶段 `moon.pkg` 留空。
-6. **代码注释先行**：真实代码按 roadmap B1→B11 逐个替换注释骨架，每批一个提交。
+6. **代码注释先行（历史约定）**：B1→B11 曾按批次逐个把注释骨架替换为真实实现，每批一个提交；
+   该过程已于 S1–S7 完成，现无注释骨架文件。
 
 > 与「单根包」/「模块根 internal」旧方案的差异：库入口 import 路径由
 > `.../fast_qr_moonbit` 变为 `.../fast_qr_moonbit/lib`；构建/CI 需显式给包名。
 >
-> **v4 更新（2026-09-14，[S11 §12](./S11-无效代码与冗余文档清理评估.md)）**：原 `lib/fast_qr_moonbit.mbt`
+> **v4 更新（2026-09-14，[S11b §12](./S11b-清理落地记录-v3-v5.md)）**：原 `lib/fast_qr_moonbit.mbt`
 > （入口注释文件）与 `lib/qr_output.mbt`（薄委托文件）已删/合并——MoonBit 同包共享命名空间，
 > **公共 API 总览的权威载体是 README + 本文档**，不再在源码目录保留纯注释文件。
 
@@ -39,8 +42,13 @@ moon.mod / README.md / docs/ / AGENTS.md / .cnb.yml   # 模块根：仅元数据
 ├── lib/                          # 库包（公共，对外契约）
 │   ├── moon.pkg
 │   ├── ecl.mbt / version.mbt / mode.mbt / mask.mbt   # 公共枚举
-│   ├── qr.mbt                    #   QRCode 容器 / 错误 / 公共 API 总览（入口注释）
+│   ├── module.mbt                #   公共 Module/ModuleType（单字节位打包）
+│   ├── qr.mbt                    #   QRCode 结果容器 / 错误 / 读写访问器
+│   ├── qr_build.mbt              #   容量选择 + 编排入口（select_capacity/build_fixed/build）
+│   ├── qr_builder.mbt            #   公共 QRBuilder 构造器
 │   ├── helpers.mbt               #   终端画渲染 + QRCode::to_str/print（输出便捷）
+│   ├── shape.mbt                 #   公共 Shape（SVG 形状枚举）
+│   ├── svg.mbt                   #   公共 SvgBuilder（SVG 输出）
 │   ├── fast_qr_moonbit_test.mbt  #   黑盒测试（@lib）
 │   ├── fast_qr_moonbit_wbtest.mbt #  白盒测试
 │   └── internal/                 # 实现子包（各带 moon.pkg；不反向依赖 lib）
@@ -58,27 +66,32 @@ moon.mod / README.md / docs/ / AGENTS.md / .cnb.yml   # 模块根：仅元数据
 
 | 文件 | 职责 | 参考源（/fast_qr） | roadmap | 状态 |
 |------|------|--------------------|:---:|:---:|
-| `ecl.mbt` | ECL 枚举 → 序号映射 | `src/ecl.rs` | B1 | 注释骨架 |
-| `version.mbt` | Version 枚举 → 序号映射 | `src/version.rs` | B2 | 注释骨架 |
-| `mode.mbt` | Mode 枚举 → 序号映射 | `src/encode.rs` | B7 | 注释骨架 |
-| `mask.mbt` | Mask 枚举 → 序号映射 | `src/datamasking.rs` | B10 | 注释骨架 |
-| `qr.mbt` | QRCode 容器 / 错误 / 读写访问器（公共 API 总览见 [S11 §12](./S11-无效代码与冗余文档清理评估.md)） | `src/qr.rs` | B8 | 已实现 |
+| `ecl.mbt` | ECL 枚举 → 序号映射 | `src/ecl.rs` | B1 | 已实现 |
+| `version.mbt` | Version 枚举 → 序号映射 | `src/version.rs` | B2 | 已实现 |
+| `mode.mbt` | Mode 枚举 → 序号映射 | `src/encode.rs` | B7 | 已实现 |
+| `mask.mbt` | Mask 枚举 → 序号映射 | `src/datamasking.rs` | B10 | 已实现 |
+| `module.mbt` | 公共 `Module`/`ModuleType`（D1 上移呈现层） | `src/module.rs` | B5 | 已实现 |
+| `qr.mbt` | QRCode 容器 / 错误 / 读写访问器（公共 API 总览见 [S11b §12](./S11b-清理落地记录-v3-v5.md)） | `src/qr.rs` | B8 | 已实现 |
+| `qr_build.mbt` | 容量选择 + 编排（select_capacity/build_fixed/build） | `src/qr.rs`/`src/placement.rs` | B8/B10 | 已实现 |
+| `qr_builder.mbt` | 公共 `QRBuilder` 构造器 | `src/qr.rs:200`/`lib.rs` | B8 | 已实现 |
 | `helpers.mbt` | 终端字符画引擎 + `QRCode::to_str`/`print` 便捷方法 | `src/helpers.rs` | B11 | 已实现 |
+| `shape.mbt` | 公共 `Shape`（SVG 形状枚举） | `convert/mod.rs` | B11 | 已实现 |
+| `svg.mbt` | 公共 `SvgBuilder`（SVG 输出） | `convert/svg.rs` | B11 | 已实现 |
 
 ### 3.2 lib/internal 实现层（不依赖 lib）
 
 | 子包 / 文件 | 职责 | 参考源 | roadmap | 依赖方向 | 状态 |
 |------|------|--------|:---:|---------|:---:|
-| `constants/hardcode.mbt` | 分组/格式信息/生成多项式常量表 | `src/hardcode.rs` | B3 | 叶节点 | 注释骨架 |
-| `constants/capacity.mbt` | 容量/矩阵元数据表 | `src/version.rs` | B2 | 叶节点 | 注释骨架 |
-| `bitstream/bitbuffer.mbt` | 大端序位流缓冲 | `src/compact.rs` | B6 | 叶节点 | 注释骨架 |
-| `reedsolomon/reedsolomon.mbt` | GF(256) division + structure | `src/polynomials.rs` | B4 | → constants | 注释骨架 |
-| `data_encoding/encode.mbt` | 三模式编码 + 自动回退 | `src/encode.rs` | B7 | → constants/bitstream | 注释骨架 |
-| `matrix/module.mbt` | Module 位打包 | `src/module.rs` | B5 | 本包内 | 注释骨架 |
-| `matrix/matrix.mbt` | 功能图案绘制（Format 先占位） | `src/default.rs` | B9 | 本包内 | 注释骨架 |
-| `matrix/placement.mbt` | 数据放置 + 掩码择优 + 总装 | `src/placement.rs` | B9-B10 | 本包内 | 注释骨架 |
-| `matrix/datamasking.mbt` | 8 种掩码 | `src/datamasking.rs` | B10 | 本包内 | 注释骨架 |
-| `matrix/score.mbt` | 4 条评分规则 | `src/score.rs` | B10 | 本包内 | 注释骨架 |
+| `constants/hardcode.mbt` | 分组/格式信息/生成多项式常量表 | `src/hardcode.rs` | B3 | 叶节点 | 已实现 |
+| `constants/capacity.mbt` | 容量/矩阵元数据表 | `src/version.rs` | B2 | 叶节点 | 已实现 |
+| `bitstream/bitbuffer.mbt` | 大端序位流缓冲 | `src/compact.rs` | B6 | → constants（KEEP_LAST 自持） | 已实现 |
+| `reedsolomon/reedsolomon.mbt` | GF(256) division + structure | `src/polynomials.rs` | B4 | → constants | 已实现 |
+| `data_encoding/encode.mbt` | 三模式编码 + 自动回退 | `src/encode.rs` | B7 | → constants/bitstream | 已实现 |
+| `matrix/module.mbt` | Module 位打包 | `src/module.rs` | B5 | 本包内 | 已实现 |
+| `matrix/matrix.mbt` | 功能图案绘制（Format 先占位） | `src/default.rs` | B9 | 本包内 | 已实现 |
+| `matrix/placement.mbt` | 数据放置 + 总装 | `src/placement.rs` | B9-B10 | 本包内 | 已实现 |
+| `matrix/datamasking.mbt` | 8 种掩码 | `src/datamasking.rs` | B10 | 本包内 | 已实现 |
+| `matrix/score.mbt` | 4 条评分规则 | `src/score.rs` | B10 | 本包内 | 已实现 |
 
 ## 4. 依赖图（实现时遵循）
 
@@ -106,10 +119,11 @@ cmd/main ──import──> lib
 
 ## 6. 落地状态与执行顺序
 
-- 已落地：`lib/` 公共注释骨架 + `lib/internal/` 五子包 + `cmd/main` 注释指向 `.../lib`。
+- 已落地：`lib/` 公共层（枚举/容器/编排/builder/输出）+ `lib/internal/` 五子包；`cmd/main`/`cmd/bench`/
+  `cmd/qr-min` 均 `import ".../lib" @lib` 并真实调用。B1→B11 全部落地，无注释骨架文件。
 - 构建命令（模块根无包，须显式给包名）：`moon check --deny-warn`（全模块）、
   `moon test`、`moon build lib/cmd/main --release`、`moon run cmd/main`。
-- 执行顺序：roadmap §4.3「B1→B11」，落点即上表文件；每批一个提交；收尾沿用 AGENTS §二.4。
+- 执行顺序（历史）：roadmap §4.3「B1→B11」按批落地，每批一个提交；当前收尾沿用 AGENTS §二.4。
 
 ## 7. 与 moonbitlang/core 对照
 

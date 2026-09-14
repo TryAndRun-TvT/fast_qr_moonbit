@@ -231,7 +231,7 @@ moon fmt && moon info && moon check && moon test
 | CLI 在 `cmd/main/` + `pkgtype(kind: "executable")` | 存在 | 符合 |
 | 黑盒测试 `_test.mbt` | `lib/fast_qr_moonbit_test.mbt`（`@lib`） | 符合 |
 | 白盒测试 `_wbtest.mbt` | `lib/fast_qr_moonbit_wbtest.mbt` | 符合 |
-| 库主文件命名 | `lib/fast_qr_moonbit.mbt`（文件名沿用模块名） | 符合 |
+| 公共 `.mbt` 命名 | 公共文件按职责命名（ecl/version/mode/mask/module/qr/qr_build/qr_builder/helpers/shape/svg） | 符合（**v4 后不再有「同模块名入口文件」**，见下行注） |
 | README 入口（真实文件） | `README.md`（`moon.mod` 的 `readme` 指向它） | 偏离（见 §3.3） |
 | `supported_targets` 用集合语法 | `"+wasm-gc"`（`js`、`wasm`(WASI) 已移除） | 符合 |
 | 未使用的依赖不提前声明 | `cmd/main/moon.pkg` 仅注释记录 | 符合 |
@@ -270,8 +270,11 @@ moon fmt && moon info && moon check && moon test
 
 实现 QR 功能时按此执行：
 
-1. **库 API** 写在 `lib/fast_qr_moonbit.mbt`（可按需拆多个 `.mbt`，共享 `lib/moon.pkg`）；
-   实现子包放 `lib/internal/`。
+> **v4 订正（2026-09-14，[S11b](./S11b-清理落地记录-v3-v5.md) §12）**：本节原第 1 条曾要求
+> 把库 API 写在「同模块名入口文件 `lib/fast_qr_moonbit.mbt`」。该文件已因**纯注释、零可执行行**被删除；
+> 公共 API 按职责分文件放 `lib/`（MoonBit 同包共享命名空间，无需入口文件），**不要**再建同名入口注释文件。
+
+1. **库 API** 按职责分文件写在 `lib/`（共享 `lib/moon.pkg`）；实现子包放 `lib/internal/`。
 2. **公共 API** 加 `///` 文档注释；可选开启 `missing_doc` 告警（core 已启用）。
 3. **黑盒测试** `lib/fast_qr_moonbit_test.mbt`：用 `@lib` 引用，只测公共行为。
 4. **白盒测试** `lib/fast_qr_moonbit_wbtest.mbt`：直接调用私有 helper。

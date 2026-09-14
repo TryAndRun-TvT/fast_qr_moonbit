@@ -1,6 +1,6 @@
 ///|
 /// qr.mbt —— QRCode 结果容器与错误
-/// 对应参考：fast_qr v0.14.0 `src/qr.rs`（roadmap 批次 B8 骨架）
+/// 对应参考：fast_qr v0.14.0 `src/qr.rs`（roadmap 批次 B8）。
 /// 职责：`QRCode` 结果容器（固定矩阵 + size/version/ecl/mask/mode 元数据）与 `QRCodeError`。
 ///       版本/纠错/掩码/模式等**编排与构造**已随 S8 拆至 qr_build.mbt/qr_builder.mbt（同包内
 ///       非 pub 符号跨文件亦可见）；终端输出便捷方法（to_str/print）随渲染引擎同放 helpers.mbt
@@ -135,8 +135,8 @@ pub fn QRCode::meta(self : QRCode) -> (Version?, ECL?, Mask?, Mode?) {
 /// QRCode 构造错误。对应参考 fast_qr v0.14.0 `src/qr.rs` 的 `QRCodeError`。
 /// - `EncodedData`：数据过大，超出 V40 在该 (模式, 纠错) 下的容量上限。
 /// - `SpecifiedVersion`：调用方指定的版本小于容纳该数据所需的最小版本。
-/// S1 因 `unused_constructor`（`--deny-warn`）推迟其定义到 S3/B8：本阶段容量选择路径
-/// （`QRCode::select_capacity`）会在可达代码真实构造这两个变体。
+/// 两个变体均由 `QRCode::select_capacity`（`lib/qr_build.mbt`）在可达代码中真实构造，
+/// 不触发 `unused_constructor`（`--deny-warn` 已过）。
 pub(all) enum QRCodeError {
   /// 数据过大无法编码
   EncodedData

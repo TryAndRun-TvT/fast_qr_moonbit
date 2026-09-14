@@ -146,7 +146,7 @@ S6 **不含**输出层（`to_str` 终端画 / SVG → **S7/B11**），**不含**
 | `lib/qr.mbt` | 新增 `QRBuilder` struct + `new`/`from_string` + 4 链式 setter + `build`（委托 `QRCode::build`）| 补齐 `lib.rs` 导出面公共构造器 |
 | `lib/m1_snapshot_test.mbt` | 追加 S6 全量 60 快照常量表 + 端到端比对 test | 端到端逐位对齐（含 Numeric/Alnum/V40/全自动）|
 | `README.md` | 文档索引表 + S6 方案链接 | 收口文档索引 |
-| （可选）`lib/fast_qr_moonbit.mbt` | 若需顶层 re-export 便捷函数（如 `build_qr(input)`），随 QRBuilder 面一并确认 | API 同构 |
+| （可选）`lib/fast_qr_moonbit.mbt`（**后已删除**） | 原拟作顶层 re-export；MoonBit 同包共享命名空间故实无必要，S11 v4 已删 | 见 [S11b](./S11b-清理落地记录-v3-v5.md) §12 |
 
 - **不改动**任何 internal 层逻辑（S6 是验证 + API 壳层，管线正确性已在 S1-S5 锁定）。
 - `QRBuilder` 放 lib 公共层，只用 `pub` 暴露；内部字段可 `pub(all)` 供白盒测试，或仅 `pub` struct + 构造/

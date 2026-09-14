@@ -1,9 +1,10 @@
 ///|
 /// mask.mbt —— 公共掩码枚举（0-7）
-/// 对应参考：fast_qr v0.14.0 `src/datamasking.rs` 的 Mask（roadmap 批次 B10 骨架）
+/// 对应参考：fast_qr v0.14.0 `src/datamasking.rs` 的 Mask（roadmap 批次 B10）。
 /// 职责：对外 API 的掩码枚举与序号映射；进入择优/强制掩码时转序号传给 internal/matrix。
-/// 语义：8 种掩码，`to_int` 序号 = 掩码编号 0..=7，与数据放置公式一一对应；
-///       S1 仅建骨架，择优逻辑随批次 B10 落地。
+/// 语义：8 种掩码，`to_int` 序号 = 掩码编号 0..=7，与数据放置公式一一对应。
+/// 实现归属：本文件只承载公共枚举与序号映射；掩码图案与择优实现在
+///       `lib/internal/matrix/datamasking.mbt`（图案，批次 B10）与 `score.mbt`（评分择优，S5 已落地）。
 
 ///|
 /// QR 掩码图案（编号 0..=7）。`None`（自动选择）由 QRBuilder 的 `Option` 语义表达。
