@@ -28,18 +28,20 @@
 
 ### 1. 包与文件放置（方案 3 布局，对齐 core）
 
-- **模块根只放元数据**（`moon.mod` / `README.mbt.md` / `docs/` 等）；库包统一放 `lib/`，
+- **模块根只放元数据**（`moon.mod` / `README.md` / `docs/` 等）；库包统一放 `lib/`，
   实现细节藏 `lib/internal/`。
-- **模块根唯一例外 = 空 `moon.pkg`**（README 文档测试宿主）：它是官方 README 布局
-  （`README.mbt.md` + `README.md` 符号链接）落地的前提——`mbt check` 代码块由
-  `moon check`/`moon test` 当作文档测试运行，而模块根的 `.md` **只有归属到某个包才会被扫描**。
+- **模块根唯一例外 = 空 `moon.pkg`**（README 文档测试宿主）：它是 README「示例即测试」落地的前提——
+  `mbt check` 代码块由 `moon check`/`moon test` 当作文档测试运行，而模块根的 `.md` **只有归属到某个包才会被扫描**。
+  **布局方向（2026-09-14 v4 回正）**：`README.md` 是**实体正文**，`README.mbt.md` 是指向它的**符号链接**
+  （文档测试只认文件名恰为 `README.mbt.md` 的 markdown；而 `README.md` 若为符号链接，
+  平台/blob/raw/不解析链接的宿主只会读到存根文本，落地页即劣化）。
   该包**不含任何实现、不导出 API**（`boundary` 仍由 `lib/` 承担），
   已用 `warnings = "-29"` 关掉「声明 `@lib` 但只在文档测试里使用」的 `unused_package` 告警。
   **不要把库代码放进根包。**
 - 包按目录组织，每个目录一个 `moon.pkg`。
 - 公共文件统一放 `lib/`，`.mbt` 文件名可任取、按职责命名（如 ecl/version/mode/mask/module/
   qr/qr_build/qr_builder/helpers/shape/svg）；MoonBit 同包共享命名空间，**不设「入口注释文件」**
-  （公共 API 总览由 `README.mbt.md` + `docs/moonbit-实现布局与文件职责.md` 承载，见 [S11b](./docs/S11b-清理落地记录-v3-v5.md) §12）。
+  （公共 API 总览由 `README.md` + `docs/moonbit-实现布局与文件职责.md` 承载，见 [S11b](./docs/S11b-清理落地记录-v3-v5.md) §12）。
 - 测试文件放**所属包目录内**，分两类，**不可混用**：
 
   | 文件 | 运行位置 | 可访问范围 |
@@ -86,8 +88,8 @@ moon fmt && moon info && moon check --deny-warn && moon test
 for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done
 ```
 
-> **README 也是被测试的代码**：`README.mbt.md` 的 `mbt check` 代码块是**文档测试**，
-> `moon check` / `moon test` 会真编译、真运行（当前 147 个用例含 1 个 README 用例）。
+> **README 也是被测试的代码**：`README.md` 的 `mbt check` 代码块是**文档测试**
+> （经 `README.mbt.md` 符号链接被扫描），`moon check` / `moon test` 会真编译、真运行。
 > 改公共 API 而不同步改 README 示例 → **`moon test` 直接变红**。这是刻意的：
 > README 示例过去只能靠人工实测，现在由门禁兜底（见 docs/README优化-冗余清理与最佳实践.md）。
 
@@ -181,7 +183,7 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
   （只按 `lib/**` 计，**不含 `cmd/*` 探针包**）。新增代码拉高未覆盖行时，
   要么补测（优先负向/契约用例），要么在报告里写明理由并更新该标记——**两条路都要评审可见**。
 - **T6-c 文档死链**：`bash scripts/docs-link-check.sh` 检查受版本控制 Markdown 的
-  **相对链接**（跳过外链/锚点，忽略代码块）。新增文档须同步更新 `README.mbt.md` 的文档索引，否则门禁红。
+  **相对链接**（跳过外链/锚点，忽略代码块）。新增文档须同步更新 `README.md` 的文档索引，否则门禁红。
 
 ---
 
@@ -191,9 +193,11 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
   如 `wasm-编译与运行-结果分析.md`）。
 - **单文档 ≤800 行**，超长应拆分。
 - **死链零容忍**：文档中不得引用不存在的文件；新增文档须同步更新
-  `README.mbt.md` 的「文档索引」表（`README.md` 是指向它的符号链接）。
-- **README 正文改 `README.mbt.md`，不要改 `README.md`**：后者是符号链接；
-  `README.mbt.md` 里的 `mbt check` 示例会被 `moon test` 校验，请勿把示例写回 `moonbit` 展示块。
+  `README.md` 的「文档索引」表（`README.mbt.md` 是指向它的符号链接）。
+- **README 正文改 `README.md`，不要改 `README.mbt.md`**：后者是符号链接。
+  `README.md` 里的 `mbt check` 示例会被 `moon test` 校验，请勿把示例写回 `moonbit` 展示块。
+- **不要在 README 里写会被写死的计数**（用例数 / 文件数 / 链接条数）：它们随实现漂移，
+  写死必然自相矛盾（曾出现同一文件内 146/147 冲突）。需要数字时指向实跑命令。
 - **改公共 API 必须同步 README 示例**：否则 `moon test` 变红（文档测试即门禁）。
 - **纯本地 / 私人配置调整**（如本地默认值改动）：只改代码/配置，**不生成、不更新项目文档**。
 
@@ -201,6 +205,6 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
 
 ## 五、参考
 
-- 项目文档索引见 [README.mbt.md](./README.mbt.md)「文档索引」表。
+- 项目文档索引见 [README.md](./README.md)「文档索引」表（`README.mbt.md` 为其符号链接）。
 - MoonBit 技能库：<https://github.com/moonbitlang/skills>
 - MoonBit 构建系统：<https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/tutorial.html>

@@ -14,13 +14,16 @@
 
 ## 1. 布局决策（方案 3）
 
-1. **模块根不放库代码**：根目录只放元数据（`moon.mod`/`README.mbt.md`/`docs/`/CI 配置等），
+1. **模块根不放库代码**：根目录只放元数据（`moon.mod`/`README.md`/`docs/`/CI 配置等），
    库都是 `lib/` 下的子包 —— 与 `moonbitlang/core` 同形态。
    **唯一例外是根 `moon.pkg`（空包）**：2026-09-14 起作为 **README 文档测试宿主**——
-   官方 README 布局（`README.mbt.md` + `README.md` 符号链接）的 `mbt check` 示例要被
-   `moon check`/`moon test` 编译运行，而模块根的 `.md` **只有归属到某个包才会被扫描**，
-   故根必须存在 `moon.pkg`。该包不写实现、不导出 API（`boundary` 仍由 `lib/` 承担），
-   并显式 `warnings = "-29"`（`@lib` 只在文档测试里用，静态分析看不见）。
+   README 的 `mbt check` 示例要被 `moon check`/`moon test` 编译运行，而模块根的 `.md`
+   **只有归属到某个包才会被扫描**，故根必须存在 `moon.pkg`。该包不写实现、不导出 API
+   （`boundary` 仍由 `lib/` 承担），并显式 `warnings = "-29"`（`@lib` 只在文档测试里用，
+   静态分析看不见）。
+   **链接方向（2026-09-14 v4 回正）**：`README.md` 是**实体正文**，`README.mbt.md` 是指向它的
+   **符号链接**（文档测试只认文件名恰为 `README.mbt.md` 的 markdown；反向做则 `README.md`
+   在平台/blob/raw/不解析链接的宿主上只剩 13 字节存根，落地页劣化——见 §八 v4）。
 2. **库包在 `lib/`**：`lib/moon.pkg` + 公共文件（入口/枚举/容器）+ `lib/internal/` 实现子包；
    消费者通过 `import { "TryAndRun-TvT/fast_qr_moonbit/lib" @lib }` 使用。
 3. **无环依赖（MoonBit 实测禁止 import 环）**：
@@ -43,7 +46,7 @@
 ## 2. 布局树
 
 ```
-moon.mod / README.mbt.md / docs/ / AGENTS.md / .cnb.yml  # 模块根：元数据
+moon.mod / README.md / docs/ / AGENTS.md / .cnb.yml  # 模块根：元数据
 moon.pkg                         #   根空包：README 文档测试宿主（无实现、无导出）
 ├── lib/                          # 库包（公共，对外契约）
 │   ├── moon.pkg
@@ -142,7 +145,7 @@ core 实证（`main @ 452eb70`）：模块根无包；feature 包（如 `random/
 - [moonbit-重写-roadmap-详细分析.md](./moonbit-重写-roadmap-详细分析.md) — roadmap、B1-B11 与里程碑
 - [项目基础框架-详细分析.md](./项目基础框架-详细分析.md) — 目标包架构、模块映射、移植语义
 - [core-仓库布局参考与目标架构.md](./core-仓库布局参考与目标架构.md) — internal/ 目标树依据
-- [README.mbt.md](../README.mbt.md) — 仓库文档索引与代码放置约定（`README.md` 为符号链接）
+- [README.md](../README.md) — 仓库文档索引与代码放置约定（`README.mbt.md` 为其符号链接）
 
 ---
 
@@ -179,8 +182,8 @@ moon.pkg            # 根包描述（空文件）
 cmd/main/main.mbt   # CLI 入口
 cmd/main/moon.pkg   # pkgtype(kind: "executable")
 AGENTS.md           # 项目代理指南
-README.mbt.md       # README（`mbt check` 代码块 = 文档测试）
-README.md           # -> README.mbt.md（符号链接；上表「官方参考布局」漏列，实为模板产物）
+README.md           # README 实体正文（`mbt check` 代码块 = 文档测试）
+README.mbt.md       # -> README.md（符号链接；文档测试只扫描此文件名）
 LICENSE / .gitignore / .githooks/ / .github/
 ```
 
@@ -326,6 +329,7 @@ moon run cmd/main --target wasm-gc   # 正常输出（当时另有 wasm/js；现
 | CI 补两阶段 | `fmt-check`（格式门禁）+ `build-and-run`（三后端 release 回归） |
 | `README.mbt.md` + 符号链接 → 单一 `README.md` | （**2026-09-05**）撤销官方「`README.mbt.md` + `README.md` 符号链接」布局，改用单一真实文件；`moon.mod` 的 `readme` 指向 `README.md` |
 | 单一 `README.md` → **恢复官方布局**（2026-09-14） | 见下「八、README 文档测试落地」：恢复 `README.mbt.md` + 符号链接，并新增根空 `moon.pkg` 作宿主，使示例受 `moon test` 保护 |
+| 符号链接方向 **回正**（2026-09-14 v4） | 见下「八、README 文档测试落地」末段：`README.md` 改回**实体正文**、`README.mbt.md` 改为指向它的符号链接；`moon.pkg` 宿主不变 |
 
 优化后验证：`fmt --check` / `check --deny-warn` / `test` / 三后端 `build+run+test` 全绿。
 
@@ -342,7 +346,7 @@ moon run cmd/main --target wasm-gc   # 正常输出（当时另有 wasm/js；现
 
 ### 七、参考
 
-- [README.mbt.md](../README.mbt.md) — 代码放置约定与文档索引（`README.md` 为符号链接）
+- [README.md](../README.md) — 代码放置约定与文档索引（`README.mbt.md` 为其符号链接）
 - [wasm-编译与运行-结果分析.md](./wasm-编译与运行-结果分析.md) — 后端选型与产物分析
 - [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) — 工具链与构建系统
 - [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) — 仓库初始化与 CI 配置
@@ -360,7 +364,7 @@ moon run cmd/main --target wasm-gc   # 正常输出（当时另有 wasm/js；现
 
 | 动作 | 内容 |
 |------|------|
-| 恢复官方 README 布局 | `README.md` → `README.mbt.md` 符号链接；正文实体是 `README.mbt.md` |
+| 恢复 README 文档测试布局 | 正文实体 `README.md` + 符号链接 `README.mbt.md`（**v4 回正**，见下表；v3 曾反向做，落地页劣化） |
 | 示例改为文档测试 | README 的「快速开始」示例写进 ```mbt check``` 块（test `readme_quick_start`），由 `moon check`/`moon test` 编译并运行 |
 | 新增根空包 `moon.pkg` | **关键前提**：模块根的 `.md` 只有归属到某个包才被扫描；该包不写实现、不导出 API，`warnings = "-29"` 关掉 `unused_package` |
 
@@ -383,3 +387,23 @@ Total tests: 147, passed: 146, failed: 1.
 **与「模块根无包」的关系**：本仓库曾把「根目录零 `moon.pkg`」当作方案 3 的标志，
 但实测表明**根空包不影响任何架构主张**——`boundary` 与依赖方向仍全在 `lib/`；
 根包只是一个「文档测试宿主」。故 §1 第 1 条已据此修订为「根不放**库代码**」而非「根无包」。
+
+#### v4 回正：符号链接方向（2026-09-14）
+
+v3 把 `README.md` 做成指向 `README.mbt.md` 的符号链接（模仿 `moon new` 模板），实测**造成了落地页劣化**：
+
+- `git ls-files -s`：`README.md` = `mode 120000`，blob 内容是**字符串** `README.mbt.md`（**13 字节**）；
+- **CNB blob / raw 视图**打开 `README.md` 只渲染出那一行 `README.mbt.md`（不是正文）；
+- 任何**不解析符号链接**的宿主（zip 解包、Windows 检出、部分平台解析链路）同样只得到存根；
+- `moon.mod` 的 `readme = "README.md"` 指向的是存根，而非正文。
+
+**回正做法**：方向反过来——`README.md` 存**实体正文**、`README.mbt.md` 作**符号链接**。
+
+| 事实 | 实测 |
+|------|------|
+| 文档测试只扫**文件名恰为 `README.mbt.md`** 的 markdown | 普通 `README.md` 的 `mbt check` 块**不被扫描**（`moon test --outline` 只见 "no test entry"） |
+| 反向（`README.md` 实体 + `README.mbt.md` 链接）仍能被扫描 | `moon test --target wasm-gc --outline` → `README.mbt.md:176 readme_quick_start` ✅ |
+| 平台读取 `README.md` 得到正文 | 实体文件；`moon package` 归档中 `README.md` 与 `README.mbt.md` **均**为 35 KB 正文 |
+
+即：**「正文实体 = `README.md`」+「符号链接 = `README.mbt.md`」同时满足平台渲染与文档测试**，
+是本仓库的最终布局（与 `moon new` 模板只差链接方向，取舍理由如上）。
