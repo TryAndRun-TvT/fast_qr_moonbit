@@ -432,7 +432,7 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 | [S9k-性能瓶颈与理论上限评估.md](./docs/S9k-性能瓶颈与理论上限评估.md) | 进程级差分把 auto build 拆为 5 段：瓶颈定位与理论上限（**roadmap 依据**） |
 | [S9n-优化方案复评与wasm-gc收敛审计.md](./docs/S9n-优化方案复评与wasm-gc收敛审计.md) | 收敛审计 + **单一优化优先级清单** + P0/P2/P2b 与 ReadOnlyArray **落地记录** |
 | [README示例二维码-SVG资源与生成.md](./docs/README示例二维码-SVG资源与生成.md) | README 头部示例码为何用 **SVG** + 资产规格 + 生成脚本 + 一致性核验 |
-| [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) | README 精简的**冗余清单**、官方 README 约定对照与取舍（含示例实测） |
+| [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) | README 优化总账：**冗余清单**（§1–§5）、官方约定对照与取舍，**§6 徽章/自校验示例/SVG 渲染修正**（含「模块根为何需要一个空包」的关键实测） |
 | [S9o-性能与体积数据重测-与README冗余清理.md](./docs/S9o-性能与体积数据重测-与README冗余清理.md) | **本轮重测记录**：性能/体积数据刷新方法与归因 + README 去冗余清单 |
 | [S9p-宿主调用面性能口径-JS向wasm传参.md](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md) | **宿主调用面主口径**：JS 反复带参调 wasm（`cmd/host-probe` + `bench-host.sh`）；wasm-gc 传字符串的技术路径与踩坑（**性能主口径**） |
 | [S9q-性能口径统计差异与取平均评估.md](./docs/S9q-性能口径统计差异与取平均评估.md) | **统计口径**：为什么 R 轮取最小≠真值；轮次级重抽样的 CV / 单跑失稳率 / 漂移判定；调度态与 Node 版本的量级对照；**主数取中位数 + 必须报离散** |
@@ -462,10 +462,15 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 
 ## 代码放置约定（方案 3：模块根无包，库包在 `lib/`）
 
-本仓库模块根只放元数据（对齐 `moonbitlang/core` 形态）：库包在 `lib/`、实现子包在 `lib/internal/`
+本仓库模块根只放**元数据**（对齐 `moonbitlang/core` 形态）：库包在 `lib/`、实现子包在 `lib/internal/`
 （internal 永不反向 import `lib`，依赖无环）、CLI 在 `cmd/`；**不要建 `src/`**（MoonBit 无此约定）。
 测试放所属包目录内：`*_test.mbt` 黑盒（包外，仅 `pub` API）/ `*_wbtest.mbt` 白盒（包内，可访问私有实现），
 两者不可混用；跨包依赖在使用方 `moon.pkg` 声明且声明后必须使用（否则 `unused_package` 告警致 `moon check` 失败）。
+
+> **模块根唯一例外：`moon.pkg`（空包，不写库代码）**——它是 README 文档测试的宿主。
+> 官方布局用 `README.mbt.md` + `README.md` 符号链接，其 `mbt check` 代码块由
+> `moon check`/`moon test` 当作文档测试执行；实测模块根的 `.md` **只有归属到某个包**才会被扫描，
+> 故根必须存在 `moon.pkg`。库代码/公共 API **一律不放根目录**。
 
 完整约定表见 [AGENTS.md](./AGENTS.md)，文件级职责详见
 [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md)。
@@ -476,7 +481,8 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 
 ```
 .
-├── moon.mod                    # MoonBit 模块配置（模块根不建包）
+├── moon.mod                    # MoonBit 模块配置
+├── moon.pkg                    # 模块根空包：README 文档测试宿主（不写库代码）
 ├── lib/                        # 库包（公共 API，lib/moon.pkg）
 │   ├── ecl / version / mode / mask.mbt  # 公共枚举（ECL/Version/Mode/Mask）
 │   ├── module.mbt              #   公共 Module / ModuleType（单字节位打包）
@@ -501,7 +507,8 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 ├── .githooks/                  # 可选 Git 钩子（需自行启用）
 ├── .cnb.yml                    # 云原生构建（CNB CI）配置
 ├── AGENTS.md                   # AI 协作代理指南
-├── README.md                   # 本文件（moon.mod 的 readme）
+├── README.mbt.md               # 本文件正文（moon.mod 的 readme，含 mbt check 示例）
+├── README.md -> README.mbt.md  # 官方布局：符号链接（平台/编辑器的兼容入口）
 └── LICENSE                     # Apache-2.0
 ```
 

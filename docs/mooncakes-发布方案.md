@@ -40,8 +40,9 @@
 版本策略与 `unpublished` 演进用 §5 的阶梯表。
 
 > **落地进展（2026-09-14 更新）**：#3（归档面收敛）与 #4（发布前门禁缺口）已**落地并实测通过**：
-> - `.moonignore` 把归档 **155 → 32 项**（解压 1886 → 179 KiB），
->   并以**离线 registry 注入**证明 32 项归档下游 `moon add`/`build`/`run` 全通；
+> - `.moonignore` 把归档 **155 → 32 项**（解压 1886 → 179 KiB；**2026-09-14 起为 34 项**，见 §4.2.1），
+>   并以**离线 registry 注入**证明 32 项归档下游 `moon add`/`build`/`run` 全通
+>   （34 项版本的回归见 §4.2.1）；
 > - 新增 `scripts/publish-check.sh`（归档基线 + 内容白/黑名单 + 元数据 + 质量基线）
 >   并挂入 push CI（2026-09-14 起 push 流水线整体移除，现随 `scripts/gates.sh` 本地执行）。
 >
@@ -137,7 +138,7 @@ moon publish              # 正式发布（等价：bash scripts/publish.sh --pu
 |------|---------|-------------|:----:|
 | `name` | 必需；**发布到 mooncakes 必须以用户名开头** | `TryAndRun-TvT/fast_qr_moonbit` | ✅ 与已注册账户 `TryAndRun-TvT` 一致（迁移前为 `tryandrun/fast_qr_moonbit`，见 §2.3 / [模块名迁移…](./模块名迁移与发布链路核验.md)） |
 | `version` | 发布则必须符合 SemVer 2.0.0 | `0.1.0` | ✅ |
-| `readme` | 指定 README 路径；内容将展示在 mooncakes | `README.md` | ⚠️ 见 §4.2（官方模板用 `README.mbt.md`） |
+| `readme` | 指定 README 路径；内容将展示在 mooncakes | `README.md`（符号链接 → `README.mbt.md`） | ✅ 对齐官方模板（2026-09-14 落地，见 §4.2） |
 | `repository` | 源码仓库 URL | `https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit` | ❌ 非 github.com（见 §3.1） |
 | `license` | 必须符合 SPDX 许可证列表 | `Apache-2.0` | ✅ |
 | `keywords` | 关键字 | `["qr", "qrcode", "fast-qr"]` | ✅ |
@@ -248,17 +249,28 @@ moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，
 
 - **官方推荐**：README 正文放 `README.mbt.md`（`moonbit check` 代码块会被**类型检查**），
   `README.md` 只作符号链接满足平台约定。
-- **本仓库现状**：`readme = "README.md"`，正文在 `README.md`，含大量 `moonbit` 代码块。
+- **本仓库现状（2026-09-14 起）**：**已迁官方布局**——正文在 `README.mbt.md`，
+  `README.md` 为符号链接；`moon.mod` 的 `readme = "README.md"` 不变（符号链接可被解析）。
+  示例写进 ```mbt check``` 块，由 `moon check`/`moon test` 编译并运行。
 
-**评估**：迁移到 `README.mbt.md` 能把 README 内的 MoonBit 示例纳入类型检查
-（对**发布质量**是加分项，能防「README 示例与 API 漂移」）。
-但代价是：① 全仓 `[xx](docs/xx.md)` 形式的相对链接需批量改指向（基线不变，仅改文件名）；
-② `docs-link-check.sh`、CI、`gen-readme-qr-svg.sh` 等引用需同步；
-③ 符号链接在 CNB/Git 上行为需实测。
+**落地记录**（与原「建议」清单的差异已实测）：
 
-**建议**：**列为 0.1.1 或发布后跟进项**，不阻塞 0.1.0（0.1.0 目标是打通发布链路）。
-若采用，清单为：`git mv README.md README.mbt.md` → `ln -s README.mbt.md README.md` →
-`moon.mod` 的 `readme = "README.mbt.md"` → 回归 `scripts/docs-link-check.sh`。
+| 原评估项 | 实测结果 |
+|---------|---------|
+| ① 全仓相对链接需批量改指向 | **不需要**：`README.md` 符号链接仍存在，所有 `./docs/**` 相对链接基线不变 |
+| ② `docs-link-check.sh` / CI / `gen-readme-qr-svg.sh` 需同步 | **不需要改脚本**（脚本读的是 `git ls-files '*.md'`，符号链接不计入；实跑 625 链零死链） |
+| ③ 符号链接在 CNB/Git 上行为需实测 | 已实测：`git` 侧记录为 `mode 120000`（符号链接），内容指向 `README.mbt.md` |
+| ④ **新增前提**（原评估未预见） | **模块根必须有 `moon.pkg`**，否则根目录的 `.md` 不被当文档测试扫描 → 见 §4.2.1 |
+
+**收益（实测）**：`moon test --target wasm-gc` **146 → 147**（+1 条 README 文档测试），
+改公共 API 而不同步改示例会**直接变红**。
+
+#### 4.2.1 新增根空包 `moon.pkg`（文档测试宿主）——发布面影响
+
+- 归档会**多一个 `moon.pkg`**（模块根，空包）：内容只有 `import "…/lib"` + `warnings = "-29"`，
+  **不含实现、不导出 API**，对消费者无影响（下游 `moon add` 后用 `.../lib` 路径，与根包无关）。
+- 该 `warnings = "-29"` 的作用：文档测试里的 `@lib` 对静态分析不可见，否则 `moon check --deny-warn`
+  失败（**实测**）。发布前 `publish-check.sh` 的归档清单基线需随之 **+1 项**（见 §5/§6-A3）。
 
 ### 4.3 推荐 `.moonignore`（实测可行）
 
@@ -290,7 +302,7 @@ moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，
 /.codebuddy/
 ```
 
-> ✅ **已落地（2026-09-14）**：本仓库根目录已提交 `.moonignore`，实测归档 **32 项**
+> ✅ **已落地（2026-09-14）**：本仓库根目录已提交 `.moonignore`，实测归档 32 → **34 项**
 > （含 `cmd/main`、排除全部测试文件）。最终内容与负向验证见
 > [mooncakes-发布阻塞项3-4-落地方案.md](./mooncakes-发布阻塞项3-4-落地方案.md) §2。
 > 归档基线由 `scripts/publish-check.sh` 守住（条目数偏离 32 即 CI 红）。
@@ -351,7 +363,8 @@ moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，
       （`moon.mod` + 9 个 `moon.pkg` + `scripts/gen-readme-qr-svg.sh` + `README.md` + `AGENTS.md`）；
       `moon publish --dry-run` 实测 `202 Accepted`。
 - [ ] **A2 决策 `repository` 指向**（§3.1 选项 A/B/C），改 `moon.mod`。
-- [x] **A3 提交 `.moonignore`**（§4.3）——✅ 已完成，实测 32 项（155→32）；基线由 `publish-check.sh` 守卫。
+- [x] **A3 提交 `.moonignore`**（§4.3）——✅ 已完成，基线由 `publish-check.sh` 守卫
+      （2026-09-14 README 布局调整后由 32 → **33 项**，新增模块根 `moon.pkg`，见 §4.2.1）。
 - [ ] **A4 补 `homepage`**（可选但建议）：指向启用 Pages/文档入口的 URL。
 
 ### B. 质量门禁（发布前建议完成）
@@ -370,7 +383,7 @@ moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，
       [阻塞项3-4-落地方案](./mooncakes-发布阻塞项3-4-落地方案.md) §4。
 - [x] **B2 发布前冒烟门禁** ——✅ 已完成：`scripts/publish-check.sh` 已落地并挂入 push CI
       （该流水线已于 2026-09-14 整体移除，现随 `scripts/gates.sh` 本地执行）。
-      四段式：质量基线（fmt/check/test）+ 归档条目数基线（=32）+ 内容白/黑名单 + 元数据自检。
+      四段式：质量基线（fmt/check/test）+ 归档条目数基线（=34）+ 内容白/黑名单 + 元数据自检。
       负向验证（削弱 `.moonignore` / 错基线 / 放回 `AGENTS.md`）三种破坏均能被拦住。
 - [ ] **B3 README 首屏复核**：确认「仅 wasm-gc / 宿主需 GC」的边界在 README 前 1/3（当前 ✅），
       并确认 `moon add TryAndRun-TvT/fast_qr_moonbit` 的示例路径与 `lib` 包路径一致。
@@ -378,7 +391,7 @@ moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，
 ### C. 发布执行（维护者本地）
 
 - [x] **C1** `moon package --list` 复核归档 —— 已并入 `scripts/publish.sh` ③ 段（基线由
-      `publish-check.sh` 守 32 项，见 A3）
+      `publish-check.sh` 守 34 项，见 A3）
 - [x] **C2** `moon publish --dry-run` 干跑 —— ✅ 2026-09-14 实测
       `Server status: 202 Accepted, detail: Dry run completed successfully...`
       （退出码 255 为已知 CLI 行为，见 §1.1；脚本判据为**文本匹配**而非退出码）
@@ -409,7 +422,7 @@ moon build cmd/main --target wasm-gc --release
 |:-:|----------|------|------|
 | R1 | ~~账户名 `tryandrun` 在 mooncakes 的可用性未确认~~ | 已消除：账户定为 `TryAndRun-TvT` 并完成全仓改名 | ✅ 已解（见 [模块名迁移与发布链路核验.md](./模块名迁移与发布链路核验.md)） |
 | R2 | `repository` 非 GitHub | 生态可达性/信誉 | A2 决策 |
-| R3 | 归档含 `scripts/`/`docs/` | 分发面混杂、体积增大 | ✅ 已解：A3 落地，155→32 项，`publish-check.sh` 守基线 |
+| R3 | 归档含 `scripts/`/`docs/` | 分发面混杂、体积增大 | ✅ 已解：A3 落地，155→32（现 34）项，`publish-check.sh` 守基线 |
 | R4 | 仅 `wasm-gc` 单后端 | 下游 `js`/`native` 编译被拒 | 已在 README 声明；可考虑后续补 `js` 后端（另立任务） |
 | R5 | 官方文档未给 `yank` 命令 | 发布不可逆 | ✅ 已缓解：§5.4 + `publish-check.sh` 已可执行 |
 | R6 | `missing_doc` 未接入 | 公共 API 无文档，mooncakes 文档页质量低 | B1（实测公共 API 仅缺 1 处，余 12 处在 internal） |
@@ -431,7 +444,7 @@ moon check --deny-warn                 # -> 通过
 moon test                              # -> 146 passed
 
 # 3) 归档面
-moon package --list                    # -> 32 项（.moonignore 已收敛；未收敛时为 158 项）
+moon package --list                    # -> 34 项（.moonignore 已收敛；未收敛时为 158 项）
 
 # 4) 发布链路（需登录）
 # moon login
