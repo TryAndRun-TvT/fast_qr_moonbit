@@ -62,6 +62,35 @@ const POINT_LABEL = { V03: 'V03H', V10: 'V10H', V40: 'V40H' };
 const VER_SEL = { V03: 0, V10: 1, V40: 2 };
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 
+// ---- S9q 统计决策（承接 ISSUE #50「是否应当多次运行取平均值」）----
+// 关键事实：**一次 R 轮取最小 = 一个样本，不是一个确定值**。S9q 实测（同一 Node 进程内重抽样）：
+//   - 轮间变异系数 CV：V40H ≈0.29% ≪ V10H ≈1.1% < V03H ≈3.6%（V03H 单轮最坏偏离均值 +15%）；
+//   - 原因：单次 build 越便宜，固定项（调用/分配/调度）占比越高，越容易被宿主抖动放大；
+//   - 且 V03H 的噪声**不是白噪声**：轮次序列 lag-1 自相关 r1≈0.68（存在热/频漂移），
+//     故「一次 run 内多跑几轮」的边际收益低于「跨进程/跨时刻重抽样」。
+// 决策：**主报告口径改为 R 轮的「中位数」**（比最小值抗单次异常、比均值抗右侧长尾），
+//       同时仍打印 R=1 口径的离散（min↔max）作为不稳定度指标 → 让读者一眼看出该数字可信到几位。
+//       R≥5 时输出「中位数」，否则回退最小值并在表注中显式标注。
+function median(a) {
+  const s = [...a].sort((x, y) => x - y);
+  const h = s.length >> 1;
+  return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2;
+}
+/// 观测口径：把一次「R 轮」的原始样本变成 {point, disp}。
+/// - `median` 用于 R≥5 的主数；`best` 是既有口径（R 轮取最小），保留以兼容历史表格。
+/// - `disp` = (max-min)/median，即**同一次 run 内**的 R=1 口径抖动，必须随数字一起报出。
+function summarize(perCallSamples, cs) {
+  const m = median(perCallSamples);
+  const best = Math.min(...perCallSamples);
+  return {
+    median: m,
+    best,
+    cs,
+    disp: m > 0 ? (Math.max(...perCallSamples) - best) / m : 0,
+    samples: perCallSamples,
+  };
+}
+
 // ---- MoonBit wasm-gc 宿主装载（S9p 关键技术路径，实测确认）----
 //  1) `WebAssembly.compile(src, { builtins: ["js-string"] })`：开启 JS String Builtins，
 //     使 `String` 参数以 `stringref` 形态从 JS 直接传入；
@@ -97,32 +126,32 @@ async function loadMoonGc(file) {
 function timeHostPerCall(gc, pt, n, reps) {
   const sel = VER_SEL[pt];
   let last = gc.exports.qr_generate(INPUT, sel); // 预热
-  let best = Infinity;
+  const per = [];
   for (let r = 0; r < reps; r++) {
     let acc = 0;
     const t0 = performance.now();
     for (let i = 0; i < n; i++) acc = gc.exports.qr_generate(INPUT, sel);
     const d = performance.now() - t0;
     last = acc;
-    if (d < best) best = d;
+    per.push(d / n);
   }
-  return { bestMs: best, cs: last };
+  return summarize(per, last);
 }
 
 // ---- A/B 对照：内容在 wasm 侧常量（只传版本号），用于分账「宿主传字符串」成本 ----
 function timeHostConst(gc, pt, n, reps) {
   const sel = VER_SEL[pt];
   let last = gc.exports.qr_checksum(sel);
-  let best = Infinity;
+  const per = [];
   for (let r = 0; r < reps; r++) {
     let acc = 0;
     const t0 = performance.now();
     for (let i = 0; i < n; i++) acc = gc.exports.qr_checksum(sel);
     const d = performance.now() - t0;
     last = acc;
-    if (d < best) best = d;
+    per.push(d / n);
   }
-  return { bestMs: best, cs: last };
+  return summarize(per, last);
 }
 
 // ---- 计时：fast_qr（同进程、同循环形态）----
@@ -130,16 +159,16 @@ function timeFast(fast, pt, n, reps) {
   const ECL_H = fast.ECL.H;
   const ver = fast.Version[pt];
   let last = 0;
-  let best = Infinity;
+  const per = [];
   for (let r = 0; r < reps; r++) {
     let s = 0;
     const t0 = performance.now();
     for (let i = 0; i < n; i++) s += fast.qr_with(INPUT, ECL_H, ver).length;
     const d = performance.now() - t0;
     last = s;
-    if (d < best) best = d;
+    per.push(d / n);
   }
-  return { bestMs: best, cs: last };
+  return summarize(per, last);
 }
 
 // ---- 跨口径护栏：cmd/bench <点> 1（CLI 面）----
@@ -215,14 +244,22 @@ console.log('');
 console.log(`> MoonBit = \`cmd/host-probe\`（\`foreign_library\`，JS String Builtins \`stringref\` 传参）；`);
 console.log(`> 宿主形态：一次 \`compile\` + 一次 \`Instance\`，随后 for i in 0..N 调 \`qr_generate(INPUT, ver)\`。`);
 if (fast) console.log('> fast_qr = wasm-bindgen 胶水直调 `qr_with(content, ecl, version)`（调用形态对称）。');
-console.log('> 输入 `' + INPUT + '`（20B）、ECL H、强制 V03/V10/V40、mask 自动择优；R=' + REPS + ' 取最小。');
+console.log(
+  '> 输入 `' + INPUT + '`（20B）、ECL H、强制 V03/V10/V40、mask 自动择优；R=' + REPS +
+    (REPS >= 5 ? ' 的主数为**中位数**' : ' 取最小（R<5，见下方口径注）') + '。',
+);
+console.log('> **统计口径（S9q）**：一次 R 轮 = 一个样本；本表同时报出 R=1 口径的 min↔max 离散，');
+console.log('> 读者据此判断数字可信位数。单次 build 越便宜，宿主抖动占比越高（V03H 离散最大）。');
 console.log(`> wasm-gc 传参技术路径：\`builtins:["js-string"]\` + \`_\` 命名空间字符串常量导入（${gc.stringConstants.length} 条）。`);
 console.log('');
 
-const head = ['| 点 | N | 宿主传参 ×N (ms/次)', '同实例紧循环 (ms/次)', 'fast_qr 宿主传参 (ms/次)', 'fast/ours |'];
-if (!fast) head.splice(2, 2);
-console.log('| 点 | N | 宿主传参 `qr_generate` (ms/次) | 同实例 `qr_checksum` (ms/次) | 传参成本 (ms/次) |' + (fast ? ' fast_qr `qr_with` (ms/次) | fast/ours |' : ''));
-console.log('|----|---:|-------------------------------:|------------------------------:|-----------------:|' + (fast ? '----------------------:|----------:|' : ''));
+const MAIN = REPS >= 5 ? 'median' : 'best';
+const MAIN_LABEL = REPS >= 5 ? '中位数' : '最小';
+console.log(
+  '| 点 | N | 宿主传参 `qr_generate` (ms/次, ' + MAIN_LABEL + ') | R=1 离散 | 同实例 `qr_checksum` (ms/次) | 传参成本 (ms/次) |' +
+    (fast ? ' fast_qr `qr_with` (ms/次, ' + MAIN_LABEL + ') | fast/ours |' : ''),
+);
+console.log('|----|---:|---------------------------------------:|---------:|------------------------------:|-----------------:|' + (fast ? '-------------------------------:|----------:|' : ''));
 
 const rows = [];
 let alignCliOk = true;
@@ -247,19 +284,31 @@ for (const pt of POINTS) {
   let ratio = '';
   if (fast) {
     const tf = timeFast(fast, pt, n, REPS);
-    ratio = (tf.bestMs / t.bestMs).toFixed(3) + 'x';
-    fastLine = ` ${(tf.bestMs / n).toFixed(4)} |`;
+    ratio = (tf[MAIN] / t[MAIN]).toFixed(3) + 'x';
+    fastLine = ` ${tf[MAIN].toFixed(4)} |`;
     // ALIGN-FAST：矩阵逐位对齐（只做一次，与计时正交）
     const rowsFast = fastRows(fast, pt);
     if (rowsFast.length !== Math.round(Math.sqrt(rowsFast.length))) alignFastOk = false;
   }
 
-  rows.push({ pt, n, t, tc, single, cli });
-  const per = (ms) => (ms / n).toFixed(4);
+  rows.push({ pt, n, t, tc, single, cli, ratio });
   console.log(
-    `| ${POINT_LABEL[pt]} | ${n} | ${per(t.bestMs)} | ${per(tc.bestMs)} | ${per(t.bestMs - tc.bestMs)} |${fastLine} ${ratio} |`,
+    `| ${POINT_LABEL[pt]} | ${n} | ${t[MAIN].toFixed(4)} | ±${(t.disp * 100).toFixed(1)}% | ${tc[MAIN].toFixed(4)} | ${(t[MAIN] - tc[MAIN]).toFixed(4)} |${fastLine} ${ratio} |`,
   );
 }
+
+// ---- S9q 口径注：把「统计离散」与「固定项偏高」两个观察直接写在输出里 ----
+console.log('');
+console.log('## 口径注（S9q：统计差异与取平均）');
+if (REPS < 5) {
+  console.log(`- ⚠️ R=${REPS} < 5：主数回退为「R 轮取最小」，**不报中位数**；V03H 类廉价点单轮最坏可偏离 +15%（S9q 实测）。`);
+}
+console.log('- **一次 R 轮 = 一个样本**：表中「R=1 离散」= 本次 run 内 R 个单轮样本的 (max−min)/中位数，');
+console.log('  即「若只看一次 run 会引入多大误差」；该值**不随 R 增大而消失**（R 越大越能覆盖更极端的轮次）。');
+console.log('- **不是白噪声**：S9q 实测 V03H 轮次序列 lag-1 自相关 r1≈0.68（热/频漂移），');
+console.log('  故「同一进程内多跑几轮」的边际收益低于「跨进程/跨时刻重抽样」——R 只能压采样下限，不能压漂移。');
+console.log('- **绝对毫秒不可跨机比较**：S9q 同机受控对照显示，CPU 满载竞争可把 V03H 抬高 ≈1.45×、V40H ≈1.50×；');
+console.log('  本表数字**只与同一次 run 内的成对比值配套解读**（见 docs/S9q 与 S9h）。');
 
 console.log('');
 console.log('## 护栏');

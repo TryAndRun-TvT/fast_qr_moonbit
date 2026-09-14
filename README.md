@@ -239,6 +239,7 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 > 引用的性能数字仅作选型与迭代基线，**不代表对 fast_qr 的追赶承诺**；逐条口径见 S9 系列文档。
 
 复跑入口：`bash scripts/bench-host.sh`（**宿主调用面**：JS 反复带参调 wasm）·
+`bash scripts/bench-host-var.sh`（**统计稳定性**：同一产物重复测量，给 CV / 单跑失稳率 / 漂移判定）·
 `bash scripts/bench-layer2.sh`（层② vs fast_qr）· `bash scripts/bench.sh`（层① 后端基准）·
 `bash scripts/bench-size.sh`（体积）。口径：输入 `https://example.com/`=20B、ECL H、强制 V03/V10/V40、
 mask 自动择优；数字均为同 run 多轮取最小。核心结论：
@@ -271,6 +272,12 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 > **B** 单实例摊薄 = 0.340 / 0.574 / 0.737×。三者对照见 S9p §4.1。
 > **护栏全绿**：宿主面 checksum 与 `cmd/bench <点> 1` **逐点相同**（41/81/230，证明两个口径
 > 是同一计算）· 同实例重复调用结果恒定 · 逐位对齐 sha256 三点相同 · Node shim vs `moonrun` 跨宿主一致。
+> **统计口径（[S9q](./docs/S9q-性能口径统计差异与取平均评估.md)）**：上表上行为「R=5 中位数」口径（`R=3` 回退取最小并与离散成对报出）。
+> 同一产物重复测量（15 轮 × 5 次）的比值 CV：V03H **5.98%** ≫ V10H **3.54%** > V40H **0.35%**——
+> **单次 build 越便宜，相对统计误差越大**（固定项占比）；V03H 单轮最坏可偏离真值 **+17.3%**。
+> 噪声非白噪声（lag-1 自相关 r1 = 0.28~0.68，存在热/频漂移），故**同一进程内加轮次收益有限**；
+> 更大偏差来自宿主调度态（6 线程满载竞争使三点一致慢 **1.43–1.50×**）与 Node 大版本（v22→v24 两侧共模 1.12–1.23×）。
+> 纪律：**只用「同 run 内成对比值」，不跨 run 加减绝对毫秒**；主数取**中位数**而非算术平均（分布右偏）。
 > 绝对毫秒数**绑定测量环境**（本表 Node v24.21.0 + 2026-09-14 宿主）：跨环境只比「同 run 成对比值」，
 > 方向性结论全环境成立，归因见 [S9h](./docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md)。
 > 生态另两个 QR 包（`qrc`/`moonbitqrcode`）缺完整择优/Format 等，不可同口径对齐，仅参考口径见 S9d。
@@ -376,6 +383,7 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 | [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) | README 精简的**冗余清单**、官方 README 约定对照与取舍（含示例实测） |
 | [S9o-性能与体积数据重测-与README冗余清理.md](./docs/S9o-性能与体积数据重测-与README冗余清理.md) | **本轮重测记录**：性能/体积数据刷新方法与归因 + README 去冗余清单 |
 | [S9p-宿主调用面性能口径-JS向wasm传参.md](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md) | **宿主调用面主口径**：JS 反复带参调 wasm（`cmd/host-probe` + `bench-host.sh`）；wasm-gc 传字符串的技术路径与踩坑（**性能主口径**） |
+| [S9q-性能口径统计差异与取平均评估.md](./docs/S9q-性能口径统计差异与取平均评估.md) | **统计口径**：为什么 R 轮取最小≠真值；轮次级重抽样的 CV / 单跑失稳率 / 漂移判定；调度态与 Node 版本的量级对照；**主数取中位数 + 必须报离散** |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | 布局规则、`lib/` + `lib/internal/` 文件级职责、无环依赖、测试规划（**维护者入口**） |
 | [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md) | **测试 roadmap v6**：参考 fast_qr 测试体系盘点（含证据等级）+ 覆盖差距矩阵（G1–G15）+ 分阶段 T0–T7 路线 + 七条铁律；**附录 D/E/F/G/H 为实跑结论**（第三方解码回读、变异检测 **21/21**、v3/v4/v5 落地 + v6 订正记录）（**测试维护入口**） |
 | [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md) | **v5 真 bug 修复记录**：T3-d 探针首跑暴露的「显式模式未参与容量判定」缺陷——现象/根因/实测证据/修法/**与参考 83,160 组参数对照**/回归与变异项 |
@@ -462,7 +470,7 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 |------|------|:--------------:|
 | 环境配置 | `setup-moonbit.sh`、`setup-rust.sh`、`setup-fast-qr-wasm-env.sh` | ❌（幂等，本地/审计） |
 | 门禁链 | `fmt-check.sh` → `check.sh` → `test.sh` → `build-and-run.sh` | ✅ |
-| 性能基准 | **`bench-host.sh` + `host-bench.mjs`（宿主调用面：JS 反复带参调 wasm，主口径）**、`bench.sh`（层①）、`bench-layer2.sh` + `gc-compare.mjs`（层② vs fast_qr） | ❌ |
+| 性能基准 | **`bench-host.sh` + `host-bench.mjs`（宿主调用面：JS 反复带参调 wasm，主口径）**、`bench-host-var.sh` + `bench-host-var.mjs`（统计稳定性：CV / 单跑失稳率 / 漂移）、`bench.sh`（层①）、`bench-layer2.sh` + `gc-compare.mjs`（层② vs fast_qr） | ❌ |
 | 体积基准 | `bench-size.sh` + `wasm-size.mjs`（同规则口径 + 纯库探针 + 语义护栏） | ❌ |
 | 外部检出 | `build-fast-qr-wasm.sh`（fast_qr 侧产物，检出副本不入库） | ❌ |
 | 测试审计 | `test-audit.sh`（变异检测 + 解码回读）+ `apply-mutation.py` + `qr-decode-check.mjs`（`--points` 三基准点 / **`--corpus` T3-d 54 组**） | ❌ |
