@@ -407,3 +407,120 @@ wc -l README.md                       # 280
 4. **下沉必须留「承接文档」**：删内容 ≠ 删信息——若只删不迁，读者会失去可执行路径；
    本轮两篇新文档即是「可点、可跑、可审计」的承接面。
 5. **下沉后立刻跑死链门禁**：改索引是死链高发动作（`docs-link-check.sh` 会把「改完没检查」变成红灯）。
+
+---
+
+## 9. 第六轮（2026-09-14 v6）：发布面可达性闭环（链接策略 + 发布状态 + 门禁 ⑤）
+
+> 承接 ISSUE #47 第二轮评估报告（`README优化评估报告.md`，HEAD `65116b1`）。
+> 该报告判定：**内容重构已成功**（565→280 行、计数根治、示例唯一且受门禁保护），
+> 但**与内容无关、却决定落地页可用性**的两类 P0 未闭环：
+> ① mooncakes 落地页上 README 的 `docs/` 与 `AGENTS.md` 相对链接成片 404；
+> ② 「尚未发布」与线上已发布 `0.1.0` 矛盾，且线上 README 仍是旧版。
+> 本轮**只动文档与门禁脚本**：未改 `lib/`、公共 API、快照、用例与既有脚本语义。
+
+### 9.1 P0-A：跨文档链接策略（决定：仓库绝对链接）
+
+**机制复现**（实测，非推断）：
+
+```bash
+# ① 归档排除面
+grep -E '^/(docs|AGENTS)' .moonignore     # /docs/ 与 /AGENTS.md 被显式排除
+
+# ② mooncakes 如何重写相对链接（抓线上渲染页）
+curl -s https://mooncakes.io/docs/TryAndRun-TvT/fast_qr_moonbit@0.1.0 \
+  | grep -o 'assets\.mooncakes\.io/source/[^" ]\{0,90\}' | head
+#   → assets.mooncakes.io/source/TryAndRun-TvT/fast_qr_moonbit@0.1.0/docs/S9-性能基准.md
+
+# ③ 逐路径请求（归档内 vs 归档外）
+for u in README.md LICENSE moon.mod cmd/main/main.mbt \
+         docs/README-导航与索引.md docs/S9r-README性能体积长口径与公共API明细.md AGENTS.md; do
+  printf '%s  %s\n' \
+    "$(curl -s -o /dev/null -w '%{http_code}' \
+       "https://assets.mooncakes.io/source/TryAndRun-TvT/fast_qr_moonbit@0.1.0/$u")" "$u"
+done
+#   归档内 4 项 → 200；归档外 3 项 → 404（docs/**、AGENTS.md）
+```
+
+**方案对比**（报告给出两条路，本轮择一并说明理由）：
+
+| 方案 | 做法 | 判定 |
+|------|------|------|
+| **A. 仓库绝对链接**（**采纳**） | `https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/<path>` | ✅ 归档读者可点（实测 CNB blob HTTP **200**）；不改归档面；CNB 上渲染可读（非原始 markdown） |
+| B. 把 `/docs/` 纳入归档 | 从 `.moonignore` 移除 `/docs/` | ❌ 包体增大；读者拿到的是**原始 markdown**（锚点不滚动定位）；且 `AGENTS.md` 仍会暴露维护者上下文（违反 §一 的入库纪律） |
+
+**处置**：
+
+- README 中 **45 条 `./docs/**` + 2 条 `./AGENTS.md`** 相对链接 → 全部转为方案 A 的绝对链接；
+- **头部示例二维码**（`<img src="./docs/assets/qr-example.svg">`）同属归档外目标 →
+  改**仓库绝对直链** `.../-/git/raw/main/docs/assets/qr-example.svg`（实测 `Content-Type: image/svg+xml`、1957 B；
+  `/-/raw/` 与 `?raw=true` 实测返回 **text/html**，不能用于 `<img>`）；
+- **保留相对链接仅 2 类**：`./LICENSE`、`./cmd/main/main.mbt`——它们**在归档内**（`moon package --list` 成员）；
+- 锚点**继续有效**：绝对链接的 `#fragment` 在**渲染页**（CNB blob）上可滚动定位——
+  这正是方案 A 优于 B 的关键（B 的原始 markdown 上片段无效）。
+
+### 9.2 P0-B：发布状态修正（诚实口径）
+
+| 项 | 旧 | 新 |
+|----|----|----|
+| README「发布状态」 | 「尚未发布（`0.1.0` 待发布），故发布徽章可能显示 `none`」 | 「**已发布 `0.1.0`**（首个版本）；本页为**仓库当前文档**，可能领先于线上归档，精确版本以 mooncakes 页面为准」 |
+| 依据 | — | `https://mooncakes.io/api-new/v0/modules/TryAndRun-TvT/fast_qr_moonbit` → `version 0.1.0`、`yanked false`、`created_at 2026-09-14T08:53:42Z` |
+| 线上 README | 39,125 B **旧正文**（含「146」「尚未发布」） | 需**提升版本号后重新发布**才生效（mooncakes 已发布版本不可覆盖） |
+
+> **不写死「线上就是 0.1.0」**：一旦发布 `0.1.1`，写死版本号会再次漂移——故只写「已发布（首个版本）」
+> 并把精确版本交给 mooncakes 页面。这是 §7.6 教训 3（计数类数字不进 README）在**版本号**上的同一条推理。
+
+### 9.3 P1：版本写法统一
+
+`README.md` 第 22 行「版本 1–40」→「**V01–V40**」，与第 52/64 行的枚举名写法一致（全文唯一写法）。
+
+### 9.4 门禁 ⑤：把「发布面可达性」变成可执行断言
+
+新增于 `scripts/publish-check.sh`（成为 `gates.sh` 链的一环，**纯离线、秒级**）：
+
+- **口径**：把 `moon package --list` 的条目作为「归档成员集」；
+  对 `moon.mod` 的 `readme` 所指文件（README.md）提取**相对链接**，
+  凡解析后**不在归档成员集**内（如 `docs/**`、`AGENTS.md`）即判失败；
+- **与 `docs-link-check.sh` 的分工**：后者查「仓库内目标文件是否存在」并**跳过锚点**；
+  ⑤ 查「**归档读者**能否点到」——两个判据互补，缺一不可（报告 §3.1 指出这正是原门禁的盲区）；
+- **覆盖形态**：Markdown 链接 `[x](path)`、图片 `![x](path)` **以及** HTML 内联
+  `<img src="...">` / `<a href="...">`（含单/双引号）——后者的漏检曾让头部示例二维码在归档外（本轮补齐）；
+- **可选网络档**：`PUBLISH_LINK_NET=1 bash scripts/publish-check.sh` 追加对 README 的
+  `https://` 外链做 HEAD 校验（默认关闭，避免离线环境误红）。
+
+**负向验证（实跑，证明门禁能红）**：临时往 README 追加 `[bad](./docs/S9.md)` →
+⑤ 报 `❌ README.md -> ./docs/S9.md（**不在发布归档内** → mooncakes 落地页会 404）`；
+移除后 → `✅ 全部指向归档内成员`。
+
+### 9.5 度量
+
+| 指标 | v5（PR #76 后） | v6（本轮） |
+|------|:---:|:---:|
+| README 中 `./docs/**` 相对链接 | 45 | **0** |
+| README 中 `./AGENTS.md` 相对链接 | 2 | **0** |
+| README 中指向归档外的相对链接（发布面） | **47（全 404）** | **0** |
+| README 头部示例图 `src` | `./docs/assets/**`（归档外，**404**） | 仓库绝对直链（`image/svg+xml`） |
+| README 行数 / 字节 | 280 / 16983 | 300 / 21646（+20 行 = 「链接约定」小节） |
+| 受门禁保护的示例 | 1（`mbt check`） | **1**（未变） |
+| 发布面链接门禁 | 无 | `publish-check.sh` ⑤（离线 + 可选网络） |
+| 发布状态一致性 | 文内「尚未发布」vs 线上已发布 | 文内「已发布」+ 版本交由 mooncakes 页面 |
+
+### 9.6 与 §1–§8 的关系
+
+- §6 的**目标**（示例进门禁、根空 `moon.pkg` 宿主）**未变**；
+- §7 的**方向回正**（`README.md` 实体正文）**未变**；
+- §8 的**下沉**（README 只留落地页 + 索引）**未变**，本轮**只修「下沉后链接去哪」**：
+  下沉本身没错，错在**用相对链接指向不在归档内的目标**；
+- 一句话：**§8 解决了「内容在哪」，§9 解决了「读者能不能点到」**。
+
+### 9.7 教训（可复用）
+
+1. **门禁的判据要对准「消费方」**：仓库内死链绿 ≠ 发布面可达——
+   `docs-link-check.sh` 校验「文件存在」，而落地页需要「**归档成员**存在」；
+   两者是**不同判据**，必须各有一道门禁（新增 ⑤）。
+2. **相对链接是「本地语义」，归档会重写它**：凡是「目标可能不在分发面」的引用，
+   一律用**仓库绝对链接**；只有「确定随包分发」的目标（`LICENSE`、`cmd/main`）才用相对。
+3. **锚点只在渲染面有效**：`file.md#frag` 在原始 markdown 上不滚动定位——
+   所以「把 docs 纳入归档」这条路的锚点体验是**劣化**的，选绝对链接同时解决了锚点问题。
+4. **版本号也是会漂移的计数**：不要写死「线上是 0.1.0」，写「已发布（首个版本）」+ 指向版本页。
+5. **门禁新增必须带负向验证**：⑤ 的可用性由「注入一条 `./docs/` 链接即变红」证明（同 §三.4 纪律）。
