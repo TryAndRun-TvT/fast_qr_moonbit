@@ -238,13 +238,14 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 
 > 引用的性能数字仅作选型与迭代基线，**不代表对 fast_qr 的追赶承诺**；逐条口径见 S9 系列文档。
 
-复跑入口：`bash scripts/bench-layer2.sh`（层② vs fast_qr）· `bash scripts/bench.sh`（层① 后端基准）·
+复跑入口：`bash scripts/bench-host.sh`（**宿主调用面**：JS 反复带参调 wasm）·
+`bash scripts/bench-layer2.sh`（层② vs fast_qr）· `bash scripts/bench.sh`（层① 后端基准）·
 `bash scripts/bench-size.sh`（体积）。口径：输入 `https://example.com/`=20B、ECL H、强制 V03/V10/V40、
 mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 
 | 对比 | 结果 | 出处 |
 |------|------|------|
-| ① vs Rust fast_qr-wasm32（**默认后端 `wasm-gc`**） | 单次 build 慢 ≈**1.4–2.7×**，逐位对齐 sha256 零差异；差距集中在 8 轮掩码择优主循环 | 明细见下表 · [S9j](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md) |
+| ① vs Rust fast_qr-wasm32（**默认后端 `wasm-gc`**） | 单次 build 慢 ≈**1.3–2.5×**，逐位对齐 sha256 零差异；差距集中在 8 轮掩码择优主循环 | 明细见下表 · [S9p](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9j](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md) |
 | ② vs moonbit 生态 `moonqr`（同宿主、完整实现可比子集） | 本仓库全程快 **2.5–4.1×**（V03H 0.318 vs 0.805、V40H 9.46 vs 38.29 ms/单次，历史口径） | [S9d](./docs/S9d-与moonbit生态QR包性能对比.md) |
 | ③ 产物体积 vs fast_qr | `wasm-gc` 各口径均更小（对称锚点 **0.69×**） | 对照表见 [编译为 Wasm](#编译为-wasm) · [S9i](./docs/S9i-纯库调用体积探针与库实际体积.md) |
 
@@ -253,20 +254,24 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 
 ### ① vs fast_qr-wasm32：性能明细
 
-[S9j](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md) 统一「同一 Node 进程内」口径，
-**MoonBit 侧 = `wasm-gc`（默认后端、实际分发形态）**，两侧逐位对齐 sha256 零差异。
-「B 口径 = 单实例摊薄（纯算法边际）」为对外引用主口径：
+**主口径 = 宿主调用面（[S9p](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md)）**：
+宿主**一次** `compile` + **一次** `Instance`，随后在同一实例上**反复把 JS 参数传给 wasm**
+（`cmd/host-probe` 导出 `qr_generate(content: String, version: Int) -> Int`，走 JS String
+Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与 fast_qr `qr_with` 调用形态对称。
+**MoonBit 侧 = `wasm-gc`（默认后端、实际分发形态）**，两侧逐位对齐 sha256 零差异：
 
 | 点 | 模块数 | 本仓库 MoonBit(wasm-gc) | fast_qr-wasm32 | fast / ours | 每模块成本 ours / fast |
 |----|------:|------------------------:|---------------:|------------:|------------------------|
-| V03H | 841 | 0.227 ms | 0.085 ms | 0.374×（慢 ≈2.7×） | 0.270 / 0.101 µs |
-| V10H | 3249 | 0.652 ms | 0.399 ms | 0.613×（慢 ≈1.6×） | 0.201 / 0.123 µs |
-| V40H | 31329 | 4.808 ms | 3.547 ms | 0.738×（慢 ≈1.4×） | 0.153 / 0.113 µs |
+| V03H | 841 | 0.213 ms | 0.087 ms | 0.407×（慢 ≈2.5×） | 0.253 / 0.103 µs |
+| V10H | 3249 | 0.643 ms | 0.399 ms | 0.620×（慢 ≈1.6×） | 0.198 / 0.123 µs |
+| V40H | 31329 | 4.659 ms | 3.523 ms | 0.756×（慢 ≈1.3×） | 0.149 / 0.112 µs |
 
-> **口径与环境护栏**：**A** 每次新建 wasm Instance（与 fast_qr「一次调用」严格同形，
-> fast/ours = 0.284 / 0.538 / 0.725×）· **B** 单实例摊薄如上表（对外引用主口径）；护栏全绿
-> （逐位对齐 sha256 三点相同、Node shim vs `moonrun` 跨宿主一致）。
-> 绝对毫秒数**绑定测量环境**（本表 Node v24.21.0 + 2026-09-12 宿主）：跨环境只比「同 run 成对比值」，
+> **旧命令形态口径**（`cmd/bench`，保留作对照）：**A** 每次新建 Instance
+> （与 fast_qr「一次调用」同形，会**系统性夸大**差距）fast/ours = 0.263 / 0.528 / 0.728×；
+> **B** 单实例摊薄 = 0.340 / 0.574 / 0.737×。三者对照见 S9p §4.1。
+> **护栏全绿**：宿主面 checksum 与 `cmd/bench <点> 1` **逐点相同**（41/81/230，证明两个口径
+> 是同一计算）· 同实例重复调用结果恒定 · 逐位对齐 sha256 三点相同 · Node shim vs `moonrun` 跨宿主一致。
+> 绝对毫秒数**绑定测量环境**（本表 Node v24.21.0 + 2026-09-14 宿主）：跨环境只比「同 run 成对比值」，
 > 方向性结论全环境成立，归因见 [S9h](./docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md)。
 > 生态另两个 QR 包（`qrc`/`moonbitqrcode`）缺完整择优/Format 等，不可同口径对齐，仅参考口径见 S9d。
 
@@ -370,6 +375,7 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 | [README示例二维码-SVG资源与生成.md](./docs/README示例二维码-SVG资源与生成.md) | README 头部示例码为何用 **SVG** + 资产规格 + 生成脚本 + 一致性核验 |
 | [README优化-冗余清理与最佳实践.md](./docs/README优化-冗余清理与最佳实践.md) | README 精简的**冗余清单**、官方 README 约定对照与取舍（含示例实测） |
 | [S9o-性能与体积数据重测-与README冗余清理.md](./docs/S9o-性能与体积数据重测-与README冗余清理.md) | **本轮重测记录**：性能/体积数据刷新方法与归因 + README 去冗余清单 |
+| [S9p-宿主调用面性能口径-JS向wasm传参.md](./docs/S9p-宿主调用面性能口径-JS向wasm传参.md) | **宿主调用面主口径**：JS 反复带参调 wasm（`cmd/host-probe` + `bench-host.sh`）；wasm-gc 传字符串的技术路径与踩坑（**性能主口径**） |
 | [moonbit-实现布局与文件职责.md](./docs/moonbit-实现布局与文件职责.md) | 布局规则、`lib/` + `lib/internal/` 文件级职责、无环依赖、测试规划（**维护者入口**） |
 | [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md) | **测试 roadmap v6**：参考 fast_qr 测试体系盘点（含证据等级）+ 覆盖差距矩阵（G1–G15）+ 分阶段 T0–T7 路线 + 七条铁律；**附录 D/E/F/G/H 为实跑结论**（第三方解码回读、变异检测 **21/21**、v3/v4/v5 落地 + v6 订正记录）（**测试维护入口**） |
 | [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md) | **v5 真 bug 修复记录**：T3-d 探针首跑暴露的「显式模式未参与容量判定」缺陷——现象/根因/实测证据/修法/**与参考 83,160 组参数对照**/回归与变异项 |
@@ -456,7 +462,7 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 |------|------|:--------------:|
 | 环境配置 | `setup-moonbit.sh`、`setup-rust.sh`、`setup-fast-qr-wasm-env.sh` | ❌（幂等，本地/审计） |
 | 门禁链 | `fmt-check.sh` → `check.sh` → `test.sh` → `build-and-run.sh` | ✅ |
-| 性能基准 | `bench.sh`（层①）、`bench-layer2.sh` + `gc-compare.mjs`（层② vs fast_qr） | ❌ |
+| 性能基准 | **`bench-host.sh` + `host-bench.mjs`（宿主调用面：JS 反复带参调 wasm，主口径）**、`bench.sh`（层①）、`bench-layer2.sh` + `gc-compare.mjs`（层② vs fast_qr） | ❌ |
 | 体积基准 | `bench-size.sh` + `wasm-size.mjs`（同规则口径 + 纯库探针 + 语义护栏） | ❌ |
 | 外部检出 | `build-fast-qr-wasm.sh`（fast_qr 侧产物，检出副本不入库） | ❌ |
 | 测试审计 | `test-audit.sh`（变异检测 + 解码回读）+ `apply-mutation.py` + `qr-decode-check.mjs`（`--points` 三基准点 / **`--corpus` T3-d 54 组**） | ❌ |
