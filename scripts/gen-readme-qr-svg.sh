@@ -99,12 +99,17 @@ for r in range(n):
 d = ''.join(f"M{x + margin},{y + margin}h{w}v{h}h-{w}z" for x, y, w, h in rects)
 # 注意：path 的 d 必须保持**单行**——librsvg（rsvg-convert / sharp 等）会把
 # d 属性内的换行当作无效数据并截断路径，导致图形残缺（实测）；标签之间换行无碍。
+# fill-rule="evenodd" 是本图能正确渲染的**必需项**（2026-09-14 修正）：
+#   本脚本把每个暗模块按「连续暗段」合并成一个个子路径，**子路径方向未归一化**；
+#   默认 nonzero 规则下「同向嵌套」的相邻子路径会互相填充（如定位图案扫不出、1 模块宽的
+#   白缝被填掉）。evenodd 按「奇偶覆盖」判定，对同向/反向子路径都正确 → 在不重排子路径的
+#   前提下就能安全渲染（实测 rsvg-convert 光栅化后 jsQR 可解回原文）。
 svg = (
     f'<svg viewBox="0 0 {W} {W}" role="img" aria-label="QR code for {content}" '
     'xmlns="http://www.w3.org/2000/svg">\n'
     f'<title>fast_qr_moonbit 生成的二维码：{content}</title>\n'
     f'<rect width="{W}" height="{W}" fill="#ffffff"/>\n'
-    f'<path d="{d}" fill="#000000"/>\n'
+    f'<path fill-rule="evenodd" d="{d}" fill="#000000"/>\n'
     '</svg>\n'
 )
 open(out, 'w', encoding='utf-8').write(svg)
