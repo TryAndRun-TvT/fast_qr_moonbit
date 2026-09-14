@@ -31,6 +31,16 @@
 发布内容用 `.moonignore` 收敛（§4.3，实测可行）；
 版本策略与 `unpublished` 演进用 §5 的阶梯表。
 
+> **落地进展（2026-09-14 更新）**：#3（归档面收敛）与 #4（发布前门禁缺口）已**落地并实测通过**：
+> - `.moonignore` 把归档 **155 → 32 项**（解压 1886 → 179 KiB），
+>   并以**离线 registry 注入**证明 32 项归档下游 `moon add`/`build`/`run` 全通；
+> - 新增 `scripts/publish-check.sh`（归档基线 + 内容白/黑名单 + 元数据 + 质量基线）
+>   并挂入 push CI。
+>
+> 详见 **[mooncakes-发布阻塞项3-4-落地方案.md](./mooncakes-发布阻塞项3-4-落地方案.md)**。
+> 该文同时**订正**本文 §6-B1 的口径：`lib/**` 的 `missing_doc` 缺口分布为
+> 「公共 API 1 处 + `lib/internal/**` 12 处」，而非「公共 API 缺 13 处」。
+
 ---
 
 ## 1. 官方发布流程（文档原文摘录 + 本仓库对应）
@@ -256,6 +266,11 @@ moon publish --dry-run     # ❌ 未登录（预期；非技术阻塞）
 /.codebuddy/
 ```
 
+> ✅ **已落地（2026-09-14）**：本仓库根目录已提交 `.moonignore`，实测归档 **32 项**
+> （含 `cmd/main`、排除全部测试文件）。最终内容与负向验证见
+> [mooncakes-发布阻塞项3-4-落地方案.md](./mooncakes-发布阻塞项3-4-落地方案.md) §2。
+> 归档基线由 `scripts/publish-check.sh` 守住（条目数偏离 32 即 CI 红）。
+>
 > **须维护者拍板的两条**（本文不改默认行为）：
 > 1. `cmd/` 四包是否留？`cmd/main` 是「怎么用」的可运行示例（对消费者有价值）；
 >    `cmd/bench`/`cmd/qr-min`/`cmd/host-probe` 是 S9 审计外壳（含 wasm 链接选项，无分发价值）。
@@ -311,20 +326,26 @@ moon publish --dry-run     # ❌ 未登录（预期；非技术阻塞）
       成功后核验 `~/.moon/credentials.json` 存在。**账户名须与 `moon.mod` 的 `name` 前缀一致**
       （当前为 `tryandrun`）；若不一致，同步改 `moon.mod` 的 `name` 与全仓 import 路径。
 - [ ] **A2 决策 `repository` 指向**（§3.1 选项 A/B/C），改 `moon.mod`。
-- [ ] **A3 提交 `.moonignore`**（§4.3），并用 `moon package --list` 复核条目数与内容。
+- [x] **A3 提交 `.moonignore`**（§4.3）——✅ 已完成，实测 32 项（155→32）；基线由 `publish-check.sh` 守卫。
 - [ ] **A4 补 `homepage`**（可选但建议）：指向启用 Pages/文档入口的 URL。
 
 ### B. 质量门禁（发布前建议完成）
 
-- [ ] **B1 公共 API 文档覆盖**：当前 `missing_doc`(0074) 未接入。实测开启后 `lib/**` 有 **13 处**
-      缺口（`internal/constants/hardcode.mbt` 3、`internal/matrix/module.mbt` 6、
-      `internal/reedsolomon/reedsolomon.mbt` 2、`lib/qr_build.mbt` 1 等）。
-      `moonc` 实测 `warnings = "+74"` 报 **13 warnings**。
-      建议：**先给 `lib/**` 的公共 API 补 `///` 文档**（`lib/internal/**` 属实现细节，可暂缓），
-      再把 `+74` 纳入 `check.sh`——注意 `--deny-warn` 会把告警升级为失败，需与文档补齐同批提交。
-- [ ] **B2 发布前冒烟门禁**：新增 `scripts/publish-check.sh`，串起
-      `moon fmt --check` → `moon check --deny-warn` → `moon test` → `moon package --list` 基线比对
-      （防「归档内容悄悄膨胀」）。是否进 push CI 由维护者定（只读操作，可进）。
+- [ ] **B1 公共 API 文档覆盖**：当前 `missing_doc`(0074) 未接入。实测 `moon check --warn-list +74`
+      报 **13 warnings**，**分布已订正**：
+      **`lib/*.mbt`（公共 API）仅 1 处**（`qr_build.mbt:109` 的 `QRCode::build_fixed`，其上方是
+      `///|` 块分隔符而非文档正文）；其余 12 处在 `lib/internal/**`
+      （`matrix/module.mbt` 7、`constants/hardcode.mbt` 3、`reedsolomon/reedsolomon.mbt` 2）。
+      **口径订正**：原文「公共 API 缺 13 处」不准确——公共 API 覆盖实测 **51/52**。
+      **语法坑**：`moon.mod` 的 `warnings` 字段**无法**追加 0074（`+` 拼接 = Lexing error；
+      数组写法解析通过但不生效），**唯一可行路径**是 `moon check --warn-list +74`。
+      建议：补全 13 处后把 `--warn-list +74` 加进 `scripts/check.sh`
+      （`--deny-warn` 会把告警升级为失败，须与补文档同批提交）。
+      该决定属「改公共代码 + 改 CI」，**留维护者拍板**，详见
+      [阻塞项3-4-落地方案](./mooncakes-发布阻塞项3-4-落地方案.md) §4。
+- [x] **B2 发布前冒烟门禁** ——✅ 已完成：`scripts/publish-check.sh` 已落地并挂入 push CI。
+      四段式：质量基线（fmt/check/test）+ 归档条目数基线（=32）+ 内容白/黑名单 + 元数据自检。
+      负向验证（削弱 `.moonignore` / 错基线 / 放回 `AGENTS.md`）三种破坏均能被拦住。
 - [ ] **B3 README 首屏复核**：确认「仅 wasm-gc / 宿主需 GC」的边界在 README 前 1/3（当前 ✅），
       并确认 `moon add tryandrun/fast_qr_moonbit` 的示例路径与 `lib` 包路径一致。
 
@@ -358,10 +379,10 @@ moon build cmd/main --target wasm-gc --release
 |:-:|----------|------|------|
 | R1 | 账户名 `tryandrun` 在 mooncakes 的可用性未确认 | 阻塞发布；可能需要改 `moon.mod` `name` | A1 立即确认 |
 | R2 | `repository` 非 GitHub | 生态可达性/信誉 | A2 决策 |
-| R3 | 归档含 `scripts/`/`docs/` | 分发面混杂、体积增大 | A3（实测 `.moonignore` 可解） |
+| R3 | 归档含 `scripts/`/`docs/` | 分发面混杂、体积增大 | ✅ 已解：A3 落地，155→32 项，`publish-check.sh` 守基线 |
 | R4 | 仅 `wasm-gc` 单后端 | 下游 `js`/`native` 编译被拒 | 已在 README 声明；可考虑后续补 `js` 后端（另立任务） |
-| R5 | 官方文档未给 `yank` 命令 | 发布不可逆 | §5.4；发布前门禁必须可执行 |
-| R6 | `missing_doc` 未接入 | 公共 API 无文档，mooncakes 文档页质量低 | B1 |
+| R5 | 官方文档未给 `yank` 命令 | 发布不可逆 | ✅ 已缓解：§5.4 + `publish-check.sh` 已可执行 |
+| R6 | `missing_doc` 未接入 | 公共 API 无文档，mooncakes 文档页质量低 | B1（实测公共 API 仅缺 1 处，余 12 处在 internal） |
 | R7 | 仓库文档大量引用 CNB Issue/PR | 外部读者断链（相对链接门禁只查仓内） | 已有 `docs-link-check.sh` 兜仓内；外链属已知边界 |
 
 ---
@@ -380,7 +401,7 @@ moon check --deny-warn                 # -> 通过
 moon test                              # -> 146 passed
 
 # 3) 归档面
-moon package --list                    # -> 158 项（含 scripts/docs）；加 .moonignore 后 69 项
+moon package --list                    # -> 32 项（.moonignore 已收敛；未收敛时为 158 项）
 
 # 4) 发布链路（需登录）
 # moon login
