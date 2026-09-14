@@ -1,0 +1,39 @@
+// S9p 宿主调用面探针（foreign_library）：按真实集成形态导出**可被 JS 直接调用**的 QR 生成入口。
+//
+// 目的与既有 cmd/bench 的区别：
+//   cmd/bench 是 executable（导出面只有 `_start`），输入只能经 argv
+//   （`__moonbit_fs_unstable` 协议）在实例创建时注入——那是「CLI 形态」，不是宿主嵌入形态；
+//   且每次调用都只能新建 Instance，宿主无法在两次调用之间改参数。
+//   本包按 `foreign_library` 形态导出 `qr_generate(content: String, version: Int) -> Int`：
+//   宿主创建一个 Instance，之后在该实例上**每次调用传入自己的 String 参数与版本号**，
+//   与 fast_qr 的 `qr_with(content, ecl, version)` 调用形态对称。
+//
+// 关键开关 `use-js-builtin-string: true` + `imported-string-constants: "_"`：
+//   MoonBit wasm-gc 的 `String` 参数默认编译为
+//   内部 GC 引用（`(ref null 0)`），JS 无法构造；开启 JS String Builtins 后编译为
+//   `stringref`，宿主 `WebAssembly.compile(src, { builtins: ["js-string"] })` 即可直接传 JS 字符串。
+//   这是 wasm-gc 下「真正把字符串参数从 JS 传给 wasm」的可行路径（实测确认，见 S9p 文档）。
+//   ⚠️ 两个必须一起做的配套动作（实测踩坑）：
+//     1) `imported-string-constants: "_"`——模块内的**字符串常量/字面量**会被编译成
+//        `_` 命名空间下的导入（导入名即字符串内容），宿主必须提供 `{ <name>: <name> }`
+//        映射，否则访问字面量会 `illegal cast`；
+//     2) 宿主 `WebAssembly.compile(src, { builtins: ["js-string"] })`——开启 JS String Builtins，
+//        否则 `wasm:js-string.*` 导入无法满足。
+//
+// 复用 cmd/bench 的单次 checksum 公式（见 main.mbt `host_checksum`），使「宿主调用面」与
+//   「CLI 面」在同参数下可互证（不是各测各的）。
+pkgtype(kind: "foreign_library")
+
+import {
+  "tryandrun/fast_qr_moonbit/lib",
+}
+
+options(
+  link: {
+    "wasm-gc": {
+      "exports": [ "qr_generate", "qr_checksum" ],
+      "use-js-builtin-string": true,
+      "imported-string-constants": "_",
+    },
+  },
+)
