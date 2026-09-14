@@ -193,18 +193,25 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
   如 `wasm-编译与运行-结果分析.md`）。
 - **单文档 ≤800 行**，超长应拆分。
 - **死链零容忍**：文档中不得引用不存在的文件；新增文档须同步更新
-  `README.md` 的「文档索引」表（`README.mbt.md` 是指向它的符号链接）。
+  **两处索引**：`docs/README-导航与索引.md`（全量清单）与 `README.md` 的「文档索引」表（落地页入口）。
+  两处都须更新，否则 `bash scripts/docs-link-check.sh` 会红（`README.mbt.md` 是指向 `README.md` 的符号链接）。
 - **README 正文改 `README.md`，不要改 `README.mbt.md`**：后者是符号链接。
   `README.md` 里的 `mbt check` 示例会被 `moon test` 校验，请勿把示例写回 `moonbit` 展示块。
 - **不要在 README 里写会被写死的计数**（用例数 / 文件数 / 链接条数）：它们随实现漂移，
   写死必然自相矛盾（曾出现同一文件内 146/147 冲突）。需要数字时指向实跑命令。
 - **改公共 API 必须同步 README 示例**：否则 `moon test` 变红（文档测试即门禁）。
+- **README 只保留「落地页 + 索引」（v5 纪律，2026-09-14）**：`README.md` 是**落地页**，
+  只写「能做什么 / 怎么用 / 边界在哪 / 去哪看细节」——**结论 + 出处链接**。
+  数字表、参数、实验设计、历史记录、脚本逐项说明**一律下沉 `docs/`**（长口径承接见
+  `docs/S9r-README性能体积长口径与公共API明细.md`，导航见 `docs/README-导航与索引.md`）。
+  新增内容前先自问：「这条是**读者第一屏需要**的，还是**证据**？」后者进 `docs/`。
 - **纯本地 / 私人配置调整**（如本地默认值改动）：只改代码/配置，**不生成、不更新项目文档**。
 
 ---
 
 ## 五、参考
 
-- 项目文档索引见 [README.md](./README.md)「文档索引」表（`README.mbt.md` 为其符号链接）。
+- 项目文档索引：[docs/README-导航与索引.md](./docs/README-导航与索引.md)（**全量清单 + 按读者路径**）→
+  [README.md](./README.md)「文档索引」表（落地页入口；`README.mbt.md` 为其符号链接）。
 - MoonBit 技能库：<https://github.com/moonbitlang/skills>
 - MoonBit 构建系统：<https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/tutorial.html>

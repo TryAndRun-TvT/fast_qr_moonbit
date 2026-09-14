@@ -232,7 +232,7 @@ moon fmt && moon info && moon check && moon test
 | 黑盒测试 `_test.mbt` | `lib/fast_qr_moonbit_test.mbt`（`@lib`） | 符合 |
 | 白盒测试 `_wbtest.mbt` | `lib/fast_qr_moonbit_wbtest.mbt` | 符合 |
 | 公共 `.mbt` 命名 | 公共文件按职责命名（ecl/version/mode/mask/module/qr/qr_build/qr_builder/helpers/shape/svg） | 符合（**v4 后不再有「同模块名入口文件」**，见下行注） |
-| README 入口（真实文件） | `README.md`（`moon.mod` 的 `readme` 指向它） | 偏离（见 §3.3） |
+| README 入口（真实文件） | `README.md` 实体正文 + `README.mbt.md` 符号链接（`moon.mod` 的 `readme` 指向 `README.md`） | 偏离（链接方向已回正，见 §3.3） |
 | `supported_targets` 用集合语法 | `"+wasm-gc"`（`js`、`wasm`(WASI) 已移除） | 符合 |
 | 未使用的依赖不提前声明 | `cmd/main/moon.pkg` 仅注释记录 | 符合 |
 
@@ -255,14 +255,17 @@ moon fmt && moon info && moon check && moon test
 | 项 | 官方 | 本仓库 | 说明 |
 |----|------|--------|------|
 | 代理指南文件名 | `AGENTS.md` | `AGENTS.md` | **已对齐**：原小写 `agents.md` 于 2026-09-05 重命名为 `AGENTS.md`；曾建 `agents.md` 兼容符号链接（后撤销，仓库现不再保留该链接） |
-| README 入口 | `README.mbt.md` + `README.md -> README.mbt.md` 符号链接（官方 `moon new` 布局） | `README.md`（单一真实文件） | **有意偏离**：撤销官方双文件+符号链接布局，避免两份内容需手动同步（符号链接在 Windows 开发环境还需管理员/开发者模式）；Git/平台渲染首页一致；`moon.mod` 的 `readme` 指向 `README.md` |
+| README 入口 | `README.mbt.md` + `README.md -> README.mbt.md` 符号链接（官方 `moon new` 布局） | `README.md`（**实体正文**）+ `README.mbt.md -> README.md` 符号链接 | **有意偏离（方向回正）**：官方模板把正文放 `README.mbt.md`、`README.md` 做链接；但本仓库全部消费链路（CNB 渲染 / raw / 不解析链接的宿主）会让 `README.md` 退化成 13 字节存根，**落地页劣化**。故**反转方向**：正文在 `README.md`，文档测试入口沿用官方文件名 `README.mbt.md`（文档测试只认该文件名）→ 平台渲染与 `moon test` **兼得**。详见 [README优化 §7](./README优化-冗余清理与最佳实践.md) |
 | `.githooks/` | 有（含 `pre-commit`） | 有 | **已补齐**：`pre-commit` 执行 `moon fmt --check` + `moon check`（比官方的仅 `moon check` 更严）；启用需开发者自行执行 `git config core.hooksPath .githooks`（本仓库不代设本地配置） |
 | `.github/workflows/` | 有（copilot-setup-steps） | 无 | 本仓库 CI 在 `.cnb.yml`，无需 GitHub Actions |
 | 模块形态 | `moon new` 单库：模块根即根包（`moon.pkg` + `<模块名>.mbt`） | **方案 3**：模块根不建包，库包在 `lib/`（`.../lib`），实现子包在 `lib/internal/` | **有意偏离**（对齐 core）：模块根只放元数据，目录更干净；导入路径变 `.../lib`，构建需显式给包名；见 [moonbit-实现布局与文件职责](./moonbit-实现布局与文件职责.md) |
 
-> 关于符号链接：本仓库目前已**无符号链接** —— README 与 `agents.md` 的官方符号链接
-> 布局均已撤销，相关文件均为单一真实文件（见上表 README 入口与代理指南文件名两行）。
-> 若未来在 Windows 开发环境重建符号链接，教程注明需管理员权限或启用开发者模式。
+> 关于符号链接：本仓库目前**仅保留 1 个符号链接** —— `README.mbt.md -> README.md`
+> （文档测试按文件名扫描，必须存在 `README.mbt.md`；正文实体在 `README.md`，见上表）。
+> `agents.md` 的官方兼容链接已撤销，`AGENTS.md` 为单一真实文件。
+> **通用纪律**：凡「平台/宿主必然读取」的文件（README、LICENSE）必须**实体化**，
+> 不得对其做符号链接（平台不保证 follow）——见 [README优化 §7.6](./README优化-冗余清理与最佳实践.md)。
+> 若在 Windows 开发环境使用，符号链接需管理员权限或启用开发者模式。
 
 ---
 
