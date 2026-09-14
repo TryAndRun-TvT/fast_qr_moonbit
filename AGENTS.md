@@ -205,6 +205,15 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
   数字表、参数、实验设计、历史记录、脚本逐项说明**一律下沉 `docs/`**（长口径承接见
   `docs/S9r-README性能体积长口径与公共API明细.md`，导航见 `docs/README-导航与索引.md`）。
   新增内容前先自问：「这条是**读者第一屏需要**的，还是**证据**？」后者进 `docs/`。
+- **README 里的跨文档链接：归档外目标一律用仓库绝对链接（v6 纪律，2026-09-14）**：
+  发布归档（`.moonignore`）**排除** `/docs/` 与 `/AGENTS.md`，故 README 中指向它们的**相对链接**
+  会在 mooncakes 落地页被重写为 `assets.mooncakes.io/source/.../docs/...` 而 **404**。
+  约定：`docs/**` / `AGENTS.md` → `https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/<path>`；
+  `README.md` / `LICENSE` / `cmd/main/**`（**在归档内**）→ 保留相对链接。
+  该约定由 `bash scripts/publish-check.sh` 的 **⑤ 发布面链接可达性**断言兜底
+  （与 `docs-link-check.sh` 分工不同：前者查「归档读者能否点到」，后者查「仓库内文件是否存在」）。
+- **发布状态不写死具体版本号**：写「已发布（首个版本）」+ 指向 mooncakes 版本页；
+  写死版本（如「线上是 0.1.0」）会在下次发布后漂移，与「计数不写进 README」同源。
 - **纯本地 / 私人配置调整**（如本地默认值改动）：只改代码/配置，**不生成、不更新项目文档**。
 
 ---
