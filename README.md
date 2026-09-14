@@ -123,7 +123,7 @@ fn main {
 | `ECL` / `Version` / `Mode` / `Mask` | 纠错级别（L/M/Q/H）、版本（V01–V40）、编码模式、掩码枚举 |
 | `QRCode` | 生成结果容器（矩阵 + size/version/ecl/mask/mode 元数据 + `to_str`/`print`） |
 | `QRCode::build` / `build_fixed` | 过程式编排入口（input/mode/ecl/version/mask → `Result[QRCode]`；`build` 的 `Some(mask)` 分支委托 `build_fixed`） |
-| `QRCode::empty` / `for_version` | **空矩阵构造**（宿主自建/改写矩阵的入口，见下「矩阵读写」） |
+| `QRCode::empty` | **空矩阵构造**（宿主自建/改写矩阵的唯一入口，见下「矩阵读写」） |
 | `QRCode::get` / `set` / `meta` / `data`（+ `size`/`version`/`ecl`/`mask`/`mode`） | 逐格读写与元数据访问器（`set` 不可变式，返回新 `QRCode`） |
 | `QRCode::select_capacity` | 容量/版本三元组解析（显式模式参与判定，供自定义编排复用） |
 | `QRBuilder` | 链式构造器：`from_string`/`new` + `mode/ecl/version/mask` + `build` |
@@ -374,7 +374,7 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 | [S10-测试用例设计与完善roadmap.md](./docs/S10-测试用例设计与完善roadmap.md) | **测试 roadmap v6**：参考 fast_qr 测试体系盘点（含证据等级）+ 覆盖差距矩阵（G1–G15）+ 分阶段 T0–T7 路线 + 七条铁律；**附录 D/E/F/G/H 为实跑结论**（第三方解码回读、变异检测 **21/21**、v3/v4/v5 落地 + v6 订正记录）（**测试维护入口**） |
 | [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md) | **v5 真 bug 修复记录**：T3-d 探针首跑暴露的「显式模式未参与容量判定」缺陷——现象/根因/实测证据/修法/**与参考 83,160 组参数对照**/回归与变异项 |
 | [S10b-测试覆盖率报告.md](./docs/S10b-测试覆盖率报告.md) | **T5-a 覆盖率报告**（行级，`scripts/coverage.sh` 产出）+ **T5-b 不下降门禁**（顶部 `coverage-floor` 机器可读标记） |
-| [S11-无效代码与冗余文档清理评估.md](./docs/S11-无效代码与冗余文档清理评估.md) | **清理评估入口（v3）**：无效/冗余代码与文档的判定口径、实测清单、分级处置队列与执行纪律（Issue #63）；**§10 为二次复核**（修正 v1 的「能力缺口」误判等），**§11 为 P0/P1 落地记录**（删冗余符号、消 2 处双份实现、补 `QRCode::empty`、覆盖率 26→15） |
+| [S11-无效代码与冗余文档清理评估.md](./docs/S11-无效代码与冗余文档清理评估.md) | **清理评估入口（v4）**：无效/冗余代码与文档的判定口径、实测清单、分级处置队列与执行纪律（Issue #63）；**§10 二次复核**（修正 v1 的「能力缺口」误判）、**§11 P0/P1 落地**（删冗余符号、消 2 处双份实现、补 `QRCode::empty`、覆盖率 26→15）、**§12 文件级「无实践内容」盘点**（删纯注释文件 `fast_qr_moonbit.mbt`、合并薄委托文件 `qr_output.mbt`、删 3 个零信息符号） |
 | [AGENTS.md](./AGENTS.md) | AI/协作者硬性约定：密钥安全、MoonBit 布局、文档死链零容忍（**贡献前必读**） |
 | ⤷ [S1–S9n 实现系列文档](./docs/S1-数据结构.md) | 按阶段编号的实现方案/记录/评审与性能评估全套（**按需深入，从 S1 进入**） |
 | ⤷ [fast_qr 移植参考](./docs/移植参考/fast-qr-索引.md) | Rust 参考库 v0.14.0 的架构/接口/概念分析语料（**由索引统辖**） |
@@ -409,14 +409,13 @@ mask 自动择优；数字均为同 run 多轮取最小。核心结论：
 .
 ├── moon.mod                    # MoonBit 模块配置（模块根不建包）
 ├── lib/                        # 库包（公共 API，lib/moon.pkg）
-│   ├── fast_qr_moonbit.mbt     #   库入口 / 公共 API 总览
 │   ├── ecl / version / mode / mask.mbt  # 公共枚举（ECL/Version/Mode/Mask）
 │   ├── module.mbt              #   公共 Module / ModuleType（单字节位打包）
 │   ├── qr.mbt                  #   QRCode 结果容器 + QRCodeError + 访问器
 │   ├── qr_build.mbt            #   编排/构造：select_capacity + build_fixed/build
 │   ├── qr_builder.mbt          #   公共 QRBuilder 构造器
-│   ├── qr_output.mbt           #   QRCode 输出便捷 to_str/print
-│   ├── helpers.mbt / svg.mbt / shape.mbt  # 输出层：终端画 + SVG + Shape
+│   ├── helpers.mbt             #   输出层：终端画渲染 + QRCode::to_str/print
+│   ├── svg.mbt / shape.mbt     #   输出层：SVG 渲染 + Shape 枚举
 │   ├── *_test.mbt / *_wbtest.mbt          # 黑盒测试 / 白盒测试
 │   └── internal/               #   实现子包（各带 moon.pkg；不反向依赖 lib）
 │       ├── constants/          #     常量表 + 容量/元数据表

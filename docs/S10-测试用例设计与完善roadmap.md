@@ -40,7 +40,7 @@
 > **v6 刷新**（2026-09-14，配合 [S11](./S11-无效代码与冗余文档清理评估.md) 清理）：
 > ① **订正变异条数口径**——附录 E/H 原写「23/23」系**误把最大编号当条数**（M3/M10 缺号），
 >    实为 **21 条**（v4 为 19）；权威口径 `bash scripts/test-audit.sh mutation | grep -c 已检出`。
-> ② **补测（P1-2）**：`ECL::to_char` 全 4 臂、`QRCode::empty` 契约 + `for_version` 别名等价、
+> ② **补测（P1-2）**：`ECL::to_char` 全 4 臂、`QRCode::empty` 契约（v4 删 `for_version` 别名后为唯一空矩阵入口）、
 >    `build_fixed` 两路负向早退（`SpecifiedVersion`/`EncodedData`）、N3 quiet-zone 双侧图案
 >    （覆盖 `test_line_pattern`）+ N1 非 Data 结算边界；`moon test` 140 → **146**。
 > ③ **消双份实现**：`score.mbt` 的 `line_score`（仅白盒 helper 用的副本）改委托生产路径

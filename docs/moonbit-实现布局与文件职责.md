@@ -27,6 +27,10 @@
 
 > 与「单根包」/「模块根 internal」旧方案的差异：库入口 import 路径由
 > `.../fast_qr_moonbit` 变为 `.../fast_qr_moonbit/lib`；构建/CI 需显式给包名。
+>
+> **v4 更新（2026-09-14，[S11 §12](./S11-无效代码与冗余文档清理评估.md)）**：原 `lib/fast_qr_moonbit.mbt`
+> （入口注释文件）与 `lib/qr_output.mbt`（薄委托文件）已删/合并——MoonBit 同包共享命名空间，
+> **公共 API 总览的权威载体是 README + 本文档**，不再在源码目录保留纯注释文件。
 
 ## 2. 布局树
 
@@ -34,10 +38,9 @@
 moon.mod / README.md / docs/ / AGENTS.md / .cnb.yml   # 模块根：仅元数据（无包）
 ├── lib/                          # 库包（公共，对外契约）
 │   ├── moon.pkg
-│   ├── fast_qr_moonbit.mbt       #   库入口 / 公共 API 组装
 │   ├── ecl.mbt / version.mbt / mode.mbt / mask.mbt   # 公共枚举
-│   ├── qr.mbt                    #   QRCode 容器 / 错误 / 构造入口
-│   ├── helpers.mbt               #   终端输出扩展
+│   ├── qr.mbt                    #   QRCode 容器 / 错误 / 公共 API 总览（入口注释）
+│   ├── helpers.mbt               #   终端画渲染 + QRCode::to_str/print（输出便捷）
 │   ├── fast_qr_moonbit_test.mbt  #   黑盒测试（@lib）
 │   ├── fast_qr_moonbit_wbtest.mbt #  白盒测试
 │   └── internal/                 # 实现子包（各带 moon.pkg；不反向依赖 lib）
@@ -55,13 +58,12 @@ moon.mod / README.md / docs/ / AGENTS.md / .cnb.yml   # 模块根：仅元数据
 
 | 文件 | 职责 | 参考源（/fast_qr） | roadmap | 状态 |
 |------|------|--------------------|:---:|:---:|
-| `fast_qr_moonbit.mbt` | 入口 / 公共 API 组装 | `src/lib.rs` | B8 | 注释骨架 |
 | `ecl.mbt` | ECL 枚举 → 序号映射 | `src/ecl.rs` | B1 | 注释骨架 |
 | `version.mbt` | Version 枚举 → 序号映射 | `src/version.rs` | B2 | 注释骨架 |
 | `mode.mbt` | Mode 枚举 → 序号映射 | `src/encode.rs` | B7 | 注释骨架 |
 | `mask.mbt` | Mask 枚举 → 序号映射 | `src/datamasking.rs` | B10 | 注释骨架 |
-| `qr.mbt` | QRCode 容器 / 错误 / 构造入口 | `src/qr.rs` | B8 | 注释骨架 |
-| `helpers.mbt` | 终端字符画 to_str/print | `src/helpers.rs` | B11 | 注释骨架 |
+| `qr.mbt` | QRCode 容器 / 错误 / 读写访问器（公共 API 总览见 [S11 §12](./S11-无效代码与冗余文档清理评估.md)） | `src/qr.rs` | B8 | 已实现 |
+| `helpers.mbt` | 终端字符画引擎 + `QRCode::to_str`/`print` 便捷方法 | `src/helpers.rs` | B11 | 已实现 |
 
 ### 3.2 lib/internal 实现层（不依赖 lib）
 
@@ -192,7 +194,6 @@ LICENSE / .gitignore / .githooks/ / .github/
 |-------------|------|:---:|------|
 | `moon.mod` | 根 | 正确 | 模块元数据 |
 | `moon.pkg` | 根（空） | 正确 | 与官方一致；依赖留待按需声明 |
-| `fast_qr_moonbit.mbt` | 根，与模块名末段同名 | 正确 | 符合官方命名 |
 | `fast_qr_moonbit_test.mbt` | 根 | 位置正确 | 但**注释表述错误**（见 2.2） |
 | `fast_qr_moonbit_wbtest.mbt` | — | **缺失** | 官方布局含白盒测试文件 |
 | `cmd/main/main.mbt` | `cmd/main/` | 正确 | 与官方一致 |
