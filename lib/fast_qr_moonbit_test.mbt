@@ -2,9 +2,10 @@
 /// 黑盒测试（_test.mbt，包外运行，只能访问 `pub` API）
 /// 通过模块公共面验证 S1 数据结构层行为：公共枚举序号、Module 位语义、QRCode 容器。
 test "public_ecl_api" {
-  // ECL 序号映射与默认级别
+  // ECL 序号映射与默认级别（缺省 Quartile，由 QRBuilder/select_capacity 直接取 ECL::Q）
   assert_eq(ECL::L.to_int(), 0)
-  assert_eq(ecl_default().to_int(), ECL::Q.to_int())
+  assert_eq(ECL::Q.to_int(), 2)
+  assert_eq(ECL::to_char(ECL::Q), 'Q')
 }
 
 ///|
@@ -33,7 +34,7 @@ test "public_module_value" {
 
 ///|
 test "public_module_type" {
-  assert_eq(Module::finder_pattern(false).module_type().to_int(), 1)
+  assert_eq(Module::new(false, FinderPattern).module_type().to_int(), 1)
   assert_eq(Module::dark(true).module_type().to_int(), 6)
 }
 
@@ -405,5 +406,85 @@ test "public_builder_explicit_mode_uses_mode_encoder" {
       fail(
         "qr_builder.build(id='1'*30, mode=Numeric, ecl=L): got=Err want=Ok V01 numeric",
       )
+  }
+}
+
+///|
+/// `QRCode::empty(version)`（S11 §3.1/§10.6 P1-3）：公开的「空矩阵」构造——
+/// 边长由版本推导、矩阵全亮、仅 version 元数据置位，作为宿主自建矩阵的干净起点。
+/// 与历史别名 `for_version` 语义一致（等价护栏）。
+test "public_qrcode_empty" {
+  let qr = QRCode::empty(Version::V01)
+  assert_eq(qr.size(), 21)
+  assert_eq(qr.data().length(), QR_MAX_MODULES)
+  let (v, ecl, mask, mode) = qr.meta()
+  assert_eq(v, Some(Version::V01))
+  assert_eq(ecl, None)
+  assert_eq(mask, None)
+  assert_eq(mode, None)
+  // 全亮：抽查角点与中心，均为亮色 Data 模块
+  assert_eq(qr.get(0, 0).value(), false)
+  assert_eq(qr.get(10, 10).value(), false)
+  assert_eq(qr.get(20, 20).value(), false)
+  // 可作为「逐格自建」起点：写入一格后再输出仍成立（不改源，不可变式）
+  let built = qr.set(0, 0, Module::data(true))
+  assert_eq(built.get(0, 0).value(), true)
+  assert_eq(qr.get(0, 0).value(), false)
+  // 别名等价
+  let via_for_version = QRCode::for_version(Version::V01)
+  assert_eq(via_for_version.size(), qr.size())
+  assert_eq(via_for_version.meta().0, qr.meta().0)
+}
+
+///|
+/// `QRCode::build_fixed` 容量失败早退（S11 §4.1/§10.6 P1-2）：指定版本装不下时
+/// 必须在编码前返回 `Err(SpecifiedVersion)`，而非静默错数据。
+/// 真值来源：参考 fast_qr `QRCode::new` 的 `user_version >= version` 判定
+/// （Numeric-Q V01 上限 27 位，28 位需 V02 → 强制 V01 应报错）。
+test "public_build_fixed_specified_version_too_small" {
+  let input = Array::make(28, b'1')
+  match
+    QRCode::build_fixed(
+      input,
+      Some(Mode::Numeric),
+      Some(ECL::Q),
+      Some(Version::V01),
+      Mask::Checkerboard,
+    ) {
+    Ok(_) =>
+      fail(
+        "qr_build.build_fixed(id='1'*28, Numeric-Q, V01): got=Ok want=Err(SpecifiedVersion)",
+      )
+    Err(e) =>
+      if e != SpecifiedVersion {
+        fail(
+          "qr_build.build_fixed(id='1'*28, Numeric-Q, V01): got=Err(other) want=Err(SpecifiedVersion)",
+        )
+      }
+  }
+}
+
+///|
+/// `QRCode::build_fixed` 数据过大早退：Byte-Q 超 V40(1663) → `Err(EncodedData)`。
+test "public_build_fixed_data_too_big" {
+  let input = Array::make(2000, b'A')
+  match
+    QRCode::build_fixed(
+      input,
+      Some(Mode::Byte),
+      Some(ECL::Q),
+      None,
+      Mask::Checkerboard,
+    ) {
+    Ok(_) =>
+      fail(
+        "qr_build.build_fixed(2000 bytes, Byte-Q): got=Ok want=Err(EncodedData)",
+      )
+    Err(e) =>
+      if e != EncodedData {
+        fail(
+          "qr_build.build_fixed(2000 bytes, Byte-Q): got=Err(other) want=Err(EncodedData)",
+        )
+      }
   }
 }

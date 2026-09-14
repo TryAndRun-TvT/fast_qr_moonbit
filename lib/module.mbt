@@ -91,45 +91,9 @@ pub fn Module::data(value : Bool) -> Module {
 }
 
 ///|
-/// 便捷构造：明暗定位方块模块。
-pub fn Module::finder_pattern(value : Bool) -> Module {
-  Module::new(value, FinderPattern)
-}
-
-///|
-/// 便捷构造：明暗对齐图案模块。
-pub fn Module::alignment(value : Bool) -> Module {
-  Module::new(value, Alignment)
-}
-
-///|
-/// 便捷构造：明暗时序图案模块。
-pub fn Module::timing(value : Bool) -> Module {
-  Module::new(value, Timing)
-}
-
-///|
-/// 便捷构造：明暗格式信息模块。
-pub fn Module::format(value : Bool) -> Module {
-  Module::new(value, Format)
-}
-
-///|
-/// 便捷构造：明暗版本信息模块。
-pub fn Module::version(value : Bool) -> Module {
-  Module::new(value, Version)
-}
-
-///|
 /// 便捷构造：明暗固定暗模块。
 pub fn Module::dark(value : Bool) -> Module {
   Module::new(value, DarkModule)
-}
-
-///|
-/// 便捷构造：明暗分隔区模块。
-pub fn Module::empty(value : Bool) -> Module {
-  Module::new(value, Empty)
 }
 
 ///|
@@ -150,16 +114,4 @@ pub fn Module::toggle(self : Module) -> Module {
 /// 底层字节（供 internal/输出层直接按位读取）。
 pub fn Module::byte(self : Module) -> Byte {
   self.byte
-}
-
-///|
-/// 常量：暗模块值 = `true`。
-pub fn module_dark() -> Bool {
-  true
-}
-
-///|
-/// 常量：亮模块值 = `false`。
-pub fn module_light() -> Bool {
-  false
 }
