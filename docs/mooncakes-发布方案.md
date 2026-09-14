@@ -1,6 +1,6 @@
 # mooncakes.io 发布方案（评估 + 落地清单）
 
-> 承接 Issue #71。目标：给出把 `tryandrun/fast_qr_moonbit` 发布到
+> 承接 Issue #71。目标：给出把 `TryAndRun-TvT/fast_qr_moonbit` 发布到
 > [mooncakes.io](https://mooncakes.io) 的**详细、可执行、可审计**方案。
 >
 > 本文为**方案评估文档**：只做「读官方文档 + 核验本仓库真实状态 + 定发布清单与门禁」，
@@ -12,6 +12,11 @@
 > - 本仓库实测（工具链 `moon 0.1.20260904`；结论均标注「实测」）
 >
 > 日期：2026-09-14　｜　状态：**待评审 → 待执行**
+>
+> **最新进展（2026-09-14）**：A3/B2 已落地；**A1 账户归属已决策并落地** —— mooncakes 账户为
+> `TryAndRun-TvT`，模块名 `tryandrun/fast_qr_moonbit` → `TryAndRun-TvT/fast_qr_moonbit`，
+> 全仓 import 路径已同步（清单与核验见 [模块名迁移与发布链路核验.md](./模块名迁移与发布链路核验.md)）；
+> `moon publish --dry-run` 实测 `202 Accepted`（退出码 255 属已知 CLI 行为，见 §1.1）。
 
 ---
 
@@ -20,8 +25,11 @@
 本仓库**已具备发布的技术条件**（可构建、测试全绿、元数据基本齐备、`moon package` 可产出归档），
 但存在 **4 个阻塞项**必须先处理：
 
-1. **命名空间冲突/归属**：`moon.mod` 的 `name = "tryandrun/fast_qr_moonbit"` 要求 mooncakes 账户名
-   恰为 `tryandrun`——**该用户实测不存在**（发布前必须先注册/确认）。
+1. ~~**命名空间冲突/归属**：`moon.mod` 的 `name = "tryandrun/fast_qr_moonbit"` 要求 mooncakes 账户名
+   恰为 `tryandrun`——**该用户实测不存在**（发布前必须先注册/确认）。~~
+   ✅ **2026-09-14 已解决**：账户定为 **`TryAndRun-TvT`**，`moon.mod` 的 `name` 与全仓 `moon.pkg`
+   import 前缀已同步迁移为 `TryAndRun-TvT/fast_qr_moonbit`
+   （改动清单与核验见 [模块名迁移与发布链路核验.md](./模块名迁移与发布链路核验.md)）。
 2. **仓库 URL 与 mooncakes 生态不兼容**：`repository` 指向 CNB（`cnb.cool`），mooncakes 从未收录过该源。
 3. **归档内容未收敛**：实测 `moon package --list` 打进 **158 个文件**，含 `scripts/`(35) 与
    `docs/`(54)——审计上下文混入分发面。
@@ -35,7 +43,7 @@
 > - `.moonignore` 把归档 **155 → 32 项**（解压 1886 → 179 KiB），
 >   并以**离线 registry 注入**证明 32 项归档下游 `moon add`/`build`/`run` 全通；
 > - 新增 `scripts/publish-check.sh`（归档基线 + 内容白/黑名单 + 元数据 + 质量基线）
->   并挂入 push CI。
+>   并挂入 push CI（2026-09-14 起 push 流水线整体移除，现随 `scripts/gates.sh` 本地执行）。
 >
 > 详见 **[mooncakes-发布阻塞项3-4-落地方案.md](./mooncakes-发布阻塞项3-4-落地方案.md)**。
 > 该文同时**订正**本文 §6-B1 的口径：`lib/**` 的 `missing_doc` 缺口分布为
@@ -58,8 +66,15 @@
 
 | 项 | 结果 |
 |----|------|
-| `~/.moon/credentials.json` | **不存在**（未登录） |
-| `moon publish --dry-run` | `failed to open credentials file: ..., please login first` |
+| `~/.moon/credentials.json` | ✅ **已存在**（2026-09-14 维护者本地 `moon login` 后；属本地私有凭据，**不得**入库） |
+| `moon publish --dry-run` | ✅ `Server status: 202 Accepted, detail: Dry run completed successfully...`（见下方「已知 CLI 行为」） |
+
+> **已知 CLI 行为（实测 2026-09-14，工具链 `moon 0.1.20260904`）**：
+> `moon publish --dry-run` 在服务端返回 `202 Accepted / Dry run completed successfully` 之后，
+> 进程**仍以 exit 255 结束**并打印 `Error: \`moon publish\` failed`。
+> 用全新空模块（`moon new` 后立即 dry-run）复现结果**完全相同** ⇒ 与仓库内容无关，属该版本 CLI 行为。
+> 因此干跑判据应看 `Server status: 202 Accepted ... Dry run completed successfully`，
+> **不要**只看退出码（否则会把「干跑成功」误判为发布失败）。
 
 > 说明：`moon register` / `moon login` 均为**交互式**命令，无法在 NPC/CI 环境（无 TTY）中完成，
 > 必须由维护者在本地终端执行。`credentials.json` 属**本地私有凭据**，
@@ -89,10 +104,14 @@ Common Options:
 export PATH="$HOME/.moon/bin:$PATH"
 cd <repo-root>            # moon.mod 所在目录
 moon login                # 或首次 moon register；成功标志 = API token saved to ~/.moon/credentials.json
-moon package --list       # 先看「将要打包什么」（本仓库当前 158 项，见 §4）
-moon publish --dry-run    # 干跑：只校验、不推送（需已登录）
-moon publish              # 正式发布
+bash scripts/publish.sh   # 推荐：自检 + 发布前门禁 + 归档清单 + 干跑（默认不真发）
+moon publish              # 正式发布（等价：bash scripts/publish.sh --publish）
 ```
+
+> **脚本化（2026-09-14）**：发布动作已收敛为 `scripts/publish.sh`
+> （**默认干跑**；`--publish` 才真发且需确认；退出码判据见 §1.1「已知 CLI 行为」），
+> 等价的本地全量门禁为 `scripts/gates.sh`。`.cnb.yml` 的 push 流水线已移除，
+> **发布不进 CI**（凭据属本地私有，`AGENTS.md` §一）。
 
 ### 1.3 发布物构成
 
@@ -105,7 +124,7 @@ moon publish              # 正式发布
 
 - 默认**继承 `.gitignore`** → `_build/`、`*.wasm`、`*.js`、`*.mbti`、`.env*`、`node_modules/` 自动排除 ✅
 - **但 `scripts/` 与 `docs/` 不在 `.gitignore` 内** → 被打进归档（实测 35 + 54 项）⚠️
-- 产物名：`_build/publish/<user>-<module>-<version>.zip`（实测 `tryandrun-fast_qr_moonbit-0.1.0.zip`，
+- 产物名：`_build/publish/<user>-<module>-<version>.zip`（实测 `TryAndRun-TvT-fast_qr_moonbit-0.1.0.zip`，
   154 项、737858 B）
 
 ---
@@ -116,7 +135,7 @@ moon publish              # 正式发布
 
 | 字段 | 官方要求 | 本仓库当前值 | 判定 |
 |------|---------|-------------|:----:|
-| `name` | 必需；**发布到 mooncakes 必须以用户名开头** | `tryandrun/fast_qr_moonbit` | ⚠️ 取决于账户名是否为 `tryandrun`（见 §2.3） |
+| `name` | 必需；**发布到 mooncakes 必须以用户名开头** | `TryAndRun-TvT/fast_qr_moonbit` | ✅ 与已注册账户 `TryAndRun-TvT` 一致（迁移前为 `tryandrun/fast_qr_moonbit`，见 §2.3 / [模块名迁移…](./模块名迁移与发布链路核验.md)） |
 | `version` | 发布则必须符合 SemVer 2.0.0 | `0.1.0` | ✅ |
 | `readme` | 指定 README 路径；内容将展示在 mooncakes | `README.md` | ⚠️ 见 §4.2（官方模板用 `README.mbt.md`） |
 | `repository` | 源码仓库 URL | `https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit` | ❌ 非 github.com（见 §3.1） |
@@ -138,7 +157,7 @@ export PATH="$HOME/.moon/bin:$PATH"
 moon check --deny-warn     # ✅ 通过（0 warning，26 tasks）
 moon test                  # ✅ Total tests: 146, passed: 146, failed: 0
 moon package --list        # ✅ 可产出归档（158 项，见 §4）
-moon publish --dry-run     # ❌ 未登录（预期；非技术阻塞）
+moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，见 §1.1）
 ```
 
 ### 2.3 命名空间与生态竞品（实测，2026-09-14）
@@ -148,11 +167,16 @@ moon publish --dry-run     # ❌ 未登录（预期；非技术阻塞）
 | 检索项 | 结果 |
 |--------|------|
 | `tryandrun/*` | **0 个模块** —— 该账户名下无已发布模块（账户可能尚未注册） |
-| `fast_qr_moonbit` | **不存在**（`/api/v0/modules/tryandrun/fast_qr_moonbit` → `Module not found`）→ **名称可用** |
+| `fast_qr_moonbit` | **不存在**（`/api/v0/modules/TryAndRun-TvT/fast_qr_moonbit` → `Module not found`）→ **名称可用** |
 | QR 相关竞品 | `bobzhang/qrc` 0.1.2（ISC）、`caozhanhao/qrcode` 0.1.1、`naoto24kawa/moonqr` 0.2.0、`PaiGack/moonbitqrcode` 0.1.0 |
 
 > **命名判定**：moocakes 上无同名/近似名模块，`fast_qr_moonbit` 作为模块名**不冲突**。
-> 唯一变量是**账户名**——`.cnb.yml`/仓库路径用的是 `tryandrun`，
+> 唯一变量曾是**账户名**——`.cnb.yml`/仓库路径用的是 CNB 组织名 `tryandrun`，
+> **而已注册 mooncakes 账户为 `TryAndRun-TvT`（二者不同名）**，故触发全仓改名。
+> 迁移过程中 `moon check` 的典型报错：
+> `Cannot find import 'tryandrun/fast_qr_moonbit/lib' in TryAndRun-TvT/fast_qr_moonbit/cmd/bench@0.1.0`
+> （`moon.mod` 已改名、`moon.pkg` 未同步），处置与核验见
+> [模块名迁移与发布链路核验.md](./模块名迁移与发布链路核验.md)。
 > 若注册时该用户名已被他人占用或需改名，则 `moon.mod` 的 `name` 前缀必须同步修改
 > （官方硬性要求：`name` 必须以**你自己的用户名**开头）。
 
@@ -322,9 +346,10 @@ moon publish --dry-run     # ❌ 未登录（预期；非技术阻塞）
 
 ### A. 阻塞项（发布前必须完成）
 
-- [ ] **A1 确认/注册 mooncakes 账户**：本地 `moon login`（已有账户）或 `moon register`（新账户）；
-      成功后核验 `~/.moon/credentials.json` 存在。**账户名须与 `moon.mod` 的 `name` 前缀一致**
-      （当前为 `tryandrun`）；若不一致，同步改 `moon.mod` 的 `name` 与全仓 import 路径。
+- [x] **A1 确认/注册 mooncakes 账户** —— ✅ 已完成（2026-09-14）：账户 = `TryAndRun-TvT`，
+      `~/.moon/credentials.json` 已存在；`moon.mod` 的 `name` 与全仓 import 路径已同步迁移
+      （`moon.mod` + 9 个 `moon.pkg` + `scripts/gen-readme-qr-svg.sh` + `README.md` + `AGENTS.md`）；
+      `moon publish --dry-run` 实测 `202 Accepted`。
 - [ ] **A2 决策 `repository` 指向**（§3.1 选项 A/B/C），改 `moon.mod`。
 - [x] **A3 提交 `.moonignore`**（§4.3）——✅ 已完成，实测 32 项（155→32）；基线由 `publish-check.sh` 守卫。
 - [ ] **A4 补 `homepage`**（可选但建议）：指向启用 Pages/文档入口的 URL。
@@ -343,24 +368,29 @@ moon publish --dry-run     # ❌ 未登录（预期；非技术阻塞）
       （`--deny-warn` 会把告警升级为失败，须与补文档同批提交）。
       该决定属「改公共代码 + 改 CI」，**留维护者拍板**，详见
       [阻塞项3-4-落地方案](./mooncakes-发布阻塞项3-4-落地方案.md) §4。
-- [x] **B2 发布前冒烟门禁** ——✅ 已完成：`scripts/publish-check.sh` 已落地并挂入 push CI。
+- [x] **B2 发布前冒烟门禁** ——✅ 已完成：`scripts/publish-check.sh` 已落地并挂入 push CI
+      （该流水线已于 2026-09-14 整体移除，现随 `scripts/gates.sh` 本地执行）。
       四段式：质量基线（fmt/check/test）+ 归档条目数基线（=32）+ 内容白/黑名单 + 元数据自检。
       负向验证（削弱 `.moonignore` / 错基线 / 放回 `AGENTS.md`）三种破坏均能被拦住。
 - [ ] **B3 README 首屏复核**：确认「仅 wasm-gc / 宿主需 GC」的边界在 README 前 1/3（当前 ✅），
-      并确认 `moon add tryandrun/fast_qr_moonbit` 的示例路径与 `lib` 包路径一致。
+      并确认 `moon add TryAndRun-TvT/fast_qr_moonbit` 的示例路径与 `lib` 包路径一致。
 
 ### C. 发布执行（维护者本地）
 
-- [ ] **C1** `moon package --list` 复核归档
-- [ ] **C2** `moon publish --dry-run` 干跑
-- [ ] **C3** `moon publish` 正式发布
-- [ ] **C4** 核验 `https://mooncakes.io/docs/tryandrun/fast_qr_moonbit` 页面（元数据/README/接口文档渲染）
+- [x] **C1** `moon package --list` 复核归档 —— 已并入 `scripts/publish.sh` ③ 段（基线由
+      `publish-check.sh` 守 32 项，见 A3）
+- [x] **C2** `moon publish --dry-run` 干跑 —— ✅ 2026-09-14 实测
+      `Server status: 202 Accepted, detail: Dry run completed successfully...`
+      （退出码 255 为已知 CLI 行为，见 §1.1；脚本判据为**文本匹配**而非退出码）
+- [ ] **C3** 正式发布：**`bash scripts/publish.sh --publish`**
+      （不可逆；交互输入模块全名确认，或 `CONFIRM_NAME=TryAndRun-TvT/fast_qr_moonbit ... --yes`）
+- [ ] **C4** 核验 `https://mooncakes.io/docs/TryAndRun-TvT/fast_qr_moonbit` 页面（元数据/README/接口文档渲染）
 - [ ] **C5** 在**干净环境**验证下游可用性（关键！）：
 
 ```bash
 mkdir /tmp/consumer && cd /tmp/consumer && moon new .
-moon add tryandrun/fast_qr_moonbit         # 从 mooncakes 真实拉取
-# 在 cmd/main/moon.pkg 加 import { "tryandrun/fast_qr_moonbit/lib" }
+moon add TryAndRun-TvT/fast_qr_moonbit         # 从 mooncakes 真实拉取
+# 在 cmd/main/moon.pkg 加 import { "TryAndRun-TvT/fast_qr_moonbit/lib" }
 # 跑通 README「快速开始」示例，确认 QRBuilder 生成 + to_str/SVG 输出
 moon build cmd/main --target wasm-gc --release
 ```
@@ -377,7 +407,7 @@ moon build cmd/main --target wasm-gc --release
 
 | # | 风险/未决 | 影响 | 处置 |
 |:-:|----------|------|------|
-| R1 | 账户名 `tryandrun` 在 mooncakes 的可用性未确认 | 阻塞发布；可能需要改 `moon.mod` `name` | A1 立即确认 |
+| R1 | ~~账户名 `tryandrun` 在 mooncakes 的可用性未确认~~ | 已消除：账户定为 `TryAndRun-TvT` 并完成全仓改名 | ✅ 已解（见 [模块名迁移与发布链路核验.md](./模块名迁移与发布链路核验.md)） |
 | R2 | `repository` 非 GitHub | 生态可达性/信誉 | A2 决策 |
 | R3 | 归档含 `scripts/`/`docs/` | 分发面混杂、体积增大 | ✅ 已解：A3 落地，155→32 项，`publish-check.sh` 守基线 |
 | R4 | 仅 `wasm-gc` 单后端 | 下游 `js`/`native` 编译被拒 | 已在 README 声明；可考虑后续补 `js` 后端（另立任务） |
@@ -421,3 +451,5 @@ curl -s https://mooncakes.io/api/v0/modules | \
   本文**不重复**其内容，仅补充其中未覆盖的 `moon publish`/`mooncakes` 链路。
 - 版本判据与 `AGENTS.md` §二.4（`moon info` / `.mbti`）一致，不新增约定。
 - 本文新增后需同步 `README.md` 的「文档索引」表（`AGENTS.md` §四：新增文档须更新索引）。
+- 模块名迁移（`tryandrun/` → `TryAndRun-TvT/`）的改动清单、报错根因与核验记录见
+  [模块名迁移与发布链路核验.md](./模块名迁移与发布链路核验.md)。

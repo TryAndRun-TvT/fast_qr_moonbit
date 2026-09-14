@@ -1,5 +1,5 @@
 // reedsolomon 包：GF(256) division / structure
 // 依赖 internal/constants（取生成多项式 / 分组 / 数据码字数）
 import {
-  "tryandrun/fast_qr_moonbit/lib/internal/constants",
+  "TryAndRun-TvT/fast_qr_moonbit/lib/internal/constants",
 }

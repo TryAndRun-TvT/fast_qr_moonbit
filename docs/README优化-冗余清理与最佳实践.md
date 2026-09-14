@@ -107,7 +107,7 @@
 ```bash
 # 临时模块通过 moon.work 引用本仓库（本仓库未发布至 mooncakes）
 moon.work: members = [ ".", "/workspace" ]
-moon.mod : import { "tryandrun/fast_qr_moonbit@0.1.0" }
+moon.mod : import { "TryAndRun-TvT/fast_qr_moonbit@0.1.0" }
 
 moon check --deny-warn   # 通过
 moon run cmd/main        # 输出终端字符画 + "<svg viewBox=...>"（示例的四项设置均生效）

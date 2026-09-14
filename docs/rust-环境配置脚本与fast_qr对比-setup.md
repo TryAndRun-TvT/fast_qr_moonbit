@@ -11,7 +11,7 @@
 
 ## 一、背景与动机
 
-本仓库 `tryandrun/fast_qr_moonbit` 是 **Rust 库 `fast_qr` v0.14.0 的 MoonBit 重写**。
+本仓库 `TryAndRun-TvT/fast_qr_moonbit` 是 **Rust 库 `fast_qr` v0.14.0 的 MoonBit 重写**。
 移植过程中反复需要对参考库做三类比对：
 
 | 对比场景 | 需要什么 |

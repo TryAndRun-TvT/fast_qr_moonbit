@@ -159,7 +159,7 @@ lib/                              # 公共包：对外 API（QRCode / encode 等
 
 - [ ] P0 先在根包实现最小可用 QR 编码（单包、多 `.mbt`），补真实测试替换
       `assert_true(true)`。
-- [ ] P0 让 `cmd/main` 声明 `import { "tryandrun/fast_qr_moonbit/lib" @lib }`
+- [ ] P0 让 `cmd/main` 声明 `import { "TryAndRun-TvT/fast_qr_moonbit/lib" @lib }`
       并真正调用库 API（首次实际调用时才加，勿提前）。
 - [ ] P1 当出现 §四「何时才拆包」任一信号时，按 §四 目标树拆 `internal/` 子包，
       每个目录带 `moon.pkg` 与 `README.mbt.md`。

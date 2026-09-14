@@ -4,8 +4,12 @@
 > 的 **#3（归档面未收敛）** 与 **#4（发布前门禁缺口）** 做**详细分析 + 实测 + 落地**。
 >
 > 与 [`docs/mooncakes-发布方案.md`](./mooncakes-发布方案.md) 的关系：**该文是全景评估（要做什么），本文是 #3/#4 的深挖与落地**
-> （怎么做的、为什么这么做、实测数字、验证方式）。#1（账户归属）/#2（`repository` 指向）属
+> （怎么做的、为什么这么做、实测数字、验证方式）。#2（`repository` 指向）属
 > 维护者决策项，本文不展开，仅在 §5 标注边界。
+>
+> **2026-09-14 补充**：#1（账户归属）**已决策并落地** —— mooncakes 账户定为 `TryAndRun-TvT`，
+> 模块名由 `tryandrun/fast_qr_moonbit` 迁移为 `TryAndRun-TvT/fast_qr_moonbit`，
+> 详见 [模块名迁移与发布链路核验.md](./模块名迁移与发布链路核验.md)。
 >
 > 工具链：`moon 0.1.20260904 (94521db 2026-09-04)`。本文所有数字均标注「实测」，
 > 复跑命令见 §6。日期：2026-09-14。
@@ -17,11 +21,13 @@
 | 阻塞项 | 结论 | 交付 |
 |:------:|------|------|
 | **#3 归档面未收敛** | ✅ **已解并落地**：`.moonignore` 把归档 **155 → 32 项**（解压 1886 → 179 KiB），并以**离线 registry 注入**实测证明 32 项归档下游可用（`moon add`/`build`/`run` 全通） | `.moonignore` |
-| **#4 发布前门禁缺口** | ✅ **已解并落地**：新增 `scripts/publish-check.sh` 四段式门禁（归档基线 + 内容白/黑名单 + 元数据 + 质量基线），已挂 push CI；公共 API 文档缺口实测**仅 1 处**（非原估 13 处，见 §4.2） | `scripts/publish-check.sh` + `.cnb.yml` |
+| **#4 发布前门禁缺口** | ✅ **已解并落地**：新增 `scripts/publish-check.sh` 四段式门禁（归档基线 + 内容白/黑名单 + 元数据 + 质量基线），原挂 push CI（**2026-09-14 push 流水线已整体移除**，门禁改为本地/发布前手跑，
+一键全量命令见 `.cnb.yml` 头部注释）；公共 API 文档缺口实测**仅 1 处**（非原估 13 处，见 §4.2） | `scripts/publish-check.sh` |
 | 附带修复 | 🔴→✅ **main 已红**：PR #72 引入 `docs-link-check` 死链误报（行内 code span 例子被当链接），已修脚本口径 + 正文 | `scripts/docs-link-check.sh` |
 
 **一句话**：#3 与 #4 都已从「待处理」变为「已落地且可复跑可门禁」；
-剩余 4 个发布前置动作里，只有 #1/#2 仍需维护者拍板（且均不阻塞技术链路验证）。
+#1（账户归属）已于 2026-09-14 决策为 `TryAndRun-TvT` 并完成全仓改名；
+剩余 4 个发布前置动作里，只有 #2（`repository` 指向）仍需维护者拍板（且不阻塞技术链路验证）。
 
 ---
 
@@ -29,7 +35,9 @@
 
 PR #72 给出的 4 个阻塞项：
 
-1. **账户名归属** —— `tryandrun` 需在 mooncakes 同名账户（决策项）
+1. **账户名归属** —— ✅ **已决策（2026-09-14）**：mooncakes 账户为 `TryAndRun-TvT`（**非** `tryandrun`），
+   模块名同步迁移为 `TryAndRun-TvT/fast_qr_moonbit`（迁移清单与核验见
+   [模块名迁移与发布链路核验.md](./模块名迁移与发布链路核验.md)）
 2. **`repository` 指向 CNB** —— 生态同类包全部指向 github.com（决策项）
 3. **归档面未收敛** —— `scripts/` + `docs/` 混入分发面
 4. **发布前门禁缺口** —— 公共 API 文档 + 归档基线校验
@@ -131,14 +139,14 @@ PR #72 给出的 4 个阻塞项：
 
 ```bash
 # ① 从仓库产出归档
-moon package                       # -> _build/publish/tryandrun-fast_qr_moonbit-0.1.0.zip
+moon package                       # -> _build/publish/TryAndRun-TvT-fast_qr_moonbit-0.1.0.zip
 
 # ② 伪造本地 registry：写入索引条目 + 放置归档到缓存
-#    索引: ~/.moon/registry/index/user/tryandrun/fast_qr_moonbit.index（含 sha256 checksum）
-#    缓存: ~/.moon/registry/cache/tryandrun/fast_qr_moonbit/0.1.0.zip
+#    索引: ~/.moon/registry/index/user/TryAndRun-TvT/fast_qr_moonbit.index（含 sha256 checksum）
+#    缓存: ~/.moon/registry/cache/TryAndRun-TvT/fast_qr_moonbit/0.1.0.zip
 
 # ③ 新建「干净消费者」工程，声明 registry 依赖
-#    consumer/moon.mod:  import { "tryandrun/fast_qr_moonbit@0.1.0" }
+#    consumer/moon.mod:  import { "TryAndRun-TvT/fast_qr_moonbit@0.1.0" }
 
 # ④ 真实走 moon 的依赖解析链路
 cd consumer && moon build cmd/main --target wasm-gc --release   # ✅ Finished
@@ -149,7 +157,7 @@ cd consumer && moon run   cmd/main --target wasm-gc             # ✅ size=25 + 
 
 | 步骤 | 结果 |
 |------|------|
-| `moon add tryandrun/fast_qr_moonbit` | ✅ `Using cached tryandrun/fast_qr_moonbit@0.1.0` |
+| `moon add TryAndRun-TvT/fast_qr_moonbit` | ✅ `Using cached ...@0.1.0`（历史输出：实测时模块名尚为 `tryandrun/fast_qr_moonbit`） |
 | 归档解压后 `moon check --deny-warn` | ✅ 通过（14 tasks） |
 | 归档解压后 `moon build lib --target wasm-gc --release` | ✅ 通过 |
 | 消费者 `moon build cmd/main --target wasm-gc --release` | ✅ 通过 |
@@ -211,6 +219,11 @@ cd consumer && moon run   cmd/main --target wasm-gc             # ✅ size=25 + 
 > 这正是「② 与 ③ 不能互相替代」的实测证据。
 
 ### 3.3 CI 挂接（`.cnb.yml`）
+
+> **2026-09-14 变更**：`.cnb.yml` 的 **push 流水线已整体移除**（每次推送重复全量构建+测试，
+> 资源收益不成比例）。`publish-check` 等阶段**脚本本身不变**，改为本地/发布前按需执行：
+> 全量链 = `bash scripts/gates.sh`（支持 `STAGES=` / `SKIP_SLOW=1`），发布 = `bash scripts/publish.sh`。
+> **门禁能力未削弱，只是触发方式由「推送」改为「人」**。
 
 `publish-check` 作为新阶段加在 `diff-gate` 之后。选择理由：
 
@@ -288,7 +301,7 @@ lib/qr_build.mbt:109                                  1   ← 唯一公共 API �
 
 | # | 事项 | 归属 | 本文态度 |
 |:-:|------|------|---------|
-| 1 | 账户名 `tryandrun` 在 mooncakes 的可用性 | 维护者 | 实测该名下 **0 个模块**（索引 2473 模块无 `tryandrun`）；须 `moon login`/`register` 后确认 |
+| 1 | 账户名归属 | 维护者 | ✅ **已决策**：账户 = `TryAndRun-TvT`（决策依据即「`tryandrun` 名下 0 模块、索引 2473 模块无 `tryandrun`」）；改名已落地，见 [模块名迁移与发布链路核验.md](./模块名迁移与发布链路核验.md) |
 | 2 | `repository` 指向 CNB vs GitHub | 维护者 | 实测 4 个同类 QR 包 `repository` **全部** github.com（含 `bobzhang/qrc`/`moonqr`/`moonbitqrcode`/`qrcode.mbt`）；不影响 `moon add` 可达性 |
 | 3 | 是否把 0074 纳入 CI 门禁 | 维护者 | 见 §4.4，倾向 B（补全 13 处） |
 | 4 | `readme` 迁移到 `README.mbt.md` | 维护者 | [`docs/mooncakes-发布方案.md`](./mooncakes-发布方案.md) §4.2 已评估，建议 0.1.1 跟进 |
@@ -308,7 +321,7 @@ export PATH="$HOME/.moon/bin:$PATH"
 # ── #3 归档面 ─────────────────────────────────────────────
 moon package --list | grep -vE '^(Running|Check|Finished|Package to)' | wc -l   # -> 32
 moon package && python3 -c "
-import zipfile; z=zipfile.ZipFile('_build/publish/tryandrun-fast_qr_moonbit-0.1.0.zip')
+import zipfile; z=zipfile.ZipFile('_build/publish/TryAndRun-TvT-fast_qr_moonbit-0.1.0.zip')
 print(len(z.namelist()), 'items')"                                              # -> 32
 # 去掉 .moonignore 后同法 -> 155
 

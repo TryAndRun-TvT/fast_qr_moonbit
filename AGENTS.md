@@ -51,7 +51,7 @@
 
   ```toml
   import {
-    "tryandrun/fast_qr_moonbit/lib" @lib,
+    "TryAndRun-TvT/fast_qr_moonbit/lib" @lib,
   }
   ```
 
@@ -80,9 +80,19 @@ moon fmt && moon info && moon check --deny-warn && moon test
 for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done
 ```
 
-> CI 会执行 `moon fmt --check`、`moon check --deny-warn`、`test-scale`、`docs-link-check`
-> 与 wasm-gc release 回归，
-> 本地先跑一遍可避免推送后失败。可选启用本地钩子：
+> **push CI 已于 2026-09-14 移除**（每次推送重复全量构建+测试，资源收益不成比例）。
+> 原 CI 阶段（fmt / check / test / docs-link-check / test-scale / build-and-run / diff-gate /
+> publish-check）**脚本均在 `scripts/` 下且零改动**，改为本地/发布前按需执行：
+>
+> ```bash
+> bash scripts/gates.sh                        # 一键全量门禁（等价于原 push 流水线）
+> STAGES="check test" bash scripts/gates.sh    # 只跑指定阶段
+> SKIP_SLOW=1        bash scripts/gates.sh    # 跳过 build-and-run
+> bash scripts/publish.sh                     # 发布：默认干跑（--publish 才真发）
+> ```
+>
+> 因此在推送前本地跑 `gates.sh`（或启用本地钩子）是**唯一**的自动质量闸门，不可省略。
+> 可选启用本地钩子：
 > `git config core.hooksPath .githooks`（属个人本地配置，仓库不代设）。
 
 - `moon fmt` 会就地格式化（含 `moon.mod` / `moon.pkg`），提交前务必执行。

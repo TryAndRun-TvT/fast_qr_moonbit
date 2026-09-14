@@ -179,7 +179,7 @@ Total tests: 1, passed: 1, failed: 0.
 ### 6.1 `native` 后端在本环境不可用（环境限制）
 
 ```text
-Error: Failed to set C compiler when compiling tryandrun/fast_qr_moonbit/cmd/main@0.1.0
+Error: Failed to set C compiler when compiling TryAndRun-TvT/fast_qr_moonbit/cmd/main@0.1.0
   new native backend requires a C compiler/linker driver; install clang/cc or set MOON_CC
   no system C compiler found; tried cl, cc, gcc, clang
 ```
@@ -209,7 +209,7 @@ tcc: error: undefined symbol 'putchar' 'malloc' 'memcpy' ...
 
 ```toml
 import {
-  "tryandrun/fast_qr_moonbit/lib" @lib,
+  "TryAndRun-TvT/fast_qr_moonbit/lib" @lib,
 }
 pkgtype(kind: "executable")
 ```

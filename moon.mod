@@ -1,7 +1,7 @@
 // MoonBit 模块配置文件
 // 参考: https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/module.html
 
-name = "tryandrun/fast_qr_moonbit"
+name = "TryAndRun-TvT/fast_qr_moonbit"
 
 version = "0.1.0"
 

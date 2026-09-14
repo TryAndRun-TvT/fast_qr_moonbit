@@ -3,10 +3,21 @@
 #
 # 配置结构:
 #   vscode — 云原生开发环境启动时初始化 MoonBit 工具链
-#   push   — 每次推送代码时执行 MoonBit 安装+构建+测试 CI
 #
-# 各阶段的具体命令已抽离到 scripts/ 目录下的独立脚本，便于维护与复用；
-# 此处仅以 bash scripts/<name>.sh 方式调用，不再内嵌长命令。
+# 关于已移除的 push 流水线（2026-09-14）：
+#   原 `push` 流水线（setup-moonbit / fmt-check / check / test / docs-link-check /
+#   test-scale / build-and-run / diff-gate / publish-check）**已整体移除**，
+#   原因是其耗时与资源占用对当前迭代节奏收益不成比例（每次推送都重复全量构建+测试）。
+#   门禁**不因移除而失效**：全部阶段命令本就抽离在 `scripts/` 下，一条命令跑全量：
+#
+#     bash scripts/gates.sh            # fmt-check → check → test → docs-link-check →
+#                                      # test-scale → build-and-run → diff-gate → publish-check
+#     STAGES="check test" bash scripts/gates.sh    # 只跑指定阶段
+#     SKIP_SLOW=1        bash scripts/gates.sh    # 跳过 build-and-run
+#
+#   发布（**不在**本文件内执行：需本地凭据）：`bash scripts/publish.sh`（默认干跑）。
+#
+#   若日后需恢复 CI，把 `bash scripts/gates.sh` 作为单个 stage 挂回 `push:` 即可（脚本零改动）。
 
 $:
   vscode:
@@ -17,42 +28,3 @@ $:
       stages:
         - name: setup-moonbit-toolchain
           script: bash scripts/setup-moonbit.sh
-
-  push:
-    - name: moonbit-ci
-      runner:
-        cpus: 2
-      stages:
-        - name: setup-moonbit
-          script: bash scripts/setup-moonbit.sh
-        # 先校验格式：moon fmt 会格式化 moon.mod / moon.pkg / 所有 .mbt，
-        # 提前拦截配置与代码格式腐化。
-        - name: fmt-check
-          script: bash scripts/fmt-check.sh
-        - name: check
-          script: bash scripts/check.sh
-        - name: test
-          script: bash scripts/test.sh
-        # T6-c 文档互链死链检查（S10 §6 T6-c）：AGENTS.md §四「死链零容忍」的可执行化。
-        #   只查相对链接（外链/锚点跳过），零依赖、秒级，适合进 push CI。
-        - name: docs-link-check
-          script: bash scripts/docs-link-check.sh
-        # T7-b 测试规模护栏（S10 §6 T7-b）：单测试文件 ≤800 行。
-        - name: test-scale
-          script: bash scripts/test-scale.sh
-        # 后端回归：仅默认后端 wasm-gc（js、wasm(WASI) 已按项目决策移除）
-        # 注意：不要加 native 阶段 —— 需系统 C 编译器，本镜像未安装。
-        - name: build-and-run
-          script: bash scripts/build-and-run.sh
-        # T4-c 差分门禁（S10 §6 T4-c）：与参考 wasm 制品逐位对齐 sha256。
-        #   有制品 → 三点 sha256 零差异则通过；无制品/无 node → 显式打印 skipped 并通过。
-        #   之所以放在 push CI 而不必给参考制品：脚本自带「明确且可见的跳过语义」，不阻塞主流程，
-        #   从而把「参考侧对齐」从纯打印升级为一条**有日志可查**的门禁。
-        - name: diff-gate
-          script: bash scripts/diff-gate.sh
-        # 发布前门禁（docs/mooncakes-发布方案.md §6-B2）：把「发布不可逆」前置为一条
-        #   可执行门禁——校验归档面条目数基线（防分发面悄悄膨胀）+ 内容白/黑名单
-        #   （防 scripts//docs//测试文件混入）+ 元数据齐备 + 质量基线。
-        #   纯只读、零网络，故可进 push CI。
-        - name: publish-check
-          script: bash scripts/publish-check.sh

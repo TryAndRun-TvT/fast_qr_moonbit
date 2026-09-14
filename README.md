@@ -1,4 +1,4 @@
-# tryandrun/fast_qr_moonbit
+# TryAndRun-TvT/fast_qr_moonbit
 
 > 基于 [MoonBit](https://www.moonbitlang.cn/) 的高性能二维码（QR Code）生成库。
 > 纯 MoonBit 实现、无外部依赖，逐位对齐 Rust 参考库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr)。
@@ -78,17 +78,19 @@
 
 ```bash
 # 需本模块已发布至 mooncakes；发布前的过渡期为 clone 本仓库按「从源码构建」体验
-moon add tryandrun/fast_qr_moonbit
+moon add TryAndRun-TvT/fast_qr_moonbit
 ```
 
 > **发布状态**：尚未发布（`0.1.0` 待发布）。发布流程、元数据/命名核验、归档面治理
-> 与发布前门禁清单见 [mooncakes-发布方案.md](./docs/mooncakes-发布方案.md)。
+> 与发布前门禁清单见 [mooncakes-发布方案.md](./docs/mooncakes-发布方案.md)；
+> 发布动作已脚本化：`bash scripts/publish.sh`（默认干跑，`--publish` 真发），
+> 模块名迁移记录见 [模块名迁移与发布链路核验.md](./docs/模块名迁移与发布链路核验.md)。
 
 在 `moon.pkg` 中声明依赖并起别名（本库包路径为 `.../lib`，别名默认即目录名 `lib`）：
 
 ```toml
 import {
-  "tryandrun/fast_qr_moonbit/lib",
+  "TryAndRun-TvT/fast_qr_moonbit/lib",
 }
 ```
 
@@ -353,14 +355,14 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
   [S10c-`select_capacity`模式语义缺陷-定位与修复.md](./docs/S10c-select-capacity模式语义缺陷-定位与修复.md)。
 - **证据链钉版可复现**：所有「与参考逐位一致」的黄金值均可由 `scripts/gen-goldens.sh`
   在钉版参考上重建/校验（`--verify` 四项零差异），并已实测检出「中间项改值」「布局偏移」「系数改值」类缺陷。
-- **差分门禁**：`scripts/diff-gate.sh` 进 push CI（**T4-c**），把「与参考 wasm 逐位 sha256」
+- **差分门禁**：`scripts/diff-gate.sh`（**T4-c**，本地/按需；已并入 `gates.sh`），把「与参考 wasm 逐位 sha256」
   从仅打印升级为门禁；无参考制品时**显式打印 skipped**，避免静默假绿。
 - **覆盖率**：`bash scripts/coverage.sh`（**T5-a** 报告，见 [S10b](./docs/S10b-测试覆盖率报告.md)）；
   `--floor` 为 **T5-b「不下降」门禁**（`lib/**` 未覆盖行 ≤ S10b 顶部 `coverage-floor` 标记）。
   **不设绝对百分比阈值**——覆盖率是变异检测的补充而非替代（铁律 3），绝对阈值会诱发造无信息量用例。
-- **文档互链死链检查**：`bash scripts/docs-link-check.sh`（**T6-c**，进 push CI）；
+- **文档互链死链检查**：`bash scripts/docs-link-check.sh`（**T6-c**，本地/按需；已并入 `gates.sh`）；
   检查受版本控制 Markdown 的**相对链接**存在性（跳过外链/锚点、忽略代码块），当前 **487 条零死链**。
-- **测试规模护栏**：`bash scripts/test-scale.sh`（**T7-b**，进 push CI），单测试文件 ≤800 行。
+- **测试规模护栏**：`bash scripts/test-scale.sh`（**T7-b**，本地/按需；已并入 `gates.sh`），单测试文件 ≤800 行。
 
 **测试铁律**（摘要，完整七条见 S10 §5）：黄金值必须有脚本出处 · 黑盒锁契约/白盒锁实现 ·
 **禁止 `actual == actual`** · 断言失败必须能定位到模块/行/格 · **负向优先于正向** ·
@@ -379,6 +381,7 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 | [moonbit-工具链与构建-setup-分析.md](./docs/moonbit-工具链与构建-setup-分析.md) | 工具链安装、构建系统与 CI 集成；附录含仓库初始化与云原生构建配置记录 |
 | [mooncakes-发布方案.md](./docs/mooncakes-发布方案.md) | **发布入口**：mooncakes.io 发布流程核验、元数据/命名/归档面评估、`.moonignore` 治理、版本策略与发布前门禁清单 |
 | [mooncakes-发布阻塞项3-4-落地方案.md](./docs/mooncakes-发布阻塞项3-4-落地方案.md) | **发布落地**：阻塞项 #3（归档面收敛 `.moonignore`，155→32 项）与 #4（发布前门禁 `publish-check.sh`）的深挖、实测与负向验证 |
+| [模块名迁移与发布链路核验.md](./docs/模块名迁移与发布链路核验.md) | **迁移记录**：mooncakes 账户定为 `TryAndRun-TvT` 后的全仓改名清单、`Cannot find import ...` 报错根因、`moon publish --dry-run` 退出码实测与 push 流水线移除后的本地门禁执行方式 |
 | [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md) | 性能/体积测试脚本位置、参数口径与可复现路径（公开评审/审计入口） |
 | [S9i-纯库调用体积探针与库实际体积.md](./docs/S9i-纯库调用体积探针与库实际体积.md) | **库实际体积口径**（`cmd/qr-min` 纯库调用探针；体积金字塔 + 引用规范） |
 | [S9j-层②统一Node对比-wasm-gc与fast_qr.md](./docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md) | 层② MoonBit 侧收敛为 `wasm-gc`；Node 进程内 shim 直测（**性能主口径**） |
@@ -399,6 +402,8 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 | ⤷ [S1–S9n 实现系列文档](./docs/S1-数据结构.md) | 按阶段编号的实现方案/记录/评审与性能评估全套（**按需深入，从 S1 进入**） |
 | ⤷ [fast_qr 移植参考](./docs/移植参考/fast-qr-索引.md) | Rust 参考库 v0.14.0 的架构/接口/概念分析语料（**由索引统辖**） |
 | ⤷ [项目基础框架-详细分析.md](./docs/项目基础框架-详细分析.md) | 立项时的资产盘点、目标架构、移植策略与分阶段路线（**历史基线**） |
+| ⤷ [moonbit-重写-roadmap-详细分析.md](./docs/moonbit-重写-roadmap-详细分析.md) | fast_qr 源码级核对 + S1–S9 实现顺序与里程碑 roadmap（**历史基线**，`wasm`(WASI) 口径仅作历史留存） |
+| ⤷ [core-仓库布局参考与目标架构.md](./docs/core-仓库布局参考与目标架构.md) | 借鉴 `moonbitlang/core` 的目标包架构与拆包判据（`lib/` + `lib/internal/` 布局依据） |
 | ⤷ [wasm-编译与运行-结果分析.md](./docs/wasm-编译与运行-结果分析.md) | **历史记录**：wasm 编译/运行全过程与早期多后端对比（`wasm`(WASI) 已移除） |
 | ⤷ [rust-环境配置脚本与fast_qr对比-setup.md](./docs/rust-环境配置脚本与fast_qr对比-setup.md) | Rust 参考环境配置（`scripts/setup-rust.sh`）+ fast_qr 对比用法 |
 
@@ -462,27 +467,36 @@ Builtins `stringref`）——这才是宿主嵌入 wasm 库的真实形态，与
 
 ## 开发与 CI
 
-- **代码门禁**：`moon fmt --check` + `moon check --deny-warn` + `moon test` + `wasm-gc` release 回归
-  （不加 `native` 阶段——需系统 C 编译器）。
+- **代码门禁**：`bash scripts/gates.sh`（一键全量：`moon fmt --check` + `moon check --deny-warn` +
+  `moon test` + 死链/规模护栏 + `wasm-gc` release 回归 + 差分门禁 + 发布前门禁；
+  支持 `STAGES="check test"` / `SKIP_SLOW=1`）。
+  **push CI 已于 2026-09-14 移除**（每次推送重复全量构建，资源收益不成比例），
+  门禁脚本零改动、改为本地/发布前按需执行，故提交前跑一遍是**必须**动作。
+  （不加 `native` 阶段——需系统 C 编译器。）
+- **发布**：`bash scripts/publish.sh`（**默认干跑**：环境自检 + 发布前门禁 + 归档清单 +
+  `moon publish --dry-run`）；真实发布 `bash scripts/publish.sh --publish`（不可逆，需确认）。
+  凭据属本地私有，**发布不进 CI**。
 - **基准复跑**：见[性能与体积](#性能与体积)的复跑入口；参数口径见
   [性能测试脚本-公开评审说明.md](./docs/性能测试脚本-公开评审说明.md)。
 - **Git 钩子（可选）**：`git config core.hooksPath .githooks`（个人本地配置，仓库不代设）。
 - **编码 / 提交规范**：见 [AGENTS.md](./AGENTS.md)（密钥安全、MoonBit 布局、文档死链零容忍等硬性约定）。
 
-`scripts/` 按角色分组（**仅门禁链接入 `.cnb.yml` push CI**；环境配置与对外对比脚本仅本地/审计时手动执行）：
+`scripts/` 按角色分组（**push CI 已移除**；门禁链由 `gates.sh` 本地一键触发，环境配置与对外对比脚本仅本地/审计时手动执行）：
 
-| 角色 | 脚本 | 是否进 push CI |
+| 角色 | 脚本 | 执行方式 |
 |------|------|:--------------:|
-| 环境配置 | `setup-moonbit.sh`、`setup-rust.sh`、`setup-fast-qr-wasm-env.sh` | ❌（幂等，本地/审计） |
-| 门禁链 | `fmt-check.sh` → `check.sh` → `test.sh` → `build-and-run.sh` | ✅ |
+| 环境配置 | `setup-moonbit.sh`、`setup-rust.sh`、`setup-fast-qr-wasm-env.sh` | 手动（幂等，本地/审计） |
+| **全量门禁** | **`gates.sh`**（`fmt-check` → `check` → `test` → `docs-link-check` → `test-scale` → `build-and-run` → `diff-gate` → `publish-check`） | **本地** |
+| **发布** | **`publish.sh`**（默认干跑；`--publish` 才真发，需确认） | **本地（不进 CI）** |
+| 门禁链单项 | `fmt-check.sh` → `check.sh` → `test.sh` → `build-and-run.sh` | 本地（亦由 `gates.sh` 串起） |
 | 性能基准 | **`bench-host.sh` + `host-bench.mjs`（宿主调用面：JS 反复带参调 wasm，主口径）**、`bench-host-var.sh` + `bench-host-var.mjs`（统计稳定性：CV / 单跑失稳率 / 漂移）、`bench.sh`（层①）、`bench-layer2.sh` + `gc-compare.mjs`（层② vs fast_qr） | ❌ |
 | 体积基准 | `bench-size.sh` + `wasm-size.mjs`（同规则口径 + 纯库探针 + 语义护栏） | ❌ |
 | 外部检出 | `build-fast-qr-wasm.sh`（fast_qr 侧产物，检出副本不入库） | ❌ |
 | 测试审计 | `test-audit.sh`（变异检测 + 解码回读）+ `apply-mutation.py` + `qr-decode-check.mjs`（`--points` 三基准点 / **`--corpus` T3-d 54 组**） | ❌ |
 | 黄金值/规模 | `gen-goldens.sh`（钉版重建 + `--verify` 四项）+ `snapshot_gen_tables.py` / `snapshot_gen_default.py` / `snapshot_gen_rs_vectors.rs` / `snapshot_gen_score.rs` / `snapshot_gen_placement.rs` + `snapshot_verify_*.py` + `test-scale.sh`（单测试文件 ≤800 行护栏） | ❌ |
-| 差分门禁 | `diff-gate.sh`（vs 参考 wasm 逐位 sha256；无制品显式 skipped） | ✅（可 skipped） |
+| 差分门禁 | `diff-gate.sh`（vs 参考 wasm 逐位 sha256；无制品显式 skipped） | 本地（可 skipped） |
 | 覆盖率 | `coverage.sh`（`moon coverage analyze` 报告）+ **`--floor` 不下降门禁（T5-b）** | ❌ |
-| 文档/规模护栏 | **`docs-link-check.sh`（T6-c 相对链接死链，进 CI）** + `test-scale.sh`（T7-b 单测试文件 ≤800 行，进 CI） | ✅ |
+| 文档/规模护栏 | **`docs-link-check.sh`（T6-c 相对链接死链）** + `test-scale.sh`（T7-b 单测试文件 ≤800 行） | 本地 |
 | 资源生成 | `gen-readme-qr-svg.sh`（重建 `docs/assets/qr-example.svg`，临时包用完即删） | ❌ |
 
 ---

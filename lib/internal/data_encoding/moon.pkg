@@ -1,6 +1,6 @@
 // data_encoding 包：三模式数据编码 + 自动回退
 // 依赖 internal/constants（cci_bits/data_bits/容量）+ internal/bitstream（CompactQR 位流缓冲）
 import {
-  "tryandrun/fast_qr_moonbit/lib/internal/constants",
-  "tryandrun/fast_qr_moonbit/lib/internal/bitstream",
+  "TryAndRun-TvT/fast_qr_moonbit/lib/internal/constants",
+  "TryAndRun-TvT/fast_qr_moonbit/lib/internal/bitstream",
 }

@@ -280,7 +280,7 @@ moon fmt && moon info && moon check && moon test
 4. **白盒测试** `lib/fast_qr_moonbit_wbtest.mbt`：直接调用私有 helper。
 5. **贴近实现的断言**优先写成源码内联 `test { }` 块（不影响产物体积）。
 6. **CLI** 在 `cmd/main/`，调用库时在 `cmd/main/moon.pkg` 声明
-   `import { "tryandrun/fast_qr_moonbit/lib" @lib }` —— 与首次实际调用同一批改动，勿提前加。
+   `import { "TryAndRun-TvT/fast_qr_moonbit/lib" @lib }` —— 与首次实际调用同一批改动，勿提前加。
 7. **若需拆子包**：在 `lib/` 内按功能建目录（如 `lib/internal/reedsolomon/`），加 `moon.pkg`，
    目录名即包名；**不要建 `src/`**。
 8. **收尾**：`moon fmt && moon info && moon check && moon test`；

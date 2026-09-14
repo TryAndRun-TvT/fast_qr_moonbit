@@ -80,7 +80,7 @@
 $ moon build lib --target native --release
 Error: failed to run build for target Native
 Caused by:
-    Package 'tryandrun/fast_qr_moonbit/lib' does not support target backend 'native'.
+    Package 'TryAndRun-TvT/fast_qr_moonbit/lib' does not support target backend 'native'.
     Supported backends: [wasm-gc]
 ```
 

@@ -17,7 +17,7 @@
 1. **模块根不设包**：根目录只放元数据（`moon.mod`/`README.md`/`docs/`/CI 配置等），
    **无根 `moon.pkg`** —— 与 `moonbitlang/core` 同形态（core 模块根无任何包，库都是 feature 子目录）。
 2. **库包在 `lib/`**：`lib/moon.pkg` + 公共文件（入口/枚举/容器）+ `lib/internal/` 实现子包；
-   消费者通过 `import { "tryandrun/fast_qr_moonbit/lib" @lib }` 使用。
+   消费者通过 `import { "TryAndRun-TvT/fast_qr_moonbit/lib" @lib }` 使用。
 3. **无环依赖（MoonBit 实测禁止 import 环）**：
    - `lib` import `lib/internal/*`（已落地）；
    - internal 永不反向 import `lib`；跨边界以**域序号（Int）**或本包类型传参；
@@ -325,7 +325,7 @@ moon run cmd/main --target wasm-gc   # 正常输出（当时另有 wasm/js；现
 
 | 优先级 | 事项 |
 |:---:|------|
-| P0 | 实现 QR 公共 API；届时在 `cmd/main/moon.pkg` 启用 `import { "tryandrun/fast_qr_moonbit/lib" @lib }` 并让 CLI 调用 |
+| P0 | 实现 QR 公共 API；届时在 `cmd/main/moon.pkg` 启用 `import { "TryAndRun-TvT/fast_qr_moonbit/lib" @lib }` 并让 CLI 调用 |
 | P0 | 测试从 `assert_true(true)` 升级为真实断言（黑盒验公共行为，白盒验内部实现） |
 | P2 | `.github/workflows/` 尚缺：官方布局含此项 | **不采纳** —— 本仓库 CI 已在 `.cnb.yml`，无需 GitHub Actions |
 

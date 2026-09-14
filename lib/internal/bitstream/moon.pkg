@@ -1,5 +1,5 @@
 // bitstream 包：CompactQR 位流缓冲
 // 依赖 internal/constants（from_version 定初始容量用 max_bytes）
 import {
-  "tryandrun/fast_qr_moonbit/lib/internal/constants",
+  "TryAndRun-TvT/fast_qr_moonbit/lib/internal/constants",
 }

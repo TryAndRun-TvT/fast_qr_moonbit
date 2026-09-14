@@ -28,7 +28,7 @@ cat > "$TMP/moon.pkg" << 'PKG_EOF'
 pkgtype(kind: "executable")
 
 import {
-  "tryandrun/fast_qr_moonbit/lib",
+  "TryAndRun-TvT/fast_qr_moonbit/lib",
 }
 PKG_EOF
 cat > "$TMP/main.mbt" << 'MBT_EOF'

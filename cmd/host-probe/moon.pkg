@@ -25,7 +25,7 @@
 pkgtype(kind: "foreign_library")
 
 import {
-  "tryandrun/fast_qr_moonbit/lib",
+  "TryAndRun-TvT/fast_qr_moonbit/lib",
 }
 
 options(
