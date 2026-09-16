@@ -309,6 +309,7 @@ bash scripts/publish.sh --publish  # 真实发布（不可逆，需确认；凭�
 | [04-元/README优化-冗余清理与最佳实践.md](./04-元/README优化-冗余清理与最佳实践.md) | 历史 | 528 |
 | [04-元/README示例二维码-SVG资源与生成.md](./04-元/README示例二维码-SVG资源与生成.md) | 现行 | 157 |
 | [04-元/S12-文档体系SDD诊断与优化方案.md](./04-元/S12-文档体系SDD诊断与优化方案.md) | 现行 | 519 |
+| [04-元/S12b-落地记录-门禁落地与D2目录分类.md](./04-元/S12b-落地记录-门禁落地与D2目录分类.md) | 现行 | 344 |
 | [移植参考/fast-qr-开发者指南.md](./移植参考/fast-qr-开发者指南.md) | 现行 | 160 |
 | [移植参考/fast-qr-接口.md](./移植参考/fast-qr-接口.md) | 现行 | 169 |
 | [移植参考/fast-qr-架构.md](./移植参考/fast-qr-架构.md) | 现行 | 188 |
@@ -322,7 +323,7 @@ bash scripts/publish.sh --publish  # 真实发布（不可逆，需确认；凭�
 | [移植参考/模块/wasm-绑定.md](./移植参考/模块/wasm-绑定.md) | 现行 | 56 |
 | [移植参考/模块/核心编码管线.md](./移植参考/模块/核心编码管线.md) | 现行 | 71 |
 <!-- /docs-index-table -->
-<!-- docs-index-count: 58 -->
+<!-- docs-index-count: 59 -->
 
 </details>
 
