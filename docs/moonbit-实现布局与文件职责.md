@@ -1,5 +1,7 @@
 # MoonBit 实现布局与文件职责（方案 3：lib/ 库包）
 
+> **状态**：现行　｜　日期：2026-09-05　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §6
+
 > 依据 [项目基础框架-详细分析](./项目基础框架-详细分析.md)、
 > [moonbit-重写-roadmap-详细分析](./moonbit-重写-roadmap-详细分析.md) 与
 > `moonbitlang/core` 实仓布局（模块根只放元数据、库为 feature 子目录包），

@@ -1,5 +1,7 @@
 # S9j · 层② 统一 Node 进程内对比（wasm-gc vs fast_qr）· 口径收敛
 
+> **状态**：历史　｜　日期：2026-09-11　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §7　｜　并入：现行层②/宿主口径见 [S9p](S9p-宿主调用面性能口径-JS向wasm传参.md)
+
 > ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
 
 > 本文把层②「MoonBit vs fast_qr-wasm32」的 MoonBit 侧从 `wasm`(WASI) 兼容后端**收敛为

@@ -1,5 +1,7 @@
 # mooncakes.io 发布方案（评估 + 落地清单）
 
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §5
+
 > 承接 Issue #71。目标：给出把 `TryAndRun-TvT/fast_qr_moonbit` 发布到
 > [mooncakes.io](https://mooncakes.io) 的**详细、可执行、可审计**方案。
 >

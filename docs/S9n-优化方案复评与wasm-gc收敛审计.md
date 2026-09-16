@@ -1,5 +1,7 @@
 # S9n · 优化方案复评与 wasm-gc 收敛审计
 
+> **状态**：现行　｜　日期：2026-09-12　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §2
+
 > 承接 [S9k（成本分解）](./S9k-性能瓶颈与理论上限评估.md) ·
 > [S9l（fast_qr 参考）](./S9l-参考fast_qr高性能实现分析.md) ·
 > [S9m（ReadOnlyArray）](./S9m-ReadOnlyArray适用性评估.md)：S9k/S9l/S9m 各自给出了成本、参考做法与

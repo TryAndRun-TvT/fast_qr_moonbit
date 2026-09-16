@@ -1,5 +1,7 @@
 # S9m · ReadOnlyArray 适用性评估（修订）
 
+> **状态**：历史　｜　日期：2026-09-11　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §7　｜　并入：结论已并入 [S9n](S9n-优化方案复评与wasm-gc收敛审计.md)（已否决项）
+
 > 承接 [S9k（成本分解）](./S9k-性能瓶颈与理论上限评估.md) 与
 > [S9l（fast_qr 参考）](./S9l-参考fast_qr高性能实现分析.md)：回答
 > **「MoonBit core 的 `ReadOnlyArray[T]` 对本项目是不是合适/最优的选择？能不能用来提速？」**
