@@ -6,7 +6,7 @@
 #   本脚本把它们串成一条链，供**本地/提交前/发布前**一键执行。
 #
 # 默认阶段（顺序即依赖顺序，任一红即整链红）：
-#   fmt-check → check → test → docs-link-check → docs-consistency → test-scale → build-and-run → diff-gate → publish-check
+#   fmt-check → check → test → docs-link-check → docs-ref-check → docs-index → docs-consistency → test-scale → build-and-run → diff-gate → publish-check
 #
 # 用法:
 #   bash scripts/gates.sh                       # 全量
@@ -21,7 +21,7 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
 export PATH="$HOME/.moon/bin:$PATH"
 
-DEFAULT_STAGES="fmt-check check test docs-link-check docs-consistency test-scale build-and-run diff-gate publish-check"
+DEFAULT_STAGES="fmt-check check test docs-link-check docs-ref-check docs-index docs-consistency test-scale build-and-run diff-gate publish-check"
 SLOW_STAGES="build-and-run docs-consistency"
 
 STAGES="${STAGES:-$DEFAULT_STAGES}"

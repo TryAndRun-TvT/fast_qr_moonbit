@@ -254,6 +254,13 @@ else
   echo "  ✅ 全部文档在限内"
 fi
 
+# ── ⑤ 日期漂移提示（非阻断，S12 §14 E2）────────────────────────────────────
+# 与 ①②③ 不同：日期判据依赖 git 时间（受 rebase / 横切提交影响），故**只提示不阻断**。
+# 具体口径与噪音抑制见 scripts/docs-date-check.sh 头部注释。
+echo
+echo "-- ⑤ 状态头日期漂移提示（仅警告，不阻断）"
+bash "$ROOT/scripts/docs-date-check.sh" 2>&1 | sed '1d' | sed 's/^  /  /'
+
 echo
 if (( fail )); then
   echo ">> 文档一致性门禁未通过（S12 §7.1/§7.4）。"
