@@ -17,6 +17,8 @@
 #      否则「入索引」退化成「塞进一张表」，读者在读者路径/议题表里根本找不到它。
 #   ③b 索引反查（反向）：索引里指向 docs 的每条相对链接必须**存在**。与 `docs-link-check.sh`
 #      互补——后者按**仓库实际文件**遍历，查不到「索引里写了、文件却删了」的游离引用。
+#   ③d 索引链接内容：索引里指向 docs 的每条相对链接，标签非空、锚点非「文件名式占位」
+#      （③ 判「文件被索引」/ ③d 判「那条索引行本身是否可判定」——见 S12b §18 的假绿实证）。
 #   ③c 无子目录 README：`docs/**` 不得出现第二个名为 `README.md` 的文件（AGENTS.md §四 准入 4
 #      「不新建索引的索引」）。现状 `docs/移植参考/` 的域首页是 `fast-qr-索引.md`，保持不动即可。
 #   ④ 文档规模：docs/**/*.md 单篇 ≤DOC_LIMIT 行（AGENTS.md §四 已定，此前只管 .mbt，此处补齐）。
@@ -167,9 +169,11 @@ for f in files:
     if not hits:
         fails.append(("L1", f, "索引中无指向本文件的相对链接（basename 命中不算）"))
         continue
-    in_mid = any(b7 < i < b8 or i < b7 for i, _ in hits)   # §0–§6 或 §8 之后
+    # 摘要区 = 行号 < 第一个 H2(§7)。**§8 之后不算摘要区**：§8+ 属尾部（全量清单/收尾说明），
+    # 那里提一句不算「读者路径里点得到」——修 B7（旧式 `b7 < i < b8 or i < b7` 把
+    # 「只出现在 §8 之后的收尾段」也算作摘要区，与 ③ 的设立目的（可发现性）不符）。
+    in_mid = any(i < b7 for i, _ in hits)
     if not in_mid:
-        toc = re.search(r"索引：\[[^\]]*\]\([^)]+\)\s*(§[0-9.]+)?", text[:0] or "")
         status_line = ""
         try:
             for line in open(f, encoding="utf-8"):
@@ -216,6 +220,41 @@ PYEOF
 )"
 echo "$rev_out" | grep -v '^  COUNT=' || true
 if grep -q '^  COUNT=0$' <<<"$rev_out"; then echo "  ✅ 索引内所有相对链接均可达"; else fail=1; fi
+
+# ── ③d 索引链接**内容**可判定（标签/锚点不得为占位符）───────────────────────
+# ③ / ③b 只判「路径存在、双向可达」，**不判链接内容**。实测缺陷（S12b §18）：
+# 把议题表里一条登记行（含其链接）整行删掉后，该篇仍因状态头 `索引：… §N` 通过 ③ 的 L2 ——
+# 即「删掉摘要区登记」不红。本项补第三把尺子：索引里指向 docs 的每条相对链接，
+# 标签不得为空、锚点不得是「文件名直接当锚点」式占位（如 `#8-全量文档清单按文件名供检索`）。
+echo
+echo "-- ③d 索引链接内容可判定（标签非空 / 锚点非占位）"
+idxlabel_out="$(python3 - "$INDEX" <<'PYEOF'
+import re, sys
+index = sys.argv[1]
+text = open(index, encoding="utf-8").read()
+bad = []
+for i, line in enumerate(text.split("\n"), 1):
+    for m in re.finditer(r'(?<!!)\[([^\]]*)\]\(([^)]+)\)', line):
+        label, target = m.group(1).strip(), m.group(2).strip()
+        if target.startswith(("http://", "https://", "#")): continue
+        path, _, anchor = target.partition("#")
+        anchor = anchor.strip()
+        if not path.endswith(".md"): continue
+        if not label:
+            bad.append((i, "空标签", target))
+        elif anchor.startswith("-") and ".md" in anchor:
+            bad.append((i, "锚点形如文件名（占位）", target))
+for i, why, target in bad:
+    print("  ❌ %s:%d：%s —— `%s`" % (index, i, why, target))
+print("  COUNT=%d" % len(bad))
+PYEOF
+)"
+echo "$idxlabel_out" | grep -v '^  COUNT=' || true
+if grep -q '^  COUNT=0$' <<<"$idxlabel_out"; then
+  echo "  ✅ 索引内 docs 链接标签非空且锚点非占位"
+else
+  fail=1
+fi
 
 # ── ③c 无子目录 README（不新建「索引的索引」）──────────────────────────────
 echo
