@@ -1,5 +1,7 @@
 # fast_qr 系统架构文档
 
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](../README-导航与索引.md) §7
+
 ## 概述
 
 fast_qr 是一个用 Rust 编写的高性能 QR 码生成库，用于将任意字节流编码为符合 ISO/IEC 18004 标准的 QR 码矩阵，并可转换为 SVG、PNG 或 Unicode 字符画。它使 Rust 开发者、前端开发者（通过 npm 发布的 WASM 包）能够以极低的延迟生成 QR 码，官方基准测试显示其速度约为同类库 `qrcode` crate 的 6-7 倍（V03H 场景 82us vs 535us）。

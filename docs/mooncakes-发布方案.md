@@ -1,5 +1,7 @@
 # mooncakes.io 发布方案（评估 + 落地清单）
 
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §5
+
 > 承接 Issue #71。目标：给出把 `TryAndRun-TvT/fast_qr_moonbit` 发布到
 > [mooncakes.io](https://mooncakes.io) 的**详细、可执行、可审计**方案。
 >
@@ -156,7 +158,7 @@ moon publish              # 正式发布（等价：bash scripts/publish.sh --pu
 ```bash
 export PATH="$HOME/.moon/bin:$PATH"
 moon check --deny-warn     # ✅ 通过（0 warning，26 tasks）
-moon test                  # ✅ Total tests: 146, passed: 146, failed: 0
+moon test                  # ✅ 全绿（计数以实跑为准，登记处见 S10b）
 moon package --list        # ✅ 可产出归档（158 项，见 §4）
 moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，见 §1.1）
 ```
@@ -262,7 +264,7 @@ moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，
 | ③ 符号链接在 CNB/Git 上行为需实测 | 已实测：`git` 侧记录为 `mode 120000`（符号链接），内容指向 `README.mbt.md` |
 | ④ **新增前提**（原评估未预见） | **模块根必须有 `moon.pkg`**，否则根目录的 `.md` 不被当文档测试扫描 → 见 §4.2.1 |
 
-**收益（实测）**：`moon test --target wasm-gc` **146 → 147**（+1 条 README 文档测试），
+**收益（实测）**：`moon test --target wasm-gc` **+1 条 README 文档测试**（计数见 [S10b](S10b-测试覆盖率报告.md) 登记处），
 改公共 API 而不同步改示例会**直接变红**。
 
 #### 4.2.1 新增根空包 `moon.pkg`（文档测试宿主）——发布面影响
@@ -441,7 +443,7 @@ moon tree                              # -> (no dependencies)
 
 # 2) 质量基线
 moon check --deny-warn                 # -> 通过
-moon test                              # -> 146 passed
+moon test                              # -> 全绿（计数见 S10b 登记处）
 
 # 3) 归档面
 moon package --list                    # -> 34 项（.moonignore 已收敛；未收敛时为 158 项）

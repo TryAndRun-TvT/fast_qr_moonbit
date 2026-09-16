@@ -1,10 +1,13 @@
 # S10 — 测试用例设计与完善 roadmap v5（参考 fast_qr 测试体系 + 独立正确性验证）
 
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §3
+
 > 目标：以 Rust 参考库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr) 的测试代码为基准，
 > 盘点本仓库测试资产，定位覆盖缺口，给出**分阶段、可验收、可定位失败**的测试完善路线；
 > 并回答一个更根本的问题：**当前所有断言都是「与参考实现逐位一致」，谁保证参考本身对？**
 >
-> 日期：2026-09-14（v6 刷新：S11 清理驱动 + 变异条数订正）　｜　基线：本仓库 `main`（**146 单测全绿**，wasm-gc 同绿）
+> 日期：2026-09-14（v6 刷新：S11 清理驱动 + 变异条数订正）　｜　基线：本仓库 `main`（**测试全绿**，default + wasm-gc）
+> ｜　**测试计数不在本文写死**（会漂移）：唯一登记处 = [S10b](./S10b-测试覆盖率报告.md) 顶部 `<!-- test-count: N -->`，由 `bash scripts/docs-consistency.sh` ② 与实跑比对
 > ｜　参考检出：`fast_qr` commit `53e8c99`（`Cargo.toml` version `0.14.0`，`--depth 1`）
 > 复跑：`bash scripts/test.sh`（= `moon test`），后端回归 `moon test --target wasm-gc`。
 >
@@ -42,7 +45,7 @@
 >    实为 **21 条**（v4 为 19）；权威口径 `bash scripts/test-audit.sh mutation | grep -c 已检出`。
 > ② **补测（P1-2）**：`ECL::to_char` 全 4 臂、`QRCode::empty` 契约（v4 删 `for_version` 别名后为唯一空矩阵入口）、
 >    `build_fixed` 两路负向早退（`SpecifiedVersion`/`EncodedData`）、N3 quiet-zone 双侧图案
->    （覆盖 `test_line_pattern`）+ N1 非 Data 结算边界；`moon test` 140 → **146**。
+>    （覆盖 `test_line_pattern`）+ N1 非 Data 结算边界；`moon test` 140 → 146（时点数）。
 > ③ **消双份实现**：`score.mbt` 的 `line_score`（仅白盒 helper 用的副本）改委托生产路径
 >    `line_scan_buf`，白盒断言从此测的就是生产算法。
 > ④ 覆盖率 `lib/**` 未覆盖 **26 → 15**（`S10b` 的 `coverage-floor` 同步下调）。
@@ -95,7 +98,7 @@
 
 ### 2.2 现有 135 用例分布（v4 刷新；v3 为 121，v2 为 111）
 
-> **v6 增量**：当前总数 **146**（见上 v6 刷新②；本表为 v4 时点的分布快照，未逐行回填）。
+> **v6 增量**：当前总数**见登记处** [S10b](./S10b-测试覆盖率报告.md)（上表为 v4 时点的分布快照，未逐行回填）。
 
 | 文件 | 用例 | 行数 | 层 | 说明 |
 |------|-----:|-----:|---|------|

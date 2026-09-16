@@ -1,5 +1,7 @@
 # S9l · 参考 fast_qr 高性能实现分析
 
+> **状态**：现行　｜　日期：2026-09-11　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §2
+
 > 承接 [S9k 性能瓶颈与理论上限](./S9k-性能瓶颈与理论上限评估.md)：S9k 用差分探针定位了**本项目**
 > 的成本分布（V40 8 轮 `score` 占 68%、V03 `wrap` 占 44%）。本文换到**参考实现一侧**——对本地检出的
 > [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr)（commit `53e8c99`）做**逐文件精读**，

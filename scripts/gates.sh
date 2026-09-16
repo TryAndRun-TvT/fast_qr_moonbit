@@ -6,12 +6,12 @@
 #   本脚本把它们串成一条链，供**本地/提交前/发布前**一键执行。
 #
 # 默认阶段（顺序即依赖顺序，任一红即整链红）：
-#   fmt-check → check → test → docs-link-check → test-scale → build-and-run → diff-gate → publish-check
+#   fmt-check → check → test → docs-link-check → docs-consistency → test-scale → build-and-run → diff-gate → publish-check
 #
 # 用法:
 #   bash scripts/gates.sh                       # 全量
 #   STAGES="check test" bash scripts/gates.sh    # 只跑指定阶段（空格分隔）
-#   SKIP_SLOW=1 bash scripts/gates.sh            # 跳过耗时阶段（build-and-run）
+#   SKIP_SLOW=1 bash scripts/gates.sh            # 跳过耗时阶段（build-and-run、docs-consistency 的 ②）
 #   KEEP_GOING=1 bash scripts/gates.sh           # 失败不中断，跑完再汇总
 #
 # 退出码：0 = 全绿；1 = 至少一个阶段红；2 = 阶段脚本不存在（拼错阶段名）。
@@ -21,8 +21,8 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
 export PATH="$HOME/.moon/bin:$PATH"
 
-DEFAULT_STAGES="fmt-check check test docs-link-check test-scale build-and-run diff-gate publish-check"
-SLOW_STAGES="build-and-run"
+DEFAULT_STAGES="fmt-check check test docs-link-check docs-consistency test-scale build-and-run diff-gate publish-check"
+SLOW_STAGES="build-and-run docs-consistency"
 
 STAGES="${STAGES:-$DEFAULT_STAGES}"
 if [[ "${SKIP_SLOW:-0}" == "1" ]]; then

@@ -1,5 +1,7 @@
 # Rust 环境配置脚本 · 与 fast_qr 参考对比 Setup
 
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §7
+
 > 本文记录本次「增加 Rust 环境配置脚本便于对比」的完整过程：阅读现状、clone 参考仓库
 > `rs-site-tools`、抽取其 `rust_setup.sh` 思路、落地本仓库 `scripts/setup-rust.sh`，
 > 并给出脚本用途、与 CI 的关系与后续使用方式。

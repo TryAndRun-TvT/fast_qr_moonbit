@@ -1,5 +1,7 @@
 # fast_qr → MoonBit 重写 roadmap · 详细分析
 
+> **状态**：历史　｜　日期：2026-09-05　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §7　｜　并入：路线已全部落地，结论并入 [项目基础框架-详细分析](项目基础框架-详细分析.md) / [moonbit-实现布局与文件职责](moonbit-实现布局与文件职责.md)
+
 > ⚠️ **历史记录**：MoonBit `wasm`(WASI) 后端已按项目决策移除，本项目现仅支持 `wasm-gc`；本文涉及的 `wasm` 后端数字与口径仅作历史留存，不再作为对外口径。
 
 > 依据对参考库 **fast_qr v0.14.0** 源码（检出于 `/fast_qr`，commit `53e8c99`，master）的

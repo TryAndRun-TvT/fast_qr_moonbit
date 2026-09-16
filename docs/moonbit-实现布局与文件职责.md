@@ -1,10 +1,13 @@
 # MoonBit 实现布局与文件职责（方案 3：lib/ 库包）
 
+> **状态**：现行　｜　日期：2026-09-05　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §6
+
 > 依据 [项目基础框架-详细分析](./项目基础框架-详细分析.md)、
 > [moonbit-重写-roadmap-详细分析](./moonbit-重写-roadmap-详细分析.md) 与
 > `moonbitlang/core` 实仓布局（模块根只放元数据、库为 feature 子目录包），
 > 并采纳「方案 3」：**取消模块根根包，库代码统一收入 `lib/` 子包**。
-> 当前阶段：**B1→B11 全部落地、S1–S11 收口完成**（测试 146 全绿；仅 `wasm-gc` 单后端）。
+> 当前阶段：**B1→B11 全部落地、S1–S12 收口完成**（测试全绿；仅 `wasm-gc` 单后端）。
+> 计数不写死（会漂移）：登记处 = [S10b](./S10b-测试覆盖率报告.md) 顶部 `<!-- test-count: N -->`。
 > 本文的布局/职责结论仍然有效，但 §3 的「状态」列与 §6 的落地描述已按**当前真实状态**刷新
 > （2026-09-14，[S11b](./S11b-清理落地记录-v3-v5.md) §13「过期注释/口径巡检」）。
 >
@@ -338,7 +341,7 @@ moon run cmd/main --target wasm-gc   # 正常输出（当时另有 wasm/js；现
 | 优先级 | 事项 |
 |:---:|------|
 | ~~P0~~ | ~~实现 QR 公共 API；届时在 `cmd/main/moon.pkg` 启用 `import { ... /lib @lib }` 并让 CLI 调用~~ → **已完成**（S1–S7 落地，`cmd/main` 已调用库输出） |
-| ~~P0~~ | ~~测试从 `assert_true(true)` 升级为真实断言~~ → **已完成**（S10 收口，146 + README 文档测试 1 = 147） |
+| ~~P0~~ | ~~测试从 `assert_true(true)` 升级为真实断言~~ → **已完成**（S10 收口，用例数见 [S10b](./S10b-测试覆盖率报告.md) 登记处） |
 | P1 | **README 示例纳入文档测试**（2026-09-14 已落地，见 §八）：改公共 API 须同步 README 示例 |
 | P2 | `.github/workflows/` 尚缺：官方布局含此项 | **不采纳** —— 本仓库 CI 已在 `.cnb.yml`，无需 GitHub Actions |
 
@@ -372,7 +375,7 @@ moon run cmd/main --target wasm-gc   # 正常输出（当时另有 wasm/js；现
 
 ```bash
 moon check --deny-warn      # 通过
-moon test --target wasm-gc  # 147 通过（146 原有 + 1 README 文档测试）
+moon test --target wasm-gc  # 全绿（计数见 S10b 登记处）
 moon test --outline | grep README
 #   1. TryAndRun-TvT/fast_qr_moonbit README.mbt.md:174 index=0 name="readme_quick_start"
 ```
@@ -381,7 +384,7 @@ moon test --outline | grep README
 
 ```text
 [TryAndRun-TvT/fast_qr_moonbit] test README.mbt.md:174 ("readme_quick_start") failed: ... `25 != 99`
-Total tests: 147, passed: 146, failed: 1.
+Total tests: N, passed: N, failed: 0.   # 计数以实跑为准，见 S10b 登记处
 ```
 
 **与「模块根无包」的关系**：本仓库曾把「根目录零 `moon.pkg`」当作方案 3 的标志，

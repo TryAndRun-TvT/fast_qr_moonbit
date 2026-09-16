@@ -1,5 +1,7 @@
 # MoonBit 工具链与构建 Setup 详细分析
 
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](README-导航与索引.md) §6
+
 > 本文档基于官方文档
 > 《MoonBit 构建系统教程》(https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/tutorial.html)、
 > 《Moon 命令参考》(.../moon/commands.html) 及官方安装脚本
