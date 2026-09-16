@@ -168,7 +168,8 @@ moon test --target wasm-gc
 
 > **没有 push CI**（2026-09-14 移除，每次推送重复全量构建收益不成比例）。
 > 门禁改为**本地一键**：`bash scripts/gates.sh`（`fmt-check → check → test → docs-link-check →
-> test-scale → build-and-run → diff-gate → publish-check`；支持 `STAGES="check test"` / `SKIP_SLOW=1`）。
+> docs-consistency → test-scale → build-and-run → diff-gate → publish-check`；
+> 支持 `STAGES="check test"` / `SKIP_SLOW=1`）。
 > 提交前跑一遍是**必须**动作。脚本分组与逐个用途见
 > [S9r §4 脚本分组](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接)。
 
@@ -223,13 +224,14 @@ moon test --target wasm-gc
 | **审计脚本与口径** | [性能测试脚本-公开评审说明.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/性能测试脚本-公开评审说明.md) · [S9r §4 脚本分组](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接) |
 | **README 为何这样写** | [README优化-冗余清理与最佳实践.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README优化-冗余清理与最佳实践.md) · [示例码资产与生成](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README示例二维码-SVG资源与生成.md) |
 | **清理/收敛评估** | [S11 评估入口](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S11-无效代码与冗余文档清理评估.md) · [S11b 落地记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S11b-清理落地记录-v3-v5.md) |
-| **改 / 新增文档** | [S12 文档体系规范](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S12-文档体系SDD诊断与优化方案.md)（准入 CheckList · 状态字段 · 防漂移门禁） |
+| **改 / 新增文档** | [S12 文档体系规范](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S12-文档体系SDD诊断与优化方案.md)（准入 CheckList · 状态字段 · 防漂移门禁 · 门禁自身审计 §13） |
 | **看实现系列文档** | ⤷ [S1 数据结构](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S1-数据结构.md)（S1–S9 系列总入口）· ⤷ [fast_qr 移植参考](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/移植参考/fast-qr-索引.md) |
 | **看历史基线** | ⤷ [项目基础框架](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/项目基础框架-详细分析.md) · ⤷ [重写 roadmap](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/moonbit-重写-roadmap-详细分析.md) · ⤷ [wasm 编译运行分析](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/wasm-编译与运行-结果分析.md) |
 
 > **全量清单**（含 `docs/` 全部篇目与角色）在
 > [docs/README-导航与索引.md §8](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README-导航与索引.md#8-全量文档清单按文件名供检索)。
-> 新增文档须同步更新该文件与本表，否则 `bash scripts/docs-link-check.sh` 会红（死链零容忍）。
+> 新增文档须同步更新该文件与本表，否则 `bash scripts/docs-link-check.sh` 与
+> `scripts/docs-consistency.sh` ③ 会红（死链零容忍 + 索引覆盖）。
 
 ### 链接约定（本仓库文档纪律）
 

@@ -96,6 +96,8 @@ README 只列**类型名**；签名、语义与用法以 `lib/*.mbt` 与 `.mbti`
 | **变异检测 / 第三方解码回读** | S10 附录 + [S11b](./S11b-清理落地记录-v3-v5.md) | `bash scripts/test-audit.sh mutation` · `decode` |
 | **黄金值来源与重建** | S10 §5 铁律 1 | `bash scripts/gen-goldens.sh --verify` |
 | **与参考 wasm 逐位差分** | [S9i](./S9i-纯库调用体积探针与库实际体积.md) | `bash scripts/diff-gate.sh` |
+| **文档一致性（状态头/计数/版本/索引/规模）** | [S12](./S12-文档体系SDD诊断与优化方案.md) §13 | `bash scripts/docs-consistency.sh` |
+| **文档死链（含索引反查）** | [S12](./S12-文档体系SDD诊断与优化方案.md) §13.2 | `bash scripts/docs-link-check.sh` · `docs-consistency.sh` ③b |
 
 **README 保留的最小结论**：测试**按三载体分层**（黑盒 `*_test.mbt` / 白盒 `*_wbtest.mbt` / 源码内联）；
 **用例数与文件数不写进 README**（会漂移），需要数字时以 `moon test` 实跑为准。
@@ -134,7 +136,7 @@ bash scripts/publish.sh --publish  # 真实发布（不可逆，需确认；凭�
 | **目录与包设置的官方依据 + 实证** | [moonbit-项目目录设置-最佳实践.md](./moonbit-项目目录设置-最佳实践.md) |
 | **工具链安装与构建系统** | [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) |
 | **无效代码/冗余文档判定口径与处置队列** | [S11](./S11-无效代码与冗余文档清理评估.md) · [S11b](./S11b-清理落地记录-v3-v5.md) |
-| **文档体系规范与优化队列**（信息架构 / 状态字段 / 准入 CheckList / 防漂移门禁） | [S12](./S12-文档体系SDD诊断与优化方案.md) |
+| **文档体系规范与优化队列**（信息架构 / 状态字段 / 准入 CheckList / 防漂移门禁 + 门禁自身审计 §13） | [S12](./S12-文档体系SDD诊断与优化方案.md) |
 | **README 历次优化总账**（含劣化复现与 §7 教训） | [README优化-冗余清理与最佳实践.md](./README优化-冗余清理与最佳实践.md) |
 | **README 示例码资产与生成** | [README示例二维码-SVG资源与生成.md](./README示例二维码-SVG资源与生成.md) |
 
@@ -232,12 +234,12 @@ bash scripts/publish.sh --publish  # 真实发布（不可逆，需确认；凭�
 | [README优化-冗余清理与最佳实践.md](./README优化-冗余清理与最佳实践.md) | 历史 | 528 |
 | [README示例二维码-SVG资源与生成.md](./README示例二维码-SVG资源与生成.md) | 现行 | 157 |
 | [S1-数据结构.md](./S1-数据结构.md) | 现行 | 454 |
-| [S10-测试用例设计与完善roadmap.md](./S10-测试用例设计与完善roadmap.md) | 现行 | 778 |
+| [S10-测试用例设计与完善roadmap.md](./S10-测试用例设计与完善roadmap.md) | 现行 | 779 |
 | [S10b-测试覆盖率报告.md](./S10b-测试覆盖率报告.md) | 现行 | 115 |
 | [S10c-select-capacity模式语义缺陷-定位与修复.md](./S10c-select-capacity模式语义缺陷-定位与修复.md) | 历史 | 97 |
 | [S11-无效代码与冗余文档清理评估.md](./S11-无效代码与冗余文档清理评估.md) | 现行 | 559 |
 | [S11b-清理落地记录-v3-v5.md](./S11b-清理落地记录-v3-v5.md) | 历史 | 354 |
-| [S12-文档体系SDD诊断与优化方案.md](./S12-文档体系SDD诊断与优化方案.md) | 现行 | 474 |
+| [S12-文档体系SDD诊断与优化方案.md](./S12-文档体系SDD诊断与优化方案.md) | 现行 | 602 |
 | [S2-常量表与GF256.md](./S2-常量表与GF256.md) | 现行 | 657 |
 | [S3-数据编码.md](./S3-数据编码.md) | 现行 | 539 |
 | [S4-矩阵与放置.md](./S4-矩阵与放置.md) | 现行 | 417 |
@@ -264,7 +266,7 @@ bash scripts/publish.sh --publish  # 真实发布（不可逆，需确认；凭�
 | [S9q-性能口径统计差异与取平均评估.md](./S9q-性能口径统计差异与取平均评估.md) | 现行 | 293 |
 | [S9r-README性能体积长口径与公共API明细.md](./S9r-README性能体积长口径与公共API明细.md) | 现行 | 179 |
 | [core-仓库布局参考与目标架构.md](./core-仓库布局参考与目标架构.md) | 历史 | 184 |
-| [moonbit-实现布局与文件职责.md](./moonbit-实现布局与文件职责.md) | 现行 | 461 |
+| [moonbit-实现布局与文件职责.md](./moonbit-实现布局与文件职责.md) | 现行 | 462 |
 | [moonbit-工具链与构建-setup-分析.md](./moonbit-工具链与构建-setup-分析.md) | 现行 | 291 |
 | [moonbit-重写-roadmap-详细分析.md](./moonbit-重写-roadmap-详细分析.md) | 历史 | 309 |
 | [moonbit-项目目录设置-最佳实践.md](./moonbit-项目目录设置-最佳实践.md) | 现行 | 302 |
