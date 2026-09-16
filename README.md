@@ -272,7 +272,11 @@ moon test --target wasm-gc
 │       ├── data_encoding/      #   三模式编码 + 自动回退
 │       └── matrix/             #   放置 / 掩码 / 评分
 ├── cmd/                        # 可执行包：main（CLI）/ bench / qr-min / host-probe
-├── docs/                       # 项目文档（入口见「文档索引」）
+├── docs/                       # 项目文档（入口 = docs/README.md，见「文档索引」）
+│   ├── README.md               #   目录首页：读者路径 + 分类地图 + 全量清单（§8 生成物）
+│   ├── 01-规格/ 02-证据/        #   D2 分类：实现规格 / 审计数据
+│   ├── 03-过程/ 04-元/          #   D2 分类：历史基线+发布过程 / 文档与 README 元规范
+│   ├── 移植参考/                #   fast_qr 外部语料（自成一域，由域首页统辖）
 │   └── assets/                 #   文档资源（qr-example.svg = README 示例码）
 ├── scripts/                    # 构建/门禁/基准脚本（分组见 S9r §4）
 ├── .githooks/ .cnb.yml         # 可选 Git 钩子 / 云原生构建配置
