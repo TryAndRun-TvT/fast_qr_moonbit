@@ -145,10 +145,10 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 bash scripts/test.sh          # moon test（黑盒 + 白盒）
 bash scripts/test-scale.sh    # 单测试文件 ≤800 行护栏（进 push CI）
 bash scripts/docs-link-check.sh       # 文档互链死链检查（进 gates）
-bash scripts/docs-ref-check.sh        # 章节引用门禁：S<N>x §M 须在被引篇目存在该节（S12 §15.2）
-bash scripts/docs-index.sh --verify   # 索引 §8 清单与实跑一致（生成物，勿手改；S12 §15.1）
-bash scripts/docs-consistency.sh      # 文档一致性（状态/计数/版本/索引/规模；S12 D4）
-bash scripts/docs-date-check.sh       # 状态头日期漂移**提示**（仅警告，永不阻断；S12 §15.3）
+bash scripts/docs-ref-check.sh        # 章节引用门禁：S<N>x §M 须在被引篇目存在该节（S12b §15.2）
+bash scripts/docs-index.sh --verify   # 索引 §8 清单与实跑一致（生成物，勿手改；S12b §15.1）
+bash scripts/docs-consistency.sh      # 文档一致性（状态/计数/版本/索引/规模；S12 §6.2 D4）
+bash scripts/docs-date-check.sh       # 状态头日期漂移**提示**（仅警告，永不阻断；S12b §15.3）
 bash scripts/test-audit.sh mutation   # 变异检测：确认「实现被改坏时有测试变红」
 bash scripts/test-audit.sh decode     # 第三方解码回读（jsqr；含 T3-d 54 组语料）
 bash scripts/gen-goldens.sh --verify  # 黄金值未漂移（需 fast_qr 检出）
@@ -264,7 +264,7 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
     （反引号内为「引述」不算活引用）；
   - `bash scripts/docs-index.sh --verify`：索引 §8 与实跑一致。
     **§8 由 `--write` 生成，禁止手改行数/篇数**（S12 §6.2 D4 数字单点化）。
-  - **门禁纪律（S12 §13）**：新增/修改断言必须**负向 + 正向双跑**——
+  - **门禁纪律（S12b §13）**：新增/修改断言必须**负向 + 正向双跑**——
     注入错误**必红**（负向），且**现状必绿**（正向回归）。
     只跑负向会漏检「判据本身写错」（如 basename 子串匹配、深度 glob 漏层）。
   - **判据不得用子串/glob 近似**：链接判定用**归一化路径精确相等**，
