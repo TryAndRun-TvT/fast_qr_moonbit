@@ -89,7 +89,7 @@
 moon add TryAndRun-TvT/fast_qr_moonbit
 ```
 
-> **发布状态**：已发布 `0.1.0`（首个版本）；本页为**仓库当前文档**，
+> **发布状态**：**已发布（首个版本）**；本页为**仓库当前文档**，
 > 可能领先于线上归档，精确版本以 [mooncakes 页面](https://mooncakes.io/docs/TryAndRun-TvT/fast_qr_moonbit) 为准。
 > 发布流程与发布前门禁见[文档索引](#文档索引) → 发布相关篇目；
 > 发布动作已脚本化：`bash scripts/publish.sh`（默认干跑，`--publish` 真发）。

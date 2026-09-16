@@ -10,6 +10,8 @@
 #      `历史` 须带 `并入：`（写明结论去哪了）；`现行`/`历史` 不得声明已失效前提为现行口径。
 #   ② 计数漂移：仓库内声明为「登记处」的文档值，与**实跑**结果比对，不一致即红。
 #      非登记处篇章的数字**不设为门禁**（避免噪音——历史篇里的旧数字是史料，不是漂移）。
+#   ②b 版本漂移：README（公开落地页）**不得写死当前版本号**（S12 §3.3 P3 / S11 §9.2）——
+#      必须写「已发布（首个版本）」+ 指向版本页；`moon.mod` 的 version 是唯一真值源。
 #   ③ 索引覆盖：docs/** 每篇必须在 `docs/README-导航与索引.md` 中出现（反「新增文档漏更新索引」）。
 #   ④ 文档规模：docs/**/*.md 单篇 ≤DOC_LIMIT 行（AGENTS.md §四 已定，此前只管 .mbt，此处补齐）。
 #
@@ -64,7 +66,7 @@ if (( status_fail )); then fail=1; else echo "  ✅ ${#FILES[@]} 篇状态字段
 
 # ── ② 计数漂移（登记处 vs 实跑）──────────────────────────────────────────────
 echo
-echo "-- ② 计数漂移（登记处：$REGISTRY）"
+echo "-- ② 计数漂移（登记处：$REGISTRY）+ ②b 版本漂移"
 if [[ "${SKIP_SLOW:-0}" == "1" ]]; then
   echo "  ⏭  跳过（SKIP_SLOW=1）"
 else
@@ -86,6 +88,23 @@ else
     else
       echo "  ✅ 计数一致：test-count=$actual（实跑 `moon test`）"
     fi
+  fi
+fi
+
+# ── ②b 版本漂移（README 不得写死当前版本号）──────────────────────────────────
+ver="$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' moon.mod | head -1)"
+if [[ -z "$ver" ]]; then
+  echo "  ❌ 无法从 moon.mod 取 version"
+  fail=1
+else
+  # 允许出现的地方：依赖示例（`moon add ...@N`）与「精确版本以...为准」指向页。
+  # 禁止：把当前版本号当作「发布状态」写死。
+  if grep -qE "发布状态[^\n]*\`${ver}\`" README.md; then
+    echo "  ❌ README.md 的「发布状态」写死了当前版本号 \`$ver\`（下次发布会漂移）"
+    echo "     处置：改为「已发布（首个版本）」+ 指向 mooncakes 版本页（S11 §9.2）。"
+    fail=1
+  else
+    echo "  ✅ README 未写死当前版本号（moon.mod version=$ver 仅作依赖示例）"
   fi
 fi
 
