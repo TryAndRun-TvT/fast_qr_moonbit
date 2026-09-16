@@ -1,6 +1,6 @@
 # Module
 
-> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](../../README-导航与索引.md) §7
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README.md](../../README.md) §7
 
 Module 是 QR 码矩阵中的单个像素（"模块"），fast_qr 用一个字节表示它，这是整个库性能设计的基础单元。
 
@@ -59,5 +59,5 @@ pub enum ModuleType {
 
 | 关联概念 | 关系 | 描述 |
 |---------|------|------|
-| [CompactQR](./compact-qr.md) | 上下游 | CompactQR 中的比特最终逐位写入 Module 矩阵 |
+| [CompactQR](compact-qr.md) | 上下游 | CompactQR 中的比特最终逐位写入 Module 矩阵 |
 | QRCode | 容器 | QRCode.data 是 Module 的 31329 长度固定数组 |

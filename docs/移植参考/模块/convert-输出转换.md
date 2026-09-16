@@ -1,6 +1,6 @@
 # src/convert/ 输出转换
 
-> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](../../README-导航与索引.md) §7
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README.md](../../README.md) §7
 
 将 QRCode 矩阵渲染为 SVG 字符串或 PNG 位图。全部位于 feature flags 之后：`svg` 独立开关，`image` 隐含 `svg` 并引入 resvg。
 

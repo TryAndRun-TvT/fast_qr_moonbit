@@ -1,6 +1,6 @@
 # src/wasm.rs WASM 绑定
 
-> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](../../README-导航与索引.md) §7
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README.md](../../README.md) §7
 
 将核心能力以最小接口暴露给 JavaScript：两个函数 + 一个配置类。仅在 `wasm32` 目标且启用 `wasm-bindgen` feature 时编译。
 

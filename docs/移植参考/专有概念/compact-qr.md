@@ -1,6 +1,6 @@
 # CompactQR
 
-> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](../../README-导航与索引.md) §7
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README.md](../../README.md) §7
 
 CompactQR 是 fast_qr 的比特流缓冲区，在"用户字节"与"QR 矩阵"之间承担位级中间表示：编码器往里推任意长度的比特，纠错与放置阶段按字节读出。
 
@@ -64,5 +64,5 @@ flowchart LR
 
 | 关联概念 | 关系 | 描述 |
 |---------|------|------|
-| [Module](./module.md) | 下游 | 比特流最终落入 Module 矩阵的数据区 |
+| [Module](module.md) | 下游 | 比特流最终落入 Module 矩阵的数据区 |
 | GF(256) 纠错 | 中间消费方 | `structure()` 以 `&[u8]` 形式消费 data 字节 |
