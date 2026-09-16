@@ -98,6 +98,9 @@ README 只列**类型名**；签名、语义与用法以 `lib/*.mbt` 与 `.mbti`
 | **与参考 wasm 逐位差分** | [S9i](./S9i-纯库调用体积探针与库实际体积.md) | `bash scripts/diff-gate.sh` |
 | **文档一致性（状态头/计数/版本/索引/规模）** | [S12](./S12-文档体系SDD诊断与优化方案.md) §13 | `bash scripts/docs-consistency.sh` |
 | **文档死链（含索引反查）** | [S12](./S12-文档体系SDD诊断与优化方案.md) §13.2 | `bash scripts/docs-link-check.sh` · `docs-consistency.sh` ③b |
+| **章节引用（`S<N>x §M` 须在被引篇目存在该节）** | [S12](./S12-文档体系SDD诊断与优化方案.md) §15.2 | `bash scripts/docs-ref-check.sh` |
+| **索引 §8 清单（生成物 vs 实跑）** | [S12](./S12-文档体系SDD诊断与优化方案.md) §15.1 | `bash scripts/docs-index.sh --verify`（更新用 `--write`） |
+| **状态头日期漂移（提示，不阻断）** | [S12](./S12-文档体系SDD诊断与优化方案.md) §15.3 | `bash scripts/docs-date-check.sh` · `docs-consistency.sh` ⑤ |
 
 **README 保留的最小结论**：测试**按三载体分层**（黑盒 `*_test.mbt` / 白盒 `*_wbtest.mbt` / 源码内联）；
 **用例数与文件数不写进 README**（会漂移），需要数字时以 `moon test` 实跑为准。
@@ -244,7 +247,7 @@ bash scripts/publish.sh --publish  # 真实发布（不可逆，需确认；凭�
 | [S10c-select-capacity模式语义缺陷-定位与修复.md](./S10c-select-capacity模式语义缺陷-定位与修复.md) | 历史 | 97 |
 | [S11-无效代码与冗余文档清理评估.md](./S11-无效代码与冗余文档清理评估.md) | 现行 | 559 |
 | [S11b-清理落地记录-v3-v5.md](./S11b-清理落地记录-v3-v5.md) | 历史 | 354 |
-| [S12-文档体系SDD诊断与优化方案.md](./S12-文档体系SDD诊断与优化方案.md) | 现行 | 689 |
+| [S12-文档体系SDD诊断与优化方案.md](./S12-文档体系SDD诊断与优化方案.md) | 现行 | 749 |
 | [S2-常量表与GF256.md](./S2-常量表与GF256.md) | 现行 | 657 |
 | [S3-数据编码.md](./S3-数据编码.md) | 现行 | 539 |
 | [S4-矩阵与放置.md](./S4-矩阵与放置.md) | 现行 | 417 |
