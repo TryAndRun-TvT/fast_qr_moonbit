@@ -223,6 +223,7 @@ moon test --target wasm-gc
 | **审计脚本与口径** | [性能测试脚本-公开评审说明.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/性能测试脚本-公开评审说明.md) · [S9r §4 脚本分组](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接) |
 | **README 为何这样写** | [README优化-冗余清理与最佳实践.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README优化-冗余清理与最佳实践.md) · [示例码资产与生成](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README示例二维码-SVG资源与生成.md) |
 | **清理/收敛评估** | [S11 评估入口](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S11-无效代码与冗余文档清理评估.md) · [S11b 落地记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S11b-清理落地记录-v3-v5.md) |
+| **改 / 新增文档** | [S12 文档体系规范](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S12-文档体系SDD诊断与优化方案.md)（准入 CheckList · 状态字段 · 防漂移门禁） |
 | **看实现系列文档** | ⤷ [S1 数据结构](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S1-数据结构.md)（S1–S9 系列总入口）· ⤷ [fast_qr 移植参考](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/移植参考/fast-qr-索引.md) |
 | **看历史基线** | ⤷ [项目基础框架](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/项目基础框架-详细分析.md) · ⤷ [重写 roadmap](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/moonbit-重写-roadmap-详细分析.md) · ⤷ [wasm 编译运行分析](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/wasm-编译与运行-结果分析.md) |
 
