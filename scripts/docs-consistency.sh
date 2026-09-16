@@ -12,7 +12,7 @@
 #      非登记处篇章的数字**不设为门禁**（避免噪音——历史篇里的旧数字是史料，不是漂移）。
 #   ②b 版本漂移：README（公开落地页）**不得写死当前版本号**（S12 §3.3 P3 / S11 §9.2）——
 #      必须写「已发布（首个版本）」+ 指向版本页；`moon.mod` 的 version 是唯一真值源。
-#   ③ 索引覆盖（正向）：docs/** 每篇必须在 `docs/README-导航与索引.md` 中以**相对链接**出现；
+#   ③ 索引覆盖（正向）：docs/** 每篇必须在 `docs/README.md` 中以**相对链接**出现；
 #      且须在 §0–§6 **摘要区**按名链接过一次（不能只在 §7/§8 的全量清单里露脸）——
 #      否则「入索引」退化成「塞进一张表」，读者在读者路径/议题表里根本找不到它。
 #   ③b 索引反查（反向）：索引里指向 docs 的每条相对链接必须**存在**。与 `docs-link-check.sh`
@@ -33,7 +33,7 @@ export PATH="$HOME/.moon/bin:$PATH"
 DOC_LIMIT="${DOC_LIMIT:-800}"
 
 REGISTRY="docs/S10b-测试覆盖率报告.md"   # ② 测试计数的登记处（S12 §6.2 D4-1）
-INDEX="docs/README-导航与索引.md"
+INDEX="docs/README.md"
 
 echo "=== 文档一致性门禁（S12 D4）==="
 fail=0
@@ -162,7 +162,7 @@ def links_of(f):
 fails = []
 for f in files:
     base = os.path.basename(f)
-    if base.startswith("README-导航与索引"): continue
+    if os.path.relpath(f, "docs") == "README.md": continue   # 索引自身
     hits = links_of(f)
     if not hits:
         fails.append(("L1", f, "索引中无指向本文件的相对链接（basename 命中不算）"))

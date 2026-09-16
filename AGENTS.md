@@ -41,7 +41,7 @@
 - 包按目录组织，每个目录一个 `moon.pkg`。
 - 公共文件统一放 `lib/`，`.mbt` 文件名可任取、按职责命名（如 ecl/version/mode/mask/module/
   qr/qr_build/qr_builder/helpers/shape/svg）；MoonBit 同包共享命名空间，**不设「入口注释文件」**
-  （公共 API 总览由 `README.md` + `docs/moonbit-实现布局与文件职责.md` 承载，见 [S11b](./docs/S11b-清理落地记录-v3-v5.md) §12）。
+  （公共 API 总览由 `README.md` + `docs/01-规格/moonbit-实现布局与文件职责.md` 承载，见 [S11b](docs/02-证据/S11b-清理落地记录-v3-v5.md) §12）。
 - 测试文件放**所属包目录内**，分两类，**不可混用**：
 
   | 文件 | 运行位置 | 可访问范围 |
@@ -91,7 +91,7 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 > **README 也是被测试的代码**：`README.md` 的 `mbt check` 代码块是**文档测试**
 > （经 `README.mbt.md` 符号链接被扫描），`moon check` / `moon test` 会真编译、真运行。
 > 改公共 API 而不同步改 README 示例 → **`moon test` 直接变红**。这是刻意的：
-> README 示例过去只能靠人工实测，现在由门禁兜底（见 docs/README优化-冗余清理与最佳实践.md）。
+> README 示例过去只能靠人工实测，现在由门禁兜底（见 docs/04-元/README优化-冗余清理与最佳实践.md）。
 
 > **push CI 已于 2026-09-14 移除**（每次推送重复全量构建+测试，资源收益不成比例）。
 > 原 CI 阶段（fmt / check / test / docs-link-check / test-scale / build-and-run / diff-gate /
@@ -126,7 +126,7 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 
 测试文件放**所属包目录内**；单测试文件 ≤800 行（`bash scripts/test-scale.sh` 校验），超长按主题拆分。
 
-### 2. 七条铁律（详见 `docs/S10-测试用例设计与完善roadmap.md` §5）
+### 2. 七条铁律（详见 `docs/02-证据/S10-测试用例设计与完善roadmap.md` §5）
 
 1. **黄金值必须有脚本出处**：参考值一律由 `scripts/` 下生成器在**钉版参考**
    （fast_qr commit `53e8c99`）上产出，禁止手抄、禁止「跑一遍写下自己的输出」；
@@ -145,10 +145,10 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 bash scripts/test.sh          # moon test（黑盒 + 白盒）
 bash scripts/test-scale.sh    # 单测试文件 ≤800 行护栏（进 push CI）
 bash scripts/docs-link-check.sh       # 文档互链死链检查（进 gates）
-bash scripts/docs-ref-check.sh        # 章节引用门禁：S<N>x §M 须在被引篇目存在该节（S12 §15.2）
-bash scripts/docs-index.sh --verify   # 索引 §8 清单与实跑一致（生成物，勿手改；S12 §15.1）
-bash scripts/docs-consistency.sh      # 文档一致性（状态/计数/版本/索引/规模；S12 D4）
-bash scripts/docs-date-check.sh       # 状态头日期漂移**提示**（仅警告，永不阻断；S12 §15.3）
+bash scripts/docs-ref-check.sh        # 章节引用门禁：S<N>x §M 须在被引篇目存在该节（S12b §15.2）
+bash scripts/docs-index.sh --verify   # 索引 §8 清单与实跑一致（生成物，勿手改；S12b §15.1）
+bash scripts/docs-consistency.sh      # 文档一致性（状态/计数/版本/索引/规模；S12 §6.2 D4）
+bash scripts/docs-date-check.sh       # 状态头日期漂移**提示**（仅警告，永不阻断；S12b §15.3）
 bash scripts/test-audit.sh mutation   # 变异检测：确认「实现被改坏时有测试变红」
 bash scripts/test-audit.sh decode     # 第三方解码回读（jsqr；含 T3-d 54 组语料）
 bash scripts/gen-goldens.sh --verify  # 黄金值未漂移（需 fast_qr 检出）
@@ -183,7 +183,7 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
 ### 6. 覆盖率与文档门禁（v5 新增）
 
 - **T5-b 覆盖率「不下降」**：`bash scripts/coverage.sh --floor` 读取
-  `docs/S10b-测试覆盖率报告.md` 顶部 `<!-- coverage-floor: lib_uncovered=N -->`
+  `docs/02-证据/S10b-测试覆盖率报告.md` 顶部 `<!-- coverage-floor: lib_uncovered=N -->`
   （只按 `lib/**` 计，**不含 `cmd/*` 探针包**）。新增代码拉高未覆盖行时，
   要么补测（优先负向/契约用例），要么在报告里写明理由并更新该标记——**两条路都要评审可见**。
 - **T6-c 文档死链**：`bash scripts/docs-link-check.sh` 检查受版本控制 Markdown 的
@@ -197,7 +197,7 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
   如 `wasm-编译与运行-结果分析.md`）。
 - **单文档 ≤800 行**，超长应拆分。
 - **死链零容忍**：文档中不得引用不存在的文件；新增文档须同步更新
-  **两处索引**：`docs/README-导航与索引.md`（全量清单）与 `README.md` 的「文档索引」表（落地页入口）。
+  **两处索引**：`docs/README.md`（全量清单）与 `README.md` 的「文档索引」表（落地页入口）。
   两处都须更新，否则 `bash scripts/docs-link-check.sh` 会红（`README.mbt.md` 是指向 `README.md` 的符号链接）。
 - **README 正文改 `README.md`，不要改 `README.mbt.md`**：后者是符号链接。
   `README.md` 里的 `mbt check` 示例会被 `moon test` 校验，请勿把示例写回 `moonbit` 展示块。
@@ -207,7 +207,7 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
 - **README 只保留「落地页 + 索引」（v5 纪律，2026-09-14）**：`README.md` 是**落地页**，
   只写「能做什么 / 怎么用 / 边界在哪 / 去哪看细节」——**结论 + 出处链接**。
   数字表、参数、实验设计、历史记录、脚本逐项说明**一律下沉 `docs/`**（长口径承接见
-  `docs/S9r-README性能体积长口径与公共API明细.md`，导航见 `docs/README-导航与索引.md`）。
+  `docs/02-证据/S9r-README性能体积长口径与公共API明细.md`，导航见 `docs/README.md`）。
   新增内容前先自问：「这条是**读者第一屏需要**的，还是**证据**？」后者进 `docs/`。
 - **README 里的跨文档链接：归档外目标一律用仓库绝对链接（v6 纪律，2026-09-14）**：
   发布归档（`.moonignore`）**排除** `/docs/` 与 `/AGENTS.md`，故 README 中指向它们的**相对链接**
@@ -222,13 +222,13 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
 
 ### 4.1 文档准入（新增 / 修订文档前必过 · S12 §7.1）
 
-> 出处：[S12 文档体系 SDD 诊断与优化方案](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S12-文档体系SDD诊断与优化方案.md) §7。
+> 出处：[S12 文档体系 SDD 诊断与优化方案](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/04-元/S12-文档体系SDD诊断与优化方案.md) §7。
 > 本节把 S12 的规范条文**落为硬约定**；违反由 `bash scripts/docs-consistency.sh` 兜底。
 
 1. **头部三字段齐备**（缺一不予合入）：
 
    ```markdown
-   > **状态**：现行 | 历史 | 已失效　｜　日期：YYYY-MM-DD　｜　索引：[docs/README-导航与索引.md](./README-导航与索引.md) §N
+   > **状态**：现行 | 历史 | 已失效　｜　日期：YYYY-MM-DD　｜　索引：[docs/README.md](./docs/README.md) §N
    ```
 
    - `现行`：结论仍是对外口径，可直接引用；
@@ -239,11 +239,15 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
    2026-09-18 起由 `docs-consistency.sh` ④ 一并覆盖文档）。
 3. **可复跑原则**：任何**数字结论**必须附复跑命令，或指向**登记处**（见 §4.2）；
    无复跑路径的结论降级为「讨论稿」，不入 `docs/`。
-4. **不新建「索引的索引」**：导航层次 ≤2 级（`docs/README-导航与索引.md` → 分类 → 篇章）。
+4. **不新建「索引的索引」**：导航层次 ≤2 级（`docs/README.md` → 分类 → 篇章）。
    `docs/**` 除索引自身外**不得**出现 `README.md`（门禁 ③c）；域首页用「域-索引.md」命名
    （现状：`docs/移植参考/fast-qr-索引.md`——该 12 篇**由域首页统辖**，不要求逐篇进顶层索引）。
 5. **不合并已判定解耦的域**：`docs/移植参考/**`（外部语料）不并入主域（S11 §6.3 已有判定）。
-6. **索引双更新**：`docs/README-导航与索引.md`（全量清单）+ `README.md` 的「文档索引」表（落地页入口）。
+6. **索引双更新**：`docs/README.md`（全量清单）+ `README.md` 的「文档索引」表（落地页入口）。
+7. **归类固定 4 类 + 移植参考**（D2 目录分类，2026-09-18）：新篇按**读者意图**放，勿再平铺顶层——
+   `01-规格/`（我要改代码）· `02-证据/`（我要审计数据）· `03-过程/`（我要复盘决策）· `04-元/`（我要改文档）；
+   `移植参考/`（外部语料）自成一域。目录地图见 `docs/README.md` §0.5；
+   迁移由四道门禁兜底（死链 / 章节引用 / 索引双向 / 清单生成），见 S12b §17。
 
 ### 4.2 数字单点化与防漂移（S12 §6.2 D4）
 
@@ -251,8 +255,8 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
 
   | 数字 | 唯一登记处 |
   |------|-----------|
-  | 测试用例计数 | `docs/S10b-测试覆盖率报告.md` 顶部 `<!-- test-count: N -->` |
-  | 覆盖率地板 | `docs/S10b-测试覆盖率报告.md` 顶部 `<!-- coverage-floor: lib_uncovered=N -->` |
+  | 测试用例计数 | `docs/02-证据/S10b-测试覆盖率报告.md` 顶部 `<!-- test-count: N -->` |
+  | 覆盖率地板 | `docs/02-证据/S10b-测试覆盖率报告.md` 顶部 `<!-- coverage-floor: lib_uncovered=N -->` |
   | 版本号 | `moon.mod` 的 `version`（README **不得**写死「发布状态为 X.Y.Z」） |
   | 索引 §8 的篇数与行数 | `scripts/docs-index.sh`（生成物；`--verify` 校验、`--write` 更新，**禁止手改**） |
 
@@ -264,7 +268,7 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
     （反引号内为「引述」不算活引用）；
   - `bash scripts/docs-index.sh --verify`：索引 §8 与实跑一致。
     **§8 由 `--write` 生成，禁止手改行数/篇数**（S12 §6.2 D4 数字单点化）。
-  - **门禁纪律（S12 §13）**：新增/修改断言必须**负向 + 正向双跑**——
+  - **门禁纪律（S12b §13）**：新增/修改断言必须**负向 + 正向双跑**——
     注入错误**必红**（负向），且**现状必绿**（正向回归）。
     只跑负向会漏检「判据本身写错」（如 basename 子串匹配、深度 glob 漏层）。
   - **判据不得用子串/glob 近似**：链接判定用**归一化路径精确相等**，
@@ -303,7 +307,7 @@ bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
 
 ## 五、参考
 
-- 项目文档索引：[docs/README-导航与索引.md](./docs/README-导航与索引.md)（**全量清单 + 按读者路径**）→
-  [README.md](./README.md)「文档索引」表（落地页入口；`README.mbt.md` 为其符号链接）。
+- 项目文档索引：[docs/README.md](docs/README.md)（**全量清单 + 按读者路径**）→
+  [README.md](README.md)「文档索引」表（落地页入口；`README.mbt.md` 为其符号链接）。
 - MoonBit 技能库：<https://github.com/moonbitlang/skills>
 - MoonBit 构建系统：<https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/tutorial.html>

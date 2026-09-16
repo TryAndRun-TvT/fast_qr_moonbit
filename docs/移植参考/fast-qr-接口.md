@@ -1,6 +1,6 @@
 # fast_qr 接口文档
 
-> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README-导航与索引.md](../README-导航与索引.md) §7
+> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README.md](../README.md) §7
 
 fast_qr 是一个库项目（Rust crate + npm WASM 包），提供三类接口：Rust 公开 API、JavaScript/WASM API、以及基准/示例程序。
 

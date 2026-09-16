@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # docs-index.sh —— 索引 §8 全量清单的**生成/校验**工具（S12 §14 E3）
 #
-# 背景：`docs/README-导航与索引.md` §8 的「文档 | 状态 | 行数」表是**手工维护**的，
+# 背景：`docs/README.md` §8 的「文档 | 状态 | 行数」表是**手工维护**的，
 #   实测在两次修订内反复漂移（本轮实测 S12 602→607、篇数 58→59）。
 #   凡「手工抄数字」必漂移——按 S12 §6.2 D4「数字单点化」纪律，该表应改为**生成物**。
 #
@@ -20,7 +20,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-INDEX="docs/README-导航与索引.md"
+INDEX="docs/README.md"
 START_RE='^## 8\. 全量文档清单'
 END_RE='^</details>'
 
