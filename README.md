@@ -168,7 +168,7 @@ moon test --target wasm-gc
 
 > **没有 push CI**（2026-09-14 移除，每次推送重复全量构建收益不成比例）。
 > 门禁改为**本地一键**：`bash scripts/gates.sh`（`fmt-check → check → test → docs-link-check →
-> docs-consistency → test-scale → build-and-run → diff-gate → publish-check`；
+> docs-ref-check → docs-index → docs-consistency → test-scale → build-and-run → diff-gate → publish-check`；
 > 支持 `STAGES="check test"` / `SKIP_SLOW=1`）。
 > 提交前跑一遍是**必须**动作。脚本分组与逐个用途见
 > [S9r §4 脚本分组](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接)。
