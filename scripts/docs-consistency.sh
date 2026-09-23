@@ -34,7 +34,7 @@ cd "$ROOT"
 export PATH="$HOME/.moon/bin:$PATH"
 DOC_LIMIT="${DOC_LIMIT:-800}"
 
-REGISTRY="docs/S10b-测试覆盖率报告.md"   # ② 测试计数的登记处（S12 §6.2 D4-1）
+REGISTRY="docs/02-证据/S10b-测试覆盖率报告.md"   # ② 测试计数的登记处（S12 §6.2 D4-1）
 INDEX="docs/README.md"
 
 echo "=== 文档一致性门禁（S12 D4）==="

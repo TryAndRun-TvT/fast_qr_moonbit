@@ -12,7 +12,7 @@
 #   2) 两侧 custom 段体积差 60 倍（Rust 侧 8 KB 级 name/target_features vs MoonBit 122 B）；
 #   3) 因此按**同一套规则**出五档：① raw ② 剥 custom ③ moon-wasm-opt -Oz
 #      ④ 单次调用 wasm+胶水 ⑤ **同功能锚点**（对 fast_qr 另编「无胶水单文件 + 打印」裸探针，
-#      与 MoonBit `cmd/qr-min` 纯库调用探针同形对撞，见 docs/S9i-…；`cmd/bench` 命令形态单列）。
+#      与 MoonBit `cmd/qr-min` 纯库调用探针同形对撞，见 docs/02-证据/S9i-纯库调用体积探针与库实际体积.md；`cmd/bench` 命令形态单列）。
 #
 # 职责:
 #   1) 确保 fast_qr-wasm 环境与产物（scripts/setup-fast-qr-wasm-env.sh + build-fast-qr-wasm.sh）；

@@ -8,3 +8,11 @@ import {
   "TryAndRun-TvT/fast_qr_moonbit/lib/internal/reedsolomon",
   "TryAndRun-TvT/fast_qr_moonbit/lib/internal/matrix",
 }
+
+// 关闭 `implicit_impl_as_method`（编号 79）：本包 8 个公共类型用 `derive(Eq, Debug)` 是刻意选择，
+// 新工具链（≥ 0.1.20260920）会为该派生方法的**隐式提升**（equal/not_equal/to_repr 成为常规方法）
+// 报废弃告警。本库不打算把这三个派生方法纳入对外可调用面，故按编译器建议的「不期望提升」路径
+// 关闭该告警（比 `#deprecated pub extend` 更干净：零公共面污染，`.mbti` 逐字节不变）。
+// 同 `-29` 先例：仅本包关闭该编号，全仓其余仍按 `--deny-warn` 把关。
+
+warnings = "-79"

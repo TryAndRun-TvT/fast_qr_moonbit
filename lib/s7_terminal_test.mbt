@@ -25,8 +25,8 @@ fn hello_input() -> Array[Byte] {
 
 ///|
 /// 构造 7x7 受控矩阵：置暗格集合与参考 mini 例程一致（其余亮）。
-fn mini7() -> QRCode {
-  let qr = QRCode::default(7)
+fn mini7() -> @lib.QRCode {
+  let qr = @lib.QRCode::default(7)
   let dark : Array[(Int, Int)] = [
     (0, 0),
     (0, 1),
@@ -51,7 +51,7 @@ fn mini7() -> QRCode {
   let mut m = qr
   for cell in dark {
     let (r, c) = cell
-    m = m.set(r, c, Module::data(true))
+    m = m.set(r, c, @lib.Module::data(true))
   }
   m
 }
@@ -60,12 +60,12 @@ fn mini7() -> QRCode {
 /// T1：真实 V01 短码 to_str 全串对齐（Byte/L/V01/mask0）。
 test "s7_term_t1_v01" {
   let qr = match
-    QRCode::build(
+    @lib.QRCode::build(
       hi_input(),
-      Some(Mode::Byte),
-      Some(ECL::L),
-      Some(Version::V01),
-      Some(Mask::Checkerboard),
+      Some(@lib.Mode::Byte),
+      Some(@lib.ECL::L),
+      Some(@lib.Version::V01),
+      Some(@lib.Mask::Checkerboard),
     ) {
     Ok(q) => q
     Err(_) => abort("t1 build")
@@ -80,12 +80,12 @@ test "s7_term_t1_v01" {
 /// T2：真实 V05 长码 to_str 全串对齐（Byte/L/V05/mask3，含对齐/时序/finder 多图案）。
 test "s7_term_t2_v05" {
   let qr = match
-    QRCode::build(
+    @lib.QRCode::build(
       hello_input(),
-      Some(Mode::Byte),
-      Some(ECL::L),
-      Some(Version::V05),
-      Some(Mask::DiagonalLines),
+      Some(@lib.Mode::Byte),
+      Some(@lib.ECL::L),
+      Some(@lib.Version::V05),
+      Some(@lib.Mask::DiagonalLines),
     ) {
     Ok(q) => q
     Err(_) => abort("t2 build")
@@ -110,17 +110,17 @@ test "s7_term_mini7" {
 /// 委托护栏：QRCode::to_str() 恒等于顶层 print_matrix_with_margin()。
 test "s7_term_delegate_guard" {
   let qr = match
-    QRCode::build(
+    @lib.QRCode::build(
       hi_input(),
-      Some(Mode::Byte),
-      Some(ECL::L),
-      Some(Version::V01),
-      Some(Mask::Checkerboard),
+      Some(@lib.Mode::Byte),
+      Some(@lib.ECL::L),
+      Some(@lib.Version::V01),
+      Some(@lib.Mask::Checkerboard),
     ) {
     Ok(q) => q
     Err(_) => abort("delegate build")
   }
-  if qr.to_str() != print_matrix_with_margin(qr) {
-    fail("to_str != print_matrix_with_margin")
+  if qr.to_str() != @lib.print_matrix_with_margin(qr) {
+    fail("to_str != @lib.print_matrix_with_margin")
   }
 }

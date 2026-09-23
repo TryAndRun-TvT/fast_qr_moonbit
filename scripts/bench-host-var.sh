@@ -7,12 +7,12 @@
 #                        给出 CV、lag-1 自相关、单轮失稳率、轮內离散。
 #   两者口径同源（同一产物、同一 INPUT、同 R 取最小），故区间能盖住点估计。
 #
-# 【结论摘要（详见 docs/S9q）】单次 build 越便宜，宿主抖动占比越高：
+# 【结论摘要（详见 docs/02-证据/S9q-性能口径统计差异与取平均评估.md）】单次 build 越便宜，宿主抖动占比越高：
 #   V40H 比值 CV ≈0.35%（R≥3 已足）≪ V10H ≈3.5% < V03H ≈6%（须 R≥7 + 跨进程重抽样）。
 #   V03H 的轮次序列存在热/频漂移（lag-1 r1 ≈0.3–0.7），故「同一进程内多跑几轮」收益有限。
 #
 # 【前置】同 bench-host.sh：`cmd/host-probe` 的 JS String Builtins 需 Node ≥ 22
-#   （**注意 Node v23.x 的 V8 未注入 js-string builtins，实测不可用，见 docs/S9q §3.4**）。
+#   （**注意 Node v23.x 的 V8 未注入 js-string builtins，实测不可用，见 docs/02-证据/S9q-性能口径统计差异与取平均评估.md §3.4**）。
 #
 # 用法:
 #   bash scripts/bench-host-var.sh                      # 全流程（构建 + fast_qr 参考侧）

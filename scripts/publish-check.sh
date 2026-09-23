@@ -17,7 +17,7 @@
 #   ARCHIVE_BASELINE=<N> bash scripts/publish-check.sh   # 临时覆盖条目数基线
 #   PUBLISH_LINK_NET=1 bash scripts/publish-check.sh     # 额外对 README 的 https 链接做 HEAD 校验
 #
-# 条款来源：docs/mooncakes-发布方案.md §4.3（归档面治理）与 §6-B2（发布前冒烟）；
+# 条款来源：docs/03-过程/mooncakes-发布方案.md §4.3（归档面治理）与 §6-B2（发布前冒烟）；
 #   ⑤ 为 v6 新增（ISSUE #47 / README 优化评估报告第二轮 P0-A）。
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,9 +26,9 @@ cd "$ROOT"
 export PATH="$HOME/.moon/bin:$PATH"
 
 # 归档面基线：`moon package --list` 条目数（不含 moon 自身日志行）。
-# 变更此值必须同步 docs/mooncakes-发布方案.md 的登记值并说明理由（评审可见）。
+# 变更此值必须同步 docs/03-过程/mooncakes-发布方案.md 的登记值并说明理由（评审可见）。
 # 32 → 34（2026-09-14）：README 恢复官方布局（README.mbt.md + README.md 符号链接）并新增
-# 模块根空包 moon.pkg 作 README 文档测试宿主（见 docs/README优化-冗余清理与最佳实践.md §6）。
+# 模块根空包 moon.pkg 作 README 文档测试宿主（见 docs/04-元/README优化-冗余清理与最佳实践.md §6）。
 BASELINE="${ARCHIVE_BASELINE:-34}"
 # 分发面顶层白名单（除 lib/ 外允许出现的条目）。
 ALLOW_TOP=$'LICENSE\nREADME.mbt.md\nREADME.md\nmoon.mod\nmoon.pkg\ncmd/main/main.mbt\ncmd/main/moon.pkg'
@@ -54,14 +54,18 @@ done
 echo "--- ② 归档面条目数基线 ---"
 raw="$(mktemp)"
 moon package --list >"$raw" 2>&1 || true
-# 剔除 moon 自身的进度/日志行，只留条目
-grep -vE '^(Running|Check|Finished|Package to|Warning|Error)' "$raw" \
+# 只保留「条目形态」行：形如 `<相对路径>`（可含 `/`）、不含空格/制表/诊断框线与冒号后缀。
+# 为什么不用「黑名单日志前缀」反过来剔除：moon 的告警是**多行块**（`╭─[`、`│`、`╰──` 等），
+# 只按行首 `Warning`/`Error` 过滤会漏掉后续块行，一旦 check 有告警，实测条目数会从 34 暴涨到数千
+# （2026-09 工具链升级时真实发生，见 docs/02-证据/S11c）。白名单判据对告警噪声天然免疫。
+grep -E '^[A-Za-z0-9_./-]+$' "$raw" \
+  | grep -vE '^(Running|Check|Finished|Warning|Error)$' \
   | sed 's/:[0-9]*$//' | sed 's/[[:space:]]*$//' | grep -v '^$' >"$raw.items"
 count="$(wc -l <"$raw.items" | tr -d ' ')"
 echo "  登记基线: $BASELINE 项　实测: $count 项"
 if [[ "$count" != "$BASELINE" ]]; then
   echo "  ❌ 归档条目数与基线不符（差 $((count - BASELINE))）"
-  echo "     处置：确认是预期变化 → 同步改本脚本 BASELINE 与 docs/mooncakes-发布方案.md §4.3；"
+  echo "     处置：确认是预期变化 → 同步改本脚本 BASELINE 与 docs/03-过程/mooncakes-发布方案.md §4.3；"
   echo "           非预期 → 检查 .moonignore 是否被削弱。"
   echo "     —— 当前条目 ——"
   sed 's/^/       /' "$raw.items"
@@ -188,7 +192,7 @@ done
 if (( bad_links > 0 )); then
   echo "  ❌ 归档内文件出现 $bad_links 条「指向归档外」的相对链接（共查 $checked_pub 条）"
   echo "     处置：改为仓库绝对链接 https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/<path>"
-  echo "           （口径见 README「链接约定」与 docs/README优化-冗余清理与最佳实践.md §9）"
+  echo "           （口径见 README「链接约定」与 docs/04-元/README优化-冗余清理与最佳实践.md §9）"
   fail=1
 else
   echo "  ✅ 归档内文件（${PUB_READMES[*]}）共 $checked_pub 条相对链接，**全部**指向归档内成员"
@@ -204,7 +208,7 @@ if [[ "${PUBLISH_LINK_NET:-0}" == "1" ]]; then
       printf '    ❌ %s -> HTTP %s\n' "$url" "$code"
       net_bad=$((net_bad + 1))
     fi
-  done < <(grep -oE 'https://[^)"'"'"' ]+' docs/README优化-冗余清理与最佳实践.md >/dev/null 2>&1; \
+  done < <(grep -oE 'https://[^)"'"'"' ]+' docs/04-元/README优化-冗余清理与最佳实践.md >/dev/null 2>&1; \
            awk '
              /^[[:space:]]*```/ { inblock = !inblock; next }
              inblock { next }
@@ -231,4 +235,4 @@ if (( fail )); then
   exit 1
 fi
 echo ">> 发布前门禁通过：归档面 ${count} 项、无维护者上下文混入、元数据齐备、发布面链接可达、质量基线全绿。"
-echo "   注：本门禁**不含**实际发布动作（需本地 moon login，见 docs/mooncakes-发布方案.md §6-C）。"
+echo "   注：本门禁**不含**实际发布动作（需本地 moon login，见 docs/03-过程/mooncakes-发布方案.md §6-C）。"

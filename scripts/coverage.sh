@@ -7,7 +7,7 @@
 # 口径说明（重要，与 S10 §6 T5-a/T5-b 一致）：
 #   - T5-a：本脚本产出报告；
 #   - T5-b（v5 新增）：`--floor` 模式做**「不下降」门禁**——把 `lib/**` 未覆盖行数
-#     与 `docs/S10b-测试覆盖率报告.md` 中登记的上限比较，超过即失败。
+#     与 `docs/02-证据/S10b-测试覆盖率报告.md` 中登记的上限比较，超过即失败。
 #     **不设「绝对覆盖率百分比」**（S10 §6 明确先「不下降」再逐步抬升）：
 #     行覆盖率是 T4 变异检测的补充，绝对数字容易诱发「造无信息量用例」（铁律 6）。
 #   - 覆盖率是 T4（变异检测）的**补充而非替代**：100% 行覆盖下仍可能全是 `actual == actual`，
@@ -19,7 +19,7 @@
 #   bash scripts/coverage.sh --floor         # 不下降门禁：lib/** 未覆盖行数 <= 登记上限（T5-b）
 #   COVERAGE_OUT=docs/xxx.md bash scripts/coverage.sh   # 同时写入文件
 #
-# T5-b 登记上限的**唯一权威来源**是 `docs/S10b-测试覆盖率报告.md` 里的机器可读行：
+# T5-b 登记上限的**唯一权威来源**是 `docs/02-证据/S10b-测试覆盖率报告.md` 里的机器可读行：
 #   `<!-- coverage-floor: lib_uncovered=N -->`
 # 改这个数必须同时更新报告正文并说明理由（评审可见），禁止只改数字。
 set -euo pipefail
@@ -51,10 +51,18 @@ echo "注：覆盖率是 T4（变异检测，bash scripts/test-audit.sh mutation
 echo "    行覆盖率高 ≠ 断言有效（S10 §5 铁律 3：禁止 actual == actual）。"
 
 # ---- T5-b：不下降门禁 ------------------------------------------------------
-FLOOR_FILE="docs/S10b-测试覆盖率报告.md"
+FLOOR_FILE="docs/02-证据/S10b-测试覆盖率报告.md"
 floor_check() {
+  # 登记处**必须存在**：文件缺失时不得静默通过（S12b §13「门禁输出不得静默」）。
+  # 此前用 `sed` 直读缺失路径，在 `set -o pipefail` 下会让 `sed` 的报错终止脚本，
+  # 报错原因指向「文件找不到」而非「覆盖率下降」，属误诊；此处显式判存在性并给可读报错。
+  if [[ ! -f "$FLOOR_FILE" ]]; then
+    echo "  ❌ T5-b：登记处不存在：$FLOOR_FILE" >&2
+    echo "     处置：确认路径（D2 目录分类后应为 docs/02-证据/S10b-测试覆盖率报告.md）。" >&2
+    return 1
+  fi
   local limit
-  limit="$(sed -n 's/.*<!-- coverage-floor: lib_uncovered=\([0-9]*\) -->.*/\1/p' "$FLOOR_FILE" | head -1)"
+  limit="$(sed -n 's/.*<!-- coverage-floor: lib_uncovered=\([0-9]*\) -->.*/\1/p' "$FLOOR_FILE" | head -1 || true)"
   if [[ -z "$limit" ]]; then
     echo "!! T5-b：$FLOOR_FILE 未登记 \`<!-- coverage-floor: lib_uncovered=N -->\`，跳过门禁。" >&2
     return 0

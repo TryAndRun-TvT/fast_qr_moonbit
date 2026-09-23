@@ -5,9 +5,9 @@
 #   - wasm-gc = 主推/默认后端（moon.mod 的 preferred_target，实际分发形态）→ **对外对比口径**。
 #   本脚本是对默认后端 wasm-gc 的基准（对齐层② 的默认口径），**不是** vs fast_qr 对比：
 #   层②「vs fast_qr-wasm32」见 scripts/bench-layer2.sh，
-#   见 docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md。
+#   见 docs/02-证据/S9j-层②统一Node对比-wasm-gc与fast_qr.md。
 #
-# 对齐 docs/wasm §5.2 的「宿主多次取最小」计时口径（D15，主口径在宿主而非命令内）：
+# 对齐 docs/03-过程/wasm-编译与运行-结果分析.md §5.2 的「宿主多次取最小」计时口径（D15，主口径在宿主而非命令内）：
 #   对同一点 `moon run cmd/bench --release --target wasm-gc <点> <N>` 整程重复 R 次，取最小耗时，
 #   剔除冷启动抖动；同时记录各点 TOTAL_CHECKSUM 做跨版本结果互证（同源码语义一致则相同）。
 #   每个基准点单独一次进程（V03H/V10H/V40H 各配独立迭代数），产出 per-point 表。
@@ -16,8 +16,8 @@
 #   bash scripts/bench.sh                # 跑 wasm-gc × 三基准点，默认 R=3
 #   R=5 bash scripts/bench.sh            # 指定重复次数
 #
-# 交叉引用：层②（vs fast_qr）scripts/bench-layer2.sh + docs/S9j-…；
-#   体积 scripts/bench-size.sh + docs/S9i-…。
+# 交叉引用：层②（vs fast_qr）scripts/bench-layer2.sh + docs/02-证据/S9j-层②统一Node对比-wasm-gc与fast_qr.md；
+#   体积 scripts/bench-size.sh + docs/02-证据/S9i-纯库调用体积探针与库实际体积.md。
 set -euo pipefail
 export PATH="$HOME/.moon/bin:$PATH"
 
@@ -62,4 +62,4 @@ echo "MoonBit native 与 fast_qr native 对比仅为方法学/量级参考（注
 echo ""
 echo "### 层②（vs fast_qr-wasm32）已独立实现，不在本脚本内"
 echo "本脚本只做层① 后端基准；层② 见 bash scripts/bench-layer2.sh，"
-echo "详见 docs/S9j-层②统一Node对比-wasm-gc与fast_qr.md。"
+echo "详见 docs/02-证据/S9j-层②统一Node对比-wasm-gc与fast_qr.md。"
