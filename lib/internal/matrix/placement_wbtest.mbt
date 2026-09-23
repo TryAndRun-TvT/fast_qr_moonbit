@@ -80,7 +80,7 @@ test "place_on_matrix_data: 读回位序与喂入码字一致" {
 
 ///|
 /// 右列序列：`(0..6)∪(7..size)` 逆序后隔项取一（最右偶列起、跳第 6 列）。
-fn build_right_cols(size : Int) -> Array[Int] {
+fn build_right_cols(size : Int) -> FixedArray[Int] {
   let out : Array[Int] = []
   let mut c = size - 1
   while c >= 0 {
@@ -89,13 +89,13 @@ fn build_right_cols(size : Int) -> Array[Int] {
     }
     c -= 1
   }
-  out
+  FixedArray::from_array(out)
 }
 
 ///|
 /// 读回单格并比对；不符则经 fail 中止（需在 test 体内可达的辅助，故用 abort 语义）。
 fn check_one(
-  m : Array[Int],
+  m : FixedArray[Int],
   size : Int,
   y : Int,
   x : Int,

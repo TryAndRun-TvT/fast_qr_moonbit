@@ -39,7 +39,7 @@ pub fn mask_at(x : Int, y : Int, mask_idx : Int) -> Bool {
 
 ///|
 /// 若 (y,x) 在界内且为 Data 模块，则翻转其明暗位（就地）。功能图案不翻。
-fn toggle_data_at(m : Array[Int], size : Int, y : Int, x : Int) -> Unit {
+fn toggle_data_at(m : FixedArray[Int], size : Int, y : Int, x : Int) -> Unit {
   if x < 0 || x >= size {
     return
   }
@@ -51,7 +51,7 @@ fn toggle_data_at(m : Array[Int], size : Int, y : Int, x : Int) -> Unit {
 
 ///|
 /// 掩码 0：x%2 == y%2 ⇒ 每行从 `y&1` 起隔 2 列（≈½ 格）。
-fn mask_0(m : Array[Int], size : Int) -> Unit {
+fn mask_0(m : FixedArray[Int], size : Int) -> Unit {
   let mut y = 0
   while y < size {
     let mut x = y & 1
@@ -65,7 +65,7 @@ fn mask_0(m : Array[Int], size : Int) -> Unit {
 
 ///|
 /// 掩码 1：y%2==0 ⇒ 只扫偶数行（≈½ 格）。
-fn mask_1(m : Array[Int], size : Int) -> Unit {
+fn mask_1(m : FixedArray[Int], size : Int) -> Unit {
   let mut y = 0
   while y < size {
     let mut x = 0
@@ -79,7 +79,7 @@ fn mask_1(m : Array[Int], size : Int) -> Unit {
 
 ///|
 /// 掩码 2：x%3==0 ⇒ 每行取 0,3,6,… 列（≈⅓ 格）。
-fn mask_2(m : Array[Int], size : Int) -> Unit {
+fn mask_2(m : FixedArray[Int], size : Int) -> Unit {
   let mut y = 0
   while y < size {
     let mut x = 0
@@ -93,7 +93,7 @@ fn mask_2(m : Array[Int], size : Int) -> Unit {
 
 ///|
 /// 掩码 3：x ≡ -y (mod 3) ⇒ 起始列 `(3 - y%3)%3`、步长 3（≈⅓ 格）。
-fn mask_3(m : Array[Int], size : Int) -> Unit {
+fn mask_3(m : FixedArray[Int], size : Int) -> Unit {
   let mut y = 0
   while y < size {
     let mut x = (3 - y % 3) % 3
@@ -107,7 +107,7 @@ fn mask_3(m : Array[Int], size : Int) -> Unit {
 
 ///|
 /// 掩码 4：(x/3 + y/2)%2==0 ⇒ 每行按 `floor(x/3)` 奇偶取连续 3 列块，周期 6（≈½ 格）。
-fn mask_4(m : Array[Int], size : Int) -> Unit {
+fn mask_4(m : FixedArray[Int], size : Int) -> Unit {
   let mut y = 0
   while y < size {
     let mut x = y / 2 % 2 * 3
@@ -124,7 +124,7 @@ fn mask_4(m : Array[Int], size : Int) -> Unit {
 ///|
 /// 掩码 5/6/7：公式对 x 的周期为 6（只依赖 x%2 与 x%3），故逐行只对余数 0..5 判定，
 /// 命中余数按步长 6 生成候选格——避免每格取模与 `match`，且只访问命中格。
-fn mask_period6(m : Array[Int], size : Int, mask_idx : Int) -> Unit {
+fn mask_period6(m : FixedArray[Int], size : Int, mask_idx : Int) -> Unit {
   let mut y = 0
   while y < size {
     let mut r = 0
@@ -150,7 +150,11 @@ fn mask_period6(m : Array[Int], size : Int, mask_idx : Int) -> Unit {
 /// 越界为编程错误，`_` 分支改 **`abort` 护栏**（S11 §4.1/§10.6 P1-1）——原先的
 /// `apply_mask_general` 逐格回退是「不可达兜底」，删除后把不变式变成**机器可查**：
 /// 若未来有调用方越界，会在开发/测试期立刻暴露，而不是静默沿用掩码 7 公式。
-pub fn apply_mask(m : Array[Int], size : Int, mask_idx : Int) -> Array[Int] {
+pub fn apply_mask(
+  m : FixedArray[Int],
+  size : Int,
+  mask_idx : Int,
+) -> FixedArray[Int] {
   let out = m.copy()
   match mask_idx {
     0 => mask_0(out, size)

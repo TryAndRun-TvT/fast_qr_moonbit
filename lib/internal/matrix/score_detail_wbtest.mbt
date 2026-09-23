@@ -55,7 +55,7 @@ let score_expect_col : ReadOnlyArray[Int] = [
 /// 由 packed hex 重建 29×29 矩阵（行主序，每格 1 字节）。
 
 ///|
-fn score_fixture() -> Array[Int] {
+fn score_fixture() -> FixedArray[Int] {
   let out : Array[Int] = []
   for line in score_fixture_hex {
     let chars = line.to_array()
@@ -65,7 +65,7 @@ fn score_fixture() -> Array[Int] {
       i += 2
     }
   }
-  out
+  FixedArray::from_array(out)
 }
 
 ///|
@@ -86,7 +86,7 @@ fn score_hex_digit(c : Char) -> Int {
 /// 把「逐行分解」暴露到可定位粒度（缺口 G5 的诉求），真值由 score_expect_row 锁定。
 
 ///|
-fn score_row_run(m : Array[Int], size : Int, row : Int) -> Int {
+fn score_row_run(m : FixedArray[Int], size : Int, row : Int) -> Int {
   let mut run = 0
   let mut count = 1
   let mut current = 1 - (m[row * size] & 1)
@@ -160,7 +160,7 @@ test "t2a_score_line_by_line" {
 test "t2a_score_col_by_col" {
   let m = score_fixture()
   let size = 29
-  let colbuf = Array::make(size, 0)
+  let colbuf = FixedArray::make(size, 0)
   let mut col = 0
   while col < size {
     let mut i = 0

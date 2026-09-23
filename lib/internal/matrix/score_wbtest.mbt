@@ -9,14 +9,14 @@
 
 ///|
 /// 造一个全 Data 的 size×size 亮矩阵。
-fn data_light(size : Int) -> Array[Int] {
-  Array::make(size * size, pack(0, module_type_data))
+fn data_light(size : Int) -> FixedArray[Int] {
+  FixedArray::make(size * size, pack(0, module_type_data))
 }
 
 ///|
 /// 造一个全 Data 的 size×size 暗矩阵。
-fn data_dark(size : Int) -> Array[Int] {
-  Array::make(size * size, pack(1, module_type_data))
+fn data_dark(size : Int) -> FixedArray[Int] {
+  FixedArray::make(size * size, pack(1, module_type_data))
 }
 
 ///|
@@ -89,7 +89,7 @@ test "score_dark: 暗比 0% 查表得 90" {
 /// 用混合明暗/类型的矩阵，防聚合口径漂移。
 test "score 分解：N4 并入行趟后仍等于四规则之和" {
   let size = 21
-  let m = Array::make(size * size, pack(0, module_type_data))
+  let m = FixedArray::make(size * size, pack(0, module_type_data))
   let mut i = 0
   while i < size * size {
     let t = (i * 5 + 1) % 9
@@ -151,7 +151,7 @@ test "create_auto_qr: 返回最低分掩码且矩阵自洽" {
 ///|
 test "t2b2_n1_line_boundary_settlement" {
   // 线 1/2：7 连暗 Data → 结算一次（7-2=5）。① 行末结算路径。
-  let l1 : Array[Int] = Array::make(7, pack(1, module_type_data))
+  let l1 : FixedArray[Int] = FixedArray::make(7, pack(1, module_type_data))
   if test_line_run(fn(i) { l1[i] }, 7) != 5 {
     fail(
       "t2b2: 7 连暗（行末结算）got=" +
@@ -161,7 +161,7 @@ test "t2b2_n1_line_boundary_settlement" {
   }
   // 线 3：EMPT(T) DATA×4 EMPT(T) DATA×5 → 两段各 4/5，仅第二段 5 连计 3。
   // 覆盖「遇非 Data 结算」（②）+「恰好 5 连」（①/② 阈值边界）。
-  let l3 : Array[Int] = [
+  let l3 : FixedArray[Int] = [
     pack(1, module_type_empty),
     pack(1, module_type_data),
     pack(1, module_type_data),
@@ -184,7 +184,7 @@ test "t2b2_n1_line_boundary_settlement" {
   }
   // 线 4：FIND×7 EMPT(F) DATA(F) DATA(T) DATA(F) DATA(T) DATA(F) DATA(T)×5 DATA(F)
   //       DATA(T)×2 EMPT(F) FIND×7 —— 覆盖「变色结算」（①）与「恰好 5 连」的交互。
-  let l4 : Array[Int] = [
+  let l4 : FixedArray[Int] = [
     pack(1, module_type_finder),
     pack(1, module_type_finder),
     pack(1, module_type_finder),
@@ -232,7 +232,7 @@ test "t2b2_n1_line_boundary_settlement" {
 
 ///|
 test "t2b3_n1_exact_five_then_color_change" {
-  let l : Array[Int] = [
+  let l : FixedArray[Int] = [
     pack(1, module_type_data),
     pack(1, module_type_data),
     pack(1, module_type_data),
@@ -351,7 +351,7 @@ test "t5b_n3_quiet_zone_dual_sided_pattern_via_line_score" {
 /// 与「行末结算」（l1）和「恰好 5 连后变色」（t2b3）互补。
 /// 夹具：DATA×6 暗 + EMPT 亮 → 6 连在遇 EMPT 时结算 6-2=4，行末无追加。
 test "t5b_n1_settle_on_nondata_after_run" {
-  let l : Array[Int] = [
+  let l : FixedArray[Int] = [
     pack(1, module_type_data),
     pack(1, module_type_data),
     pack(1, module_type_data),

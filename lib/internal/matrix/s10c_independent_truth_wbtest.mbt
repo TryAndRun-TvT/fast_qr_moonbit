@@ -16,7 +16,11 @@
 
 ///|
 /// bool 真值（'0'/'1' 连续串，行主序）→ 带类型矩阵（白盒直触 create_matrix/set_value）。
-fn build_from_bool_truth(ver_idx : Int, n : Int, bits : String) -> Array[Int] {
+fn build_from_bool_truth(
+  ver_idx : Int,
+  n : Int,
+  bits : String,
+) -> FixedArray[Int] {
   let m = create_matrix(ver_idx)
   let chars = bits.to_array()
   let mut i = 0
@@ -28,8 +32,8 @@ fn build_from_bool_truth(ver_idx : Int, n : Int, bits : String) -> Array[Int] {
 }
 
 ///|
-/// hex 串 → Array[Int]（每字节两位）。
-fn hex_ints(s : String) -> Array[Int] {
+/// hex 串 → FixedArray[Int]（每字节两位）。
+fn hex_ints(s : String) -> FixedArray[Int] {
   let out : Array[Int] = []
   let chars = s.to_array()
   let mut i = 0
@@ -37,7 +41,7 @@ fn hex_ints(s : String) -> Array[Int] {
     out.push(hex_digit(chars[i]) * 16 + hex_digit(chars[i + 1]))
     i += 2
   }
-  out
+  FixedArray::from_array(out)
 }
 
 ///|

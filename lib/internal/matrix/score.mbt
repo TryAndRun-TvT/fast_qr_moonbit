@@ -9,7 +9,7 @@
 ///   - 2×2 触及非 Data 模块不计分且连续性归零（N2 类型门槛）；
 ///   - 列评分必须在掩码后做（placement 历史 bug 铁律）；评分只对 Data 计；
 ///   - N4 查 constants.percent_score_table（S5 落）。
-/// 介质：原始字节矩阵 `Array[Int]`（D3），坐标扁平 = 行*size + 列。
+/// 介质：原始字节矩阵 `FixedArray[Int]`（D3），坐标扁平 = 行*size + 列。
 /// 依赖规则：不依赖 lib 公共包；仅依赖本包 module helper + constants（同包/已有 import）。
 
 ///|
@@ -34,7 +34,7 @@ let pattern_window_mask : Int = 0b11111111111
 /// `get` 回调物化到临时连续缓冲后**直接复用 `line_scan_buf`**，既消副本又使
 /// 白盒断言测的**就是**生产算法（不再 `actual == actual` 的同源问题）。
 fn line_score(get : (Int) -> Int, len : Int) -> (Int, Int) {
-  let buf = Array::make(len, 0)
+  let buf = FixedArray::make(len, 0)
   let mut i = 0
   while i < len {
     buf[i] = get(i)
@@ -49,7 +49,11 @@ fn line_score(get : (Int) -> Int, len : Int) -> (Int, Int) {
 /// 与 `line_score` 逐位等价，仅取数方式由回调改为直接索引（S9n P2）；额外累计暗格数供 N4
 /// 复用同一趟（S9n P2b，免去 `score_dark` 的独立全矩阵趟）。
 /// 返回 (pattern_score, run_line_score, dark_count)。
-fn line_scan_buf(buf : Array[Int], off : Int, len : Int) -> (Int, Int, Int) {
+fn line_scan_buf(
+  buf : FixedArray[Int],
+  off : Int,
+  len : Int,
+) -> (Int, Int, Int) {
   let mut patt = 0
   let mut run = 0
   let mut dark = 0
@@ -101,7 +105,7 @@ fn line_scan_buf(buf : Array[Int], off : Int, len : Int) -> (Int, Int, Int) {
 ///|
 /// N1 行运行分 + N3 行图案分 + N4 暗格计数（整矩阵逐行扫描，直接切片，无闭包）。
 /// 返回 (run, patt, dark)；dark 覆盖全矩阵（含功能图案），与 `score_dark` 的计数口径一致。
-fn line_rows(m : Array[Int], size : Int) -> (Int, Int, Int) {
+fn line_rows(m : FixedArray[Int], size : Int) -> (Int, Int, Int) {
   let mut run = 0
   let mut patt = 0
   let mut dark = 0
@@ -120,10 +124,10 @@ fn line_rows(m : Array[Int], size : Int) -> (Int, Int, Int) {
 /// N1 列运行分 + N3 列图案分：先把列收集进复用缓冲，再做连续扫描
 /// （对照参考 `score.rs:150-175`，消除 `i*size+col` 跳访与每列闭包）。列评分须在掩码后做。
 /// 暗格计数已在行趟完成，列趟不再重复累计。
-fn line_cols(m : Array[Int], size : Int) -> (Int, Int) {
+fn line_cols(m : FixedArray[Int], size : Int) -> (Int, Int) {
   let mut run = 0
   let mut patt = 0
-  let colbuf = Array::make(size, 0)
+  let colbuf = FixedArray::make(size, 0)
   let mut col = 0
   while col < size {
     let mut i = 0
@@ -153,7 +157,7 @@ pub fn test_line_pattern(get : (Int) -> Int, len : Int) -> Int {
 
 ///|
 /// N1 汇总：整矩阵 行运行 + 列运行 分。
-pub fn score_line(m : Array[Int], size : Int) -> Int {
+pub fn score_line(m : FixedArray[Int], size : Int) -> Int {
   let (rr, _, _) = line_rows(m, size)
   let (cr, _) = line_cols(m, size)
   rr + cr
@@ -161,7 +165,7 @@ pub fn score_line(m : Array[Int], size : Int) -> Int {
 
 ///|
 /// N3 汇总：整矩阵 行 + 列 图案命中 40 分（quiet zone 双侧命中各计）。
-pub fn score_pattern(m : Array[Int], size : Int) -> Int {
+pub fn score_pattern(m : FixedArray[Int], size : Int) -> Int {
   let (_, rp, _) = line_rows(m, size)
   let (_, cp) = line_cols(m, size)
   rp + cp
@@ -169,7 +173,7 @@ pub fn score_pattern(m : Array[Int], size : Int) -> Int {
 
 ///|
 /// N2 2×2 同色块分（参考 `matrix_score_squares`）。触及非 Data 不计且连续性归零。
-pub fn score_squares(m : Array[Int], size : Int) -> Int {
+pub fn score_squares(m : FixedArray[Int], size : Int) -> Int {
   let mut square = 0
   let mut i = 0
   while i < size - 1 {
@@ -199,7 +203,7 @@ pub fn score_squares(m : Array[Int], size : Int) -> Int {
 
 ///|
 /// N4 暗模块比例分（参考 `dark_module_score`）：统计暗模块 → 占比 → 查 constants 惩罚表。
-pub fn score_dark(m : Array[Int], size : Int) -> Int {
+pub fn score_dark(m : FixedArray[Int], size : Int) -> Int {
   let mut dark = 0
   let mut i = 0
   while i < size * size {
@@ -217,7 +221,7 @@ pub fn score_dark(m : Array[Int], size : Int) -> Int {
 /// = N1(行+列运行) + N2(squares) + N3(行+列图案) + N4(dark)。
 /// N4 的暗格计数已并入行趟（S9n P2b），此处不再单独扫全矩阵；
 /// 暗比查表与 `score_dark` 逐位一致（同一 dark 计数 → 同一 percent → 同一分值）。
-pub fn score(m : Array[Int], size : Int) -> Int {
+pub fn score(m : FixedArray[Int], size : Int) -> Int {
   let (rr, rp, dark) = line_rows(m, size)
   let (cr, cp) = line_cols(m, size)
   let squares = score_squares(m, size)

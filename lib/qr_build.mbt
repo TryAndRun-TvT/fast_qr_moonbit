@@ -79,7 +79,7 @@ pub fn QRCode::select_capacity(
 /// 将 packed 字节矩阵逐格包装回公共 Module，装入固定容量 QRCode（build_fixed/build 共用尾步）。
 /// `mask_idx` 为最终 mask 序号；`mode_idx/ecl_idx/version_idx` 为解析值写元数据。
 fn wrap_packed(
-  packed : Array[Int],
+  packed : FixedArray[Int],
   version_idx : Int,
   ecl_idx : Int,
   mask_idx : Int,

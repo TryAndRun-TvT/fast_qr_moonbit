@@ -152,7 +152,7 @@ test "t2c_placement_coordinates_v02" {
     idx += 1
   }
   // 反向：段表与矩阵的 Data 集合必须完全一致（无遗漏、无重复、不误盖功能格）。
-  let covered : Array[Int] = Array::make(size * size, 0)
+  let covered : FixedArray[Int] = FixedArray::make(size * size, 0)
   for rc in seq {
     let (r, c) = rc
     covered[r * size + c] = covered[r * size + c] + 1

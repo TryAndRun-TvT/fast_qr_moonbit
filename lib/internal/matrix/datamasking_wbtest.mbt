@@ -41,7 +41,7 @@ test "mask_at 5/6/7 网格公式" {
 ///|
 test "apply_mask 只翻转 Data 类、不动功能图案明暗" {
   let size = 21
-  let m = Array::make(size * size, pack(1, module_type_data)) // 全 Data 暗
+  let m = FixedArray::make(size * size, pack(1, module_type_data)) // 全 Data 暗
   // 放一个 finder 亮 + 一个 format 亮，确保它们不被翻转
   m[0] = pack(0, module_type_finder) // (0,0) finder 亮
   m[1] = pack(0, module_type_format) // (1,0) format 亮
@@ -72,7 +72,7 @@ test "apply_mask 特化与逐格参考逐位等价" {
   while si < sizes.length() {
     let size = sizes[si]
     // 混合类型矩阵：按 (i*7+3)%9 分配类型号，覆盖 Data(0) 与 7 种功能图案，明暗交错
-    let m = Array::make(size * size, pack(0, module_type_data))
+    let m = FixedArray::make(size * size, pack(0, module_type_data))
     let mut i = 0
     while i < size * size {
       let t = (i * 7 + 3) % 9

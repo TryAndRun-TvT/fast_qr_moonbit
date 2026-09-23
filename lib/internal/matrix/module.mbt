@@ -2,11 +2,11 @@
 /// module.mbt —— 原始字节矩阵的位布局约定与 Int 级 helper（决策 D3 收敛）
 /// 对应参考：fast_qr v0.14.0 `src/module.rs`（roadmap 批次 B5；架构决策 D1/D3）
 /// 决策 D3：internal/matrix 不能反向 import lib（无环），故本包**不再定义 Module 类型**，
-///       而以原始字节矩阵 `Array[Int]` 为工作介质：每格 packed byte = 明暗(bit0) | 类型号<<1，
+///       而以原始字节矩阵 `FixedArray[Int]` 为工作介质：每格 packed byte = 明暗(bit0) | 类型号<<1，
 ///       与 lib 公共 `Module.byte()` **完全同构、可互转**。本文件收敛为：
 ///        1) 模块类型号常量（0..=7）；
 ///        2) 一组对单格 Int 值做明暗/类型读写的位级 helper。
-///       矩阵各函数收发的都是 `Array[Int]` + 各序号，不 import lib；lib 侧把结果逐格
+///       矩阵各函数收发的都是 `FixedArray[Int]` + 各序号，不 import lib；lib 侧把结果逐格
 ///       包装回公共 `Module`（见 S4 方案 §3.1/§3.4 与 lib qr.mbt 编排入口）。
 /// 不变量：
 ///   - 明暗：bit0（1=DARK 黑 / 0=LIGHT 白）；

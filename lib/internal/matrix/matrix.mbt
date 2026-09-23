@@ -3,7 +3,7 @@
 /// 对应参考：/fast_qr/src/default.rs（roadmap 批次 B9 前半）
 /// 职责：按版本初始化矩阵容器；绘制 finder/timing/alignment/version info/
 ///       dark module，并为 format 区写入占位（含真实 Format 覆写 helper）。
-/// 介质：原始字节矩阵 `Array[Int]`（D3 决策），每格 packed = 明暗(bit0) | 类型号<<1，
+/// 介质：原始字节矩阵 `FixedArray[Int]`（D3 决策），每格 packed = 明暗(bit0) | 类型号<<1，
 ///       位布局/类型号常量/读写 helper 见本包 `module.mbt`。
 /// 关键语义（框架文档 §五.7 时序铁律）：Format 先占位（浅色）、掩码择优后再覆写真实格式
 ///       信息，顺序不可颠倒；掩码只对 Data 类模块翻转、功能图案一律不动。
@@ -20,7 +20,7 @@
 ///|
 /// 单个 finder 7×7 三框图案：左上角在 (oy,ox)（行 oy、列 ox）。
 /// 参考 default.rs `create_matrix_pattern`。三框：外层 7 暗框、次层 5 亮框、内核 3×3 暗块。
-fn draw_finder(m : Array[Int], size : Int, oy : Int, ox : Int) -> Unit {
+fn draw_finder(m : FixedArray[Int], size : Int, oy : Int, ox : Int) -> Unit {
   let mut j = 0
   while j <= 6 {
     let dark = pack(1, module_type_finder)
@@ -53,7 +53,7 @@ fn draw_finder(m : Array[Int], size : Int, oy : Int, ox : Int) -> Unit {
 ///|
 /// 三个 finder 定位图案（左上/右上/左下）。
 /// 参考 default.rs `create_matrix_pattern`：offsets 为 (y,x)。
-fn create_matrix_pattern(m : Array[Int], size : Int) -> Unit {
+fn create_matrix_pattern(m : FixedArray[Int], size : Int) -> Unit {
   let n = size
   let k = 7
   let offsets : ReadOnlyArray[(Int, Int)] = [(0, 0), (n - k, 0), (0, n - k)]
@@ -68,7 +68,7 @@ fn create_matrix_pattern(m : Array[Int], size : Int) -> Unit {
 ///|
 /// 三个 finder 外沿的分隔浅色区。
 /// 参考 default.rs `create_matrix_empty`：左上 finder 右/下沿、左下上沿/右沿、右上左沿/下沿。
-fn create_matrix_empty(m : Array[Int], size : Int) -> Unit {
+fn create_matrix_empty(m : FixedArray[Int], size : Int) -> Unit {
   let n = size
   let light = pack(0, module_type_empty)
   let mut i = 0
@@ -87,7 +87,7 @@ fn create_matrix_empty(m : Array[Int], size : Int) -> Unit {
 /// 第 6 行/列时序图案。
 /// 参考 default.rs `create_matrix_timing`：i 从 8 到 size-8（含），明暗自 i 奇偶交替，
 /// 与 (POSITION_SIZE+1)%2==0 比较 ⇒ 偶数 i 置暗。
-fn create_matrix_timing(m : Array[Int], size : Int) -> Unit {
+fn create_matrix_timing(m : FixedArray[Int], size : Int) -> Unit {
   let timing = pack(0, module_type_timing)
   let mut i = 8
   while i < size - 7 {
@@ -102,14 +102,18 @@ fn create_matrix_timing(m : Array[Int], size : Int) -> Unit {
 ///|
 /// 右下角固定暗模块 (row=size-8, col=8)。
 /// 参考 default.rs `create_matrix_dark_module`。
-fn create_matrix_dark_module(m : Array[Int], size : Int) -> Unit {
+fn create_matrix_dark_module(m : FixedArray[Int], size : Int) -> Unit {
   m[(size - 8) * size + 8] = pack(1, module_type_dark)
 }
 
 ///|
 /// 对齐图案：从 constants.alignment_grid(version) 取中心点画 5×5（跳过与 finder 重叠角）。
 /// 参考 default.rs `create_matrix_alignments`。
-fn create_matrix_alignments(m : Array[Int], version : Int, size : Int) -> Unit {
+fn create_matrix_alignments(
+  m : FixedArray[Int],
+  version : Int,
+  size : Int,
+) -> Unit {
   if version == 0 {
     return
   }
@@ -135,7 +139,12 @@ fn create_matrix_alignments(m : Array[Int], version : Int, size : Int) -> Unit {
 ///|
 /// 在中心 (cy,cx) 画单个 5×5 对齐图案。
 /// 参考 default.rs `create_matrix_alignments` 内部循环。
-fn draw_alignment_at(m : Array[Int], size : Int, cy : Int, cx : Int) -> Unit {
+fn draw_alignment_at(
+  m : FixedArray[Int],
+  size : Int,
+  cy : Int,
+  cx : Int,
+) -> Unit {
   // 外层暗框（行 cy-2/cy+2、列 cx-2..cx+2；列 cx-2/cx+2、行 cy-2..cy+2）
   let y0 = cy - 2
   let x0 = cx - 2
@@ -168,7 +177,7 @@ fn draw_alignment_at(m : Array[Int], size : Int, cy : Int, cx : Int) -> Unit {
 /// 版本信息区（仅 V7+，右下 6×3 与左上 3×6 两块）。
 /// 参考 default.rs `create_matrix_version_info`：用 constants.information 的 18 bit。
 fn create_matrix_version_info(
-  m : Array[Int],
+  m : FixedArray[Int],
   version : Int,
   size : Int,
 ) -> Unit {
@@ -195,7 +204,7 @@ fn create_matrix_version_info(
 ///|
 /// Format 区写浅色占位（B9a 尾步，为后续放置让出区域；真实 Format 在放置+掩码后覆写）。
 /// 参考 default.rs `create_matrix` 尾部 format 占位块。
-fn create_matrix_format_placeholder(m : Array[Int], size : Int) -> Unit {
+fn create_matrix_format_placeholder(m : FixedArray[Int], size : Int) -> Unit {
   let n = size
   let light = pack(0, module_type_format)
   let mut i = 0
@@ -220,10 +229,10 @@ fn create_matrix_format_placeholder(m : Array[Int], size : Int) -> Unit {
 ///|
 /// 创建给定版本的空矩阵 + 全部功能图案（含 Format 占位），数据区为浅色 Data。
 /// 参考 default.rs `create_matrix(version)`。入参 version 序号 0..=39。
-pub fn create_matrix(version : Int) -> Array[Int] {
+pub fn create_matrix(version : Int) -> FixedArray[Int] {
   let size = version * 4 + 21
   let light_data = pack(0, module_type_data)
-  let m = Array::make(size * size, light_data)
+  let m = FixedArray::make(size * size, light_data)
   create_matrix_pattern(m, size)
   create_matrix_timing(m, size)
   create_matrix_dark_module(m, size)
@@ -239,7 +248,7 @@ pub fn create_matrix(version : Int) -> Array[Int] {
 /// 参考 default.rs `create_matrix_format_info`。入参 ecl/mask 为序号。
 /// 供 placement/总装阶段在「掩码应用后」调用（时序铁律 §五.7）。
 pub fn create_matrix_format_info(
-  m : Array[Int],
+  m : FixedArray[Int],
   size : Int,
   ecl : Int,
   mask : Int,

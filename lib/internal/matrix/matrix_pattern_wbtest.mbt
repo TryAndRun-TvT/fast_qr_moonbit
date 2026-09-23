@@ -5,7 +5,7 @@
 
 ///|
 /// 便捷：取矩阵 (row,col) 的 packed 值。
-fn px(m : Array[Int], size : Int, row : Int, col : Int) -> Int {
+fn px(m : FixedArray[Int], size : Int, row : Int, col : Int) -> Int {
   m[row * size + col]
 }
 
@@ -130,8 +130,8 @@ test "B9a Format 覆写对照参考快照 (Q/mask0)" {
 /// 断言内容：两副本各自按「参考取址序列」读回 15 位，均等于 format_information 的 MSB-first 位流，
 /// 且两副本逐位相同（QR 规范要求双副本一致）。
 test "t2e_format_dual_copy_layout" {
-  let ecls : Array[Int] = [0, 1, 2, 3]
-  let masks : Array[Int] = [0, 1, 2, 3, 4, 5, 6, 7]
+  let ecls : FixedArray[Int] = [0, 1, 2, 3]
+  let masks : FixedArray[Int] = [0, 1, 2, 3, 4, 5, 6, 7]
   let n = 21 // V05 size 固定 21
   for ecl in ecls {
     for mask in masks {

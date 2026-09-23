@@ -3,7 +3,7 @@
 /// 对应参考：/fast_qr/src/placement.rs:36 `place_on_matrix_data` + :85 `place_on_matrix` 固定 mask 分支
 /// 职责：之字形逐位放置交织码字（跳过第 6 列、自右往左每两列一组、行向交替）；
 ///       `create_fixed_qr` 编排 create_matrix → 放置 → 写真实 Format → 一次固定 mask，产出 M1 首码。
-/// 介质：原始字节矩阵 `Array[Int]`（D3 决策，见本包 module.mbt 位布局）。
+/// 介质：原始字节矩阵 `FixedArray[Int]`（D3 决策，见本包 module.mbt 位布局）。
 /// 关键语义：
 ///   - 只对 `Data` 类模块写位并推进 idx；功能图案（finder/timing/.../format/version）一律跳过；
 ///   - 位序大端（MSB first）：`byte[idx/8]` 的第 `7 - idx%8` 位；
@@ -19,7 +19,7 @@
 /// `structure` 为交织后码字字节流（reedsolomon.structure 输出），位按大端序自第 0 位起连续消费。
 /// 对应参考 `placement.rs:36 place_on_matrix_data`。
 pub fn place_on_matrix_data(
-  m : Array[Int],
+  m : FixedArray[Int],
   size : Int,
   structure : Array[Byte],
 ) -> Unit {
@@ -60,7 +60,7 @@ pub fn place_on_matrix_data(
 ///|
 /// 若 (y,x) 是 Data 模块则写入下一位并返回 idx+1；否则原样返回 idx。就地改写 m。
 fn consume_or_skip(
-  m : Array[Int],
+  m : FixedArray[Int],
   size : Int,
   structure : Array[Byte],
   y : Int,
@@ -90,7 +90,7 @@ pub fn create_fixed_qr(
   version_idx : Int,
   ecl_idx : Int,
   mask_idx : Int,
-) -> Array[Int] {
+) -> FixedArray[Int] {
   let size = version_idx * 4 + 21
   let m = create_matrix(version_idx)
   place_on_matrix_data(m, size, structure)
@@ -113,7 +113,7 @@ pub fn create_auto_qr(
   structure : Array[Byte],
   version_idx : Int,
   ecl_idx : Int,
-) -> (Array[Int], Int) {
+) -> (FixedArray[Int], Int) {
   let size = version_idx * 4 + 21
   let base = create_matrix(version_idx)
   place_on_matrix_data(base, size, structure)
