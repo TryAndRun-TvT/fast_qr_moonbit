@@ -23,18 +23,22 @@
 > （`cmd/qr-min` / `cmd/main` 不 import `@env`，故未受影响），不改变库分发体积。
 > 语义未变（`--dump` / `qr_with` 护栏逐字节一致）；fast_qr 参考侧产物**逐字节未变**
 > （裸探针 raw 59440 B / `-Oz` 45687 B）。
+>
+> 🟢 **2026-09-23 介质换代落地（`Array[Int]` → `FixedArray[Int]`，提交 `ea7d7ae`）**：三档 `-Oz`
+> **−5~6.3%**，对称锚点 **0.65×**（原 0.69×）。依据与实测见
+> [S9s §10](S9s-数组介质与字节加速-真实A-B实测.md)；**下表已同步为换代后值**。
 
 | 产物 | 后端 | raw | `-Oz`（可加载档） |
 |------|------|---:|------------------:|
-| **`cmd/qr-min`（纯库调用 = 库实际体积）** | **`wasm-gc`** | 41778 B（40.8 KiB） | **31629 B**（30.9 KiB） |
-| `cmd/bench`（基准外壳：argv/迭代/`--dump`） | **`wasm-gc`** | 52158 B（50.9 KiB） | 39706 B（38.8 KiB） |
-| `cmd/main`（CLI：字符画 + SVG） | **`wasm-gc`** | 45594 B（44.5 KiB） | 33841 B |
+| **`cmd/qr-min`（纯库调用 = 库实际体积）** | **`wasm-gc`** | 39869 B（38.9 KiB） | **29649 B**（29.0 KiB） |
+| `cmd/bench`（基准外壳：argv/迭代/`--dump`） | **`wasm-gc`** | 50248 B（49.1 KiB） | 37731 B（36.8 KiB） |
+| `cmd/main`（CLI：字符画 + SVG） | **`wasm-gc`** | 43685 B（42.7 KiB） | 31852 B |
 
 > **引用规范**：`cmd/bench` / `cmd/main` 是「命令形态」产物，外壳不随库分发，
 > **不能代表库被宿主嵌入时的实际体积**——引用库体积请用 `cmd/qr-min` 口径并注明后端与优化档。
 > **体积金字塔**（`wasm-gc`，`-Oz`）：运行时地板（一行 `println`）**263 B** → QR 核心净增
-> **+31366 B**（`cmd/qr-min`）→ 输出层（终端画 + SVG）**+2212 B**（`cmd/main`）→ 基准外壳
-> **+8077 B**（`cmd/bench`）。
+> **+29386 B**（`cmd/qr-min`）→ 输出层（终端画 + SVG）**+2203 B**（`cmd/main`）→ 基准外壳
+> **+8082 B**（`cmd/bench`）。
 
 `-Oz` 体积最优档（默认后端 `wasm-gc`）：
 
@@ -42,7 +46,7 @@
 # --all-features 会开 custom-descriptors(RTT)，其 exact heap type 在 Node/moonrun 上编译不过；
 # --disable-custom-descriptors 才产出「可被真实宿主加载」的最优档。
 moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
-  --all-features --disable-custom-descriptors -Oz -o main.min.wasm   # 33841 B
+  --all-features --disable-custom-descriptors -Oz -o main.min.wasm   # 31852 B
 ```
 
 ### 1.1 与 fast_qr 的体积对比（库对库主口径）
@@ -51,12 +55,12 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 
 | 口径（B） | MoonBit `wasm-gc` | fast_qr 裸探针 | ours / fast |
 |-----------|------------------:|---------------:|------------:|
-| raw | 41778 | 59440 | **0.70×** |
-| `-Oz`（可加载档） | **31629** | 45687 | **0.69×** |
-| 核心净增（扣 hello 地板 263 / 20052 B） | **+31366** | +25635 | 1.22× |
+| raw | 39869 | 59440 | **0.67×** |
+| `-Oz`（可加载档） | **29649** | 45687 | **0.65×** |
+| 核心净增（扣 hello 地板 263 / 20052 B） | **+29386** | +25635 | 1.15× |
 
-> **结论**：库对库，`wasm-gc` 在 raw 与 `-Oz` 两档都约 **0.69–0.70×**；扣掉运行时地板后核心净增
-> 1.22×——差距大头是两侧**运行时地板**（`wasm-gc` 263 B vs Rust 20052 B，76×），非 QR 实现差异。
+> **结论**：库对库，`wasm-gc` 在 raw 与 `-Oz` 两档都约 **0.65–0.67×**；扣掉运行时地板后核心净增
+> 1.15×——差距大头是两侧**运行时地板**（`wasm-gc` 263 B vs Rust 20052 B，76×），非 QR 实现差异。
 > 命令形态（`cmd/bench` 含 argv/迭代外壳）对照与其他档位明细见 [S9i](S9i-纯库调用体积探针与库实际体积.md) ·
 > [S9f](S9f-产物体积对比.md)。
 
@@ -70,6 +74,12 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 > `fast/ours` = **0.35–0.41 / 0.585–0.604 / 0.781–0.785**（V03H/V10H/V40H），
 > 逐位对齐 sha256 三点与基线**完全相同**。比值与 §2.1 基线同档（V10 略好、V40 略差、V03 噪声最大）；
 > 本仓库与 fast_qr 的**绝对** ms 同轮都变快（宿主/工具链变化），故**只比比值、不跨宿主相减**。
+>
+> 🟢 **介质换代落地后（`Array[Int]`→`FixedArray[Int]`，`ea7d7ae`）**：同 run 比值改善为
+> **≈0.45–0.54 / 0.72–0.73 / 0.94–0.98**（V03H/V10H/V40H，2026-09-23 两次 R=5）——
+> V40H 已逼近 fast_qr（≈1.0×）。可迁移结论以 [S9s §10](S9s-数组介质与字节加速-真实A-B实测.md)
+> 的**交错 3 轮**（V40 宿主 ≈−15%）为准；§2.1 的**绝对**数字是 2026-09-12 基线快照，未随换代重写
+> （跨会话不可比）。
 
 复跑入口：`bash scripts/bench-host.sh`（宿主调用面）· `bench-host-var.sh`（统计稳定性）·
 `bench-layer2.sh`（层② vs fast_qr）· `bench.sh`（层① 后端）· `bench-size.sh`（体积）。
@@ -77,9 +87,9 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 
 | 对比 | 结果 | 出处 |
 |------|------|------|
-| ① vs Rust fast_qr-wasm32（**默认后端 `wasm-gc`**） | 单次 build 慢 ≈**1.3–2.5×**，逐位对齐 sha256 零差异；差距集中在 8 轮掩码择优主循环 | 明细见下表 · [S9p](S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9j](S9j-层②统一Node对比-wasm-gc与fast_qr.md) |
+| ① vs Rust fast_qr-wasm32（**默认后端 `wasm-gc`**） | 单次 build 慢 ≈**1.0–2.2×**（2026-09-23 介质换代后；原 ≈1.3–2.5×），逐位对齐 sha256 零差异；差距集中在 8 轮掩码择优主循环 | 明细见下表 · [S9p](S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9j](S9j-层②统一Node对比-wasm-gc与fast_qr.md) |
 | ② vs moonbit 生态 `moonqr`（同宿主、完整实现可比子集） | 本仓库全程快 **2.5–4.1×**（V03H 0.318 vs 0.805、V40H 9.46 vs 38.29 ms/单次，历史口径） | [S9d](S9d-与moonbit生态QR包性能对比.md) |
-| ③ 产物体积 vs fast_qr | `wasm-gc` 各口径均更小（对称锚点 **0.69×**） | [§1.1](#11-与-fast_qr-的体积对比库对库主口径) · [S9i](S9i-纯库调用体积探针与库实际体积.md) |
+| ③ 产物体积 vs fast_qr | `wasm-gc` 各口径均更小（对称锚点 **0.65×**，2026-09-23 介质换代后；原 0.69×） | [§1.1](#11-与-fast_qr-的体积对比库对库主口径) · [S9i](S9i-纯库调用体积探针与库实际体积.md) |
 
 > ① 的数据随 P0/P2/P2b 优化已刷新（2026-09-12 重测）；② 为优化前（2026-09-06）历史口径，
 > 未随本轮重测，量级参考即可。

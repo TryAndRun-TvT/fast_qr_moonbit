@@ -23,7 +23,7 @@
 | **标准** | ISO/IEC 18004 二维码（版本 V01–V40，ECL L/M/Q/H，8 掩码评分择优） |
 | **许可** | [Apache-2.0](LICENSE) |
 | **参考** | Rust [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr) 逐位移植对齐 |
-| **性能/体积** | 单次 build 慢 fast_qr ≈1.3–2.5×（逐位零差异）· 库体积约 **0.69×**　→ [量级与出处](#性能与体积) |
+| **性能/体积** | 单次 build 慢 fast_qr ≈1.0–2.2×（逐位零差异）· 库体积约 **0.65×**　→ [量级与出处](#性能与体积) |
 | **测试** | 三载体分层（黑盒/白盒/文档测试）· 变异检测 + 第三方解码回读全绿　→ [证据链](#测试) |
 
 > 本页是**落地页**：只给「能做什么 / 怎么用 / 边界在哪 / 去哪看细节」。
@@ -183,12 +183,12 @@ moon test --target wasm-gc
 > 数字仅作选型与迭代基线，**不代表对 fast_qr 的追赶承诺**。本页只给量级；
 > **表格、参数、统计离散与护栏**见 [S9r · 明细](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#2-性能三口径核心结论表)。
 
-- **性能 vs fast_qr-wasm32**：单次 build 慢 **≈1.3–2.5×**（点数越小差距越大），
+- **性能 vs fast_qr-wasm32**：单次 build 慢 **≈1.0–2.2×**（点数越小差距越大），
   **逐位对齐 sha256 零差异**；差距集中在 8 轮掩码择优主循环。
   复跑 `bash scripts/bench-host.sh`　→ 口径 [S9p](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9p-宿主调用面性能口径-JS向wasm传参.md) · 离散 [S9q](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9q-性能口径统计差异与取平均评估.md)
 - **性能 vs 生态 `moonqr`**：全程快 **2.5–4.1×**（**历史口径**，未随最近一轮重测）。
   复跑 `bash scripts/bench-layer2.sh`　→ [S9d](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9d-与moonbit生态QR包性能对比.md)
-- **体积 vs fast_qr**：库对库对称锚点 **≈0.69×**（本仓库更小）；差距大头是**运行时地板**，非 QR 实现。
+- **体积 vs fast_qr**：库对库对称锚点 **≈0.65×**（本仓库更小）；差距大头是**运行时地板**，非 QR 实现。
   复跑 `bash scripts/bench-size.sh`　→ [S9i](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9i-纯库调用体积探针与库实际体积.md)
 - **优化状态**：已落地 P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b，V40H 受控 A/B **−26%**（输出逐位不变）；
   待做与上限见 [S9n](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9n-优化方案复评与wasm-gc收敛审计.md) · [S9k](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9k-性能瓶颈与理论上限评估.md)

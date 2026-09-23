@@ -240,7 +240,8 @@ moon build lib --target native --release                                   # 预
    实测收益来自**去 `Array` 的 `{buf,len}` 间接（`FixedArray`）而非字节窄化**——矩阵扫描 ≈1.19×、
    RS 工作区 **≈1.50×（真实代码 A/B）**，字节窄化本身≈1.16×≈无提速；**矩阵介质已真落两版实测**
    （S9s §10，实验分支）：V40 宿主 **−15%**、体积 **−5~6%**、语义零差异，`FixedArray[Int]` 与
-   `FixedArray[Byte]` 速度持平（选型按内存/改动面）；落地待 D3 介质评审；
+   `FixedArray[Byte]` 速度持平（选型按内存/改动面）；**已落地 `main`：选 `FixedArray[Int]`（提交 `ea7d7ae`）**，
+   D3 与 8 个白盒测试同步，公共 API/`.mbti` 不变；
 3. P1 公共 `QRCode.data` 容器语义评审（决定是否允许 `length=size²`）；
 4. T-R5 **升级为「换容器」**：`division` 工作区 `Array[Byte]` → `FixedArray[Byte]`（[S9s](S9s-数组介质与字节加速-真实A-B实测.md) §4.2
    真实 A/B **≈1.50×**，1 行改动），收益大于原文的「复用」（≈1.08×）；整 build ≈0.8%，低优先但改动极小。
