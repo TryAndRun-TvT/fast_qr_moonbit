@@ -22,7 +22,7 @@
 #
 # ⚠️ 环境敏感性（S9h，2026-09-11 受控 A/B 证实）：绝对毫秒数强依赖 **Node 大版本与宿主机**
 #   （node v24 比 v22 使 MoonBit 侧单次快 18–41%、两侧再受宿主漂移 ±20–40%）；跨环境请只比
-#   「同一次 run 内的成对比值」。详见 docs/S9h-层②性能复测异常归因-Node版本与宿主漂移.md。
+#   「同一次 run 内的成对比值」。详见 docs/02-证据/S9h-层②性能复测异常归因-Node版本与宿主漂移.md。
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export PATH="$HOME/.moon/bin:$HOME/.cargo/bin:$PATH"
