@@ -3,6 +3,7 @@
 > 基于 [MoonBit](https://www.moonbitlang.cn/) 的高性能二维码（QR Code）生成库。
 > 纯 MoonBit 实现、无外部依赖，逐位对齐 Rust 参考库 [fast_qr v0.14.0](https://github.com/erwanvivien/fast_qr)。
 
+[![mooncakes](https://cnb.cool/svg/badge/mooncakes?message=TryAndRun-TvT%2Ffast_qr_moonbit&color=blue)](https://mooncakes.io/docs/TryAndRun-TvT/fast_qr_moonbit)
 [![star](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/badge/star)](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit)
 [![fork](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/badge/fork)](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit)
 [![latest release](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/badge/release)](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/releases)
@@ -85,7 +86,6 @@
 在项目根目录（`moon.mod` 所在处）添加本库为依赖：
 
 ```bash
-# 需本模块已发布至 mooncakes；发布前的过渡期为 clone 本仓库按「构建与运行」体验
 moon add TryAndRun-TvT/fast_qr_moonbit
 ```
 

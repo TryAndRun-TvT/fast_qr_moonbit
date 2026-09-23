@@ -1,31 +1,40 @@
 # S9r · README 长口径承接：性能/体积/公共 API 明细
 
-> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README.md](../README.md) §2
+> **状态**：现行　｜　日期：2026-09-23　｜　索引：[docs/README.md](../README.md) §2
 
 > 背景：ISSUE #47 多轮要求「README 去冗杂 → README 只保留索引」。
 > README 原先在**正文内**保留了体积表、性能明细表、Roadmap 编号细节与公共类型表；
 > 它们与 `docs/S9*`、`lib/*.mbt` 高度重复。本轮把**明细原样迁到本文档**，
 > README 只留「量级结论 + 出处链接」。
-> 日期：2026-09-14　｜　口径口径与复跑见 [性能测试脚本-公开评审说明](性能测试脚本-公开评审说明.md)
+> 迁移日期：2026-09-14　｜　口径口径与复跑见 [性能测试脚本-公开评审说明](性能测试脚本-公开评审说明.md)
 > ｜　权威出处：体积 [S9i](S9i-纯库调用体积探针与库实际体积.md)、性能 [S9p](S9p-宿主调用面性能口径-JS向wasm传参.md) / [S9q](S9q-性能口径统计差异与取平均评估.md)
 >
-> **本文不是新结论**，是 README 历史正文的**归档承接**（数字未重测，出处与离散口径以原文为准）。
+> **本文不是新结论**，是 README 历史正文的**归档承接**。
+> **2026-09-23 已按当前工具链（`moon 0.1.20260920`）重测**：§1 体积数字已刷新（见 §1 注）；
+> 性能比值同轮复核（§2 注）——**绝对毫秒**仍以原文/S9p 为准（跨宿主不可比）。
 
 ---
 
 ## 1. 产物体积（release，`bash scripts/bench-size.sh`）
 
+> **2026-09-23 重测（工具链 `moon 0.1.20260920`，同机 `moon-wasm-opt`）**：下表已刷新为最新实测。
+> 与 2026-09-12 基线相比，**库实际体积 `cmd/qr-min` 漂移 <1%（+0.84%）**，`cmd/main` +0.74%；
+> 而 `cmd/bench` `-Oz` **+9.8%**——增长集中在随工具链变化的 `@env`/argv 外壳
+> （`cmd/qr-min` / `cmd/main` 不 import `@env`，故未受影响），不改变库分发体积。
+> 语义未变（`--dump` / `qr_with` 护栏逐字节一致）；fast_qr 参考侧产物**逐字节未变**
+> （裸探针 raw 59440 B / `-Oz` 45687 B）。
+
 | 产物 | 后端 | raw | `-Oz`（可加载档） |
 |------|------|---:|------------------:|
-| **`cmd/qr-min`（纯库调用 = 库实际体积）** | **`wasm-gc`** | 41427 B（40.5 KiB） | **31365 B**（30.6 KiB） |
-| `cmd/bench`（基准外壳：argv/迭代/`--dump`） | **`wasm-gc`** | 48038 B（46.9 KiB） | 36174 B（35.3 KiB） |
-| `cmd/main`（CLI：字符画 + SVG） | **`wasm-gc`** | 44424 B（43.4 KiB） | 33593 B |
+| **`cmd/qr-min`（纯库调用 = 库实际体积）** | **`wasm-gc`** | 41778 B（40.8 KiB） | **31629 B**（30.9 KiB） |
+| `cmd/bench`（基准外壳：argv/迭代/`--dump`） | **`wasm-gc`** | 52158 B（50.9 KiB） | 39706 B（38.8 KiB） |
+| `cmd/main`（CLI：字符画 + SVG） | **`wasm-gc`** | 45594 B（44.5 KiB） | 33841 B |
 
 > **引用规范**：`cmd/bench` / `cmd/main` 是「命令形态」产物，外壳不随库分发，
 > **不能代表库被宿主嵌入时的实际体积**——引用库体积请用 `cmd/qr-min` 口径并注明后端与优化档。
 > **体积金字塔**（`wasm-gc`，`-Oz`）：运行时地板（一行 `println`）**263 B** → QR 核心净增
-> **+31102 B**（`cmd/qr-min`）→ 输出层（终端画 + SVG）**+2228 B**（`cmd/main`）→ 基准外壳
-> **+4809 B**（`cmd/bench`）。
+> **+31366 B**（`cmd/qr-min`）→ 输出层（终端画 + SVG）**+2212 B**（`cmd/main`）→ 基准外壳
+> **+8077 B**（`cmd/bench`）。
 
 `-Oz` 体积最优档（默认后端 `wasm-gc`）：
 
@@ -33,7 +42,7 @@
 # --all-features 会开 custom-descriptors(RTT)，其 exact heap type 在 Node/moonrun 上编译不过；
 # --disable-custom-descriptors 才产出「可被真实宿主加载」的最优档。
 moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
-  --all-features --disable-custom-descriptors -Oz -o main.min.wasm   # 33593 B
+  --all-features --disable-custom-descriptors -Oz -o main.min.wasm   # 33841 B
 ```
 
 ### 1.1 与 fast_qr 的体积对比（库对库主口径）
@@ -42,12 +51,12 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 
 | 口径（B） | MoonBit `wasm-gc` | fast_qr 裸探针 | ours / fast |
 |-----------|------------------:|---------------:|------------:|
-| raw | 41427 | 59440 | **0.70×** |
-| `-Oz`（可加载档） | **31365** | 45687 | **0.69×** |
-| 核心净增（扣 hello 地板 263 / 20052 B） | **+31102** | +25635 | 1.21× |
+| raw | 41778 | 59440 | **0.70×** |
+| `-Oz`（可加载档） | **31629** | 45687 | **0.69×** |
+| 核心净增（扣 hello 地板 263 / 20052 B） | **+31366** | +25635 | 1.22× |
 
 > **结论**：库对库，`wasm-gc` 在 raw 与 `-Oz` 两档都约 **0.69–0.70×**；扣掉运行时地板后核心净增
-> 1.21×——差距大头是两侧**运行时地板**（`wasm-gc` 263 B vs Rust 20052 B，76×），非 QR 实现差异。
+> 1.22×——差距大头是两侧**运行时地板**（`wasm-gc` 263 B vs Rust 20052 B，76×），非 QR 实现差异。
 > 命令形态（`cmd/bench` 含 argv/迭代外壳）对照与其他档位明细见 [S9i](S9i-纯库调用体积探针与库实际体积.md) ·
 > [S9f](S9f-产物体积对比.md)。
 
@@ -56,6 +65,11 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 ## 2. 性能三口径（核心结论表）
 
 > 引用的性能数字仅作选型与迭代基线，**不代表对 fast_qr 的追赶承诺**；逐条口径见 S9 系列文档。
+>
+> **2026-09-23 重测（`moon 0.1.20260920`、Node v22.23.1、宿主调用面 R=5 中位数）**：
+> `fast/ours` = **0.35–0.41 / 0.585–0.604 / 0.781–0.785**（V03H/V10H/V40H），
+> 逐位对齐 sha256 三点与基线**完全相同**。比值与 §2.1 基线同档（V10 略好、V40 略差、V03 噪声最大）；
+> 本仓库与 fast_qr 的**绝对** ms 同轮都变快（宿主/工具链变化），故**只比比值、不跨宿主相减**。
 
 复跑入口：`bash scripts/bench-host.sh`（宿主调用面）· `bench-host-var.sh`（统计稳定性）·
 `bench-layer2.sh`（层② vs fast_qr）· `bench.sh`（层① 后端）· `bench-size.sh`（体积）。
