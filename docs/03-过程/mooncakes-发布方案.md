@@ -350,9 +350,14 @@ moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，
 
 ### 5.4 发布后不可回滚的前提假设（需维护者确认）
 
-官方文档仅说明 `moon publish` 推送模块，**未给出 `yank`/撤回命令**（本文核验的
-`moon publish --help` 中无相关选项）。因此**发布前必须视「已发布版本不可撤回」**
-——这正是 §6 发布前门禁必须可执行的原因。
+官方**不给「按版本」撤销**：`moon publish` 只推送模块，`moon publish --help` 无 per-version yank/delete
+选项。因此**发布前必须视「已发布版本不可撤回」**——这正是 §6 发布前门禁必须可执行的原因。
+
+> **2026-09-23 补口径（工具链 `moon 0.1.20260920`）**：CLI 已有 `moon deprecate <module>`，
+> 可**整模块**标记弃用 / `--undo` 恢复（作用于**所有已发版本**，不支持按版本处理；
+> 弃用仅使依赖解析告警，**不影响版本选择**）。即：**模块级可「弃用」，单版本仍不可撤回**。
+> 口径、`--help` 原文与复跑见
+> [moonbit-工具链版本与特性适配评估.md](../01-规格/moonbit-工具链版本与特性适配评估.md) §4.1。
 
 ---
 
@@ -426,7 +431,7 @@ moon build cmd/main --target wasm-gc --release
 | R2 | `repository` 非 GitHub | 生态可达性/信誉 | A2 决策 |
 | R3 | 归档含 `scripts/`/`docs/` | 分发面混杂、体积增大 | ✅ 已解：A3 落地，155→32（现 34）项，`publish-check.sh` 守基线 |
 | R4 | 仅 `wasm-gc` 单后端 | 下游 `js`/`native` 编译被拒 | 已在 README 声明；可考虑后续补 `js` 后端（另立任务） |
-| R5 | 官方文档未给 `yank` 命令 | 发布不可逆 | ✅ 已缓解：§5.4 + `publish-check.sh` 已可执行 |
+| R5 | 官方无**按版本** yank；`moon deprecate` 仅整模块弃用 | 单版本发布不可逆 | ✅ 已缓解：§5.4（含 09-23 补口径）+ `publish-check.sh` 已可执行 |
 | R6 | `missing_doc` 未接入 | 公共 API 无文档，mooncakes 文档页质量低 | B1（实测公共 API 仅缺 1 处，余 12 处在 internal） |
 | R7 | 仓库文档大量引用 CNB Issue/PR | 外部读者断链（相对链接门禁只查仓内） | 已有 `docs-link-check.sh` 兜仓内；外链属已知边界 |
 

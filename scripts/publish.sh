@@ -107,7 +107,7 @@ fi
 # ---- ⑤ 真实发布（不可逆）----------------------------------------------------
 echo "--- ⑤ 真实发布 moon publish（不可逆）---"
 echo "    即将发布: ${name_val}@${ver_val} 至 mooncakes.io"
-echo "    官方文档未提供 yank/撤回命令 ⇒ 一旦发布不可撤回。"
+echo "    官方无「按版本撤回」（moon deprecate 仅整模块弃用）⇒ 单版本一旦发布不可撤回。"
 if (( ASSUME_YES )); then
   if [[ "${CONFIRM_NAME:-}" != "$name_val" ]]; then
     echo "  ❌ 非交互确认失败：CONFIRM_NAME 与 moon.mod 的 name 不一致" >&2
