@@ -190,7 +190,7 @@ moon test --target wasm-gc
   复跑 `bash scripts/bench-layer2.sh`　→ [S9d](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9d-与moonbit生态QR包性能对比.md)
 - **体积 vs fast_qr**：库对库对称锚点 **≈0.65×**（本仓库更小）；差距大头是**运行时地板**，非 QR 实现。
   复跑 `bash scripts/bench-size.sh`　→ [S9i](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9i-纯库调用体积探针与库实际体积.md)
-- **优化状态**：已落地 P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b，V40H 受控 A/B **−26%**（输出逐位不变）；
+- **优化状态**：已落地 P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b + **矩阵介质去 `Array` 间接（`FixedArray[Int]`，V40 宿主 ≈−15%、体积 ≈−6%）**，V40H 受控 A/B **−26%**（输出逐位不变）；
   待做与上限见 [S9n](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9n-优化方案复评与wasm-gc收敛审计.md) · [S9k](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9k-性能瓶颈与理论上限评估.md)
 - **报告纪律**：只引用**同 run 内成对比值**；绝对毫秒绑定 Node 版本与调度态，跨环境不可比（[S9q](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9q-性能口径统计差异与取平均评估.md)）。
 

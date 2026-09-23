@@ -228,8 +228,9 @@ moon build lib --target native --release                                   # 预
   `lib/fast_qr_moonbit_test.mbt:46`、`lib/fast_qr_moonbit_wbtest.mbt:111` 断言，且 `data` 是 `pub(all)`；
   **不动公共契约就无法省掉恒 31329 槽的分配**——即 P1a 与 P1b 实为同一决策，须先做公共 API 评审（未实施）。
 - **P2b 本轮只合并 N4**：N2(`score_squares`) 仍为独立趟；将其并入行对扫描的收益与风险须单独设计。
-- **P3 仍未动**：介质窄化必须**先做 `Array[Int]`/`FixedArray[Byte]`/`Bytes` 三向微基准**（H4），
-  且不得再引用 P2 的 1.26×（H1）。
+- **P3 已动（2026-09-24）**：三向微基准与真码两版已做（见 [S9s](S9s-数组介质与字节加速-真实A-B实测.md)），
+  **`FixedArray[Int]` 已落地 `main`（`ea7d7ae`）**；结论修正为「收益来自**去 `Array` 间接**而非字节窄化」，
+  且**不再**引用 P2 的 1.26×（H1）。
 - **P4 / `T-R1/T-R2` 已随 ReadOnlyArray 落地**（§6.5，性能复验见 §6.6）：`pipe`(encode+RS) 仅 2.5%，
   整 build 实测 **≈0.9%**（分辨率边缘）；T-R5（RS 分配复用）仍待做。
 
