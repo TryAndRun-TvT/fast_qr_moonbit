@@ -51,16 +51,21 @@ fn random_bytes(rng : Lcg, n : Int) -> Array[Byte] {
 /// 且三个 finder 外角类型号恒为 finder（1）、dark module 类型号恒为 dark（6）。
 test "t4a1_size_and_finder_invariant" {
   let rng = Lcg::new(20260913)
-  let vl : Array[Version] = [
-    Version::V01,
-    Version::V02,
-    Version::V05,
-    Version::V10,
-    Version::V14,
-    Version::V26,
-    Version::V40,
+  let vl : Array[@lib.Version] = [
+    @lib.Version::V01,
+    @lib.Version::V02,
+    @lib.Version::V05,
+    @lib.Version::V10,
+    @lib.Version::V14,
+    @lib.Version::V26,
+    @lib.Version::V40,
   ]
-  let el : Array[ECL] = [ECL::L, ECL::M, ECL::Q, ECL::H]
+  let el : Array[@lib.ECL] = [
+    @lib.ECL::L,
+    @lib.ECL::M,
+    @lib.ECL::Q,
+    @lib.ECL::H,
+  ]
   let mut trial = 0
   let mut ok = 0
   while trial < 200 {
@@ -69,7 +74,7 @@ test "t4a1_size_and_finder_invariant" {
     // 内容长度取版本容量的一个小比例，确保可容纳
     let len = 1 + rng.below(8)
     let input = random_bytes(rng, len)
-    match QRBuilder::new(input).ecl(ecl).version(ver).build() {
+    match @lib.QRBuilder::new(input).ecl(ecl).version(ver).build() {
       Ok(qr) => {
         ok += 1
         let sz = qr.size()
@@ -125,20 +130,24 @@ test "t4a1_size_and_finder_invariant" {
 /// 属性 ②：同一输入、8 种固定 mask → 恰好 8 个互不相同矩阵（每对至少一格不同）。
 test "t4a2_masks_distinct" {
   let input = bstr("property-mask-distinct")
-  let mats : Array[Array[Module]] = []
-  let masks : Array[Mask] = [
-    Mask::Checkerboard,
-    Mask::HorizontalLines,
-    Mask::VerticalLines,
-    Mask::DiagonalLines,
-    Mask::LargeCheckerboard,
-    Mask::Fields,
-    Mask::Diamonds,
-    Mask::Meadow,
+  let mats : Array[Array[@lib.Module]] = []
+  let masks : Array[@lib.Mask] = [
+    @lib.Mask::Checkerboard,
+    @lib.Mask::HorizontalLines,
+    @lib.Mask::VerticalLines,
+    @lib.Mask::DiagonalLines,
+    @lib.Mask::LargeCheckerboard,
+    @lib.Mask::Fields,
+    @lib.Mask::Diamonds,
+    @lib.Mask::Meadow,
   ]
   for m in masks {
     match
-      QRBuilder::new(input).ecl(ECL::L).version(Version::V05).mask(m).build() {
+      @lib.QRBuilder::new(input)
+      .ecl(@lib.ECL::L)
+      .version(@lib.Version::V05)
+      .mask(m)
+      .build() {
       Ok(qr) => mats.push(qr.data())
       Err(_) => fail("t4a2: build failed for mask=" + m.to_int().to_string())
     }
@@ -167,18 +176,23 @@ test "t4a2_masks_distinct" {
 /// 属性 ③：QRBuilder 链式 == QRCode::build，在随机 (ecl, version, mask) 参数下恒等。
 test "t4a3_builder_equals_build" {
   let rng = Lcg::new(777)
-  let vl : Array[Version] = [
-    Version::V01,
-    Version::V05,
-    Version::V10,
-    Version::V40,
+  let vl : Array[@lib.Version] = [
+    @lib.Version::V01,
+    @lib.Version::V05,
+    @lib.Version::V10,
+    @lib.Version::V40,
   ]
-  let el : Array[ECL] = [ECL::L, ECL::M, ECL::Q, ECL::H]
-  let ml : Array[Mask] = [
-    Mask::Checkerboard,
-    Mask::VerticalLines,
-    Mask::Fields,
-    Mask::Meadow,
+  let el : Array[@lib.ECL] = [
+    @lib.ECL::L,
+    @lib.ECL::M,
+    @lib.ECL::Q,
+    @lib.ECL::H,
+  ]
+  let ml : Array[@lib.Mask] = [
+    @lib.Mask::Checkerboard,
+    @lib.Mask::VerticalLines,
+    @lib.Mask::Fields,
+    @lib.Mask::Meadow,
   ]
   let mut trial = 0
   while trial < 100 {
@@ -186,8 +200,8 @@ test "t4a3_builder_equals_build" {
     let ecl = el[rng.below(4)]
     let mask = ml[rng.below(4)]
     let input = random_bytes(rng, 1 + rng.below(6))
-    let a = QRBuilder::new(input).ecl(ecl).version(ver).mask(mask).build()
-    let b = QRCode::build(input, None, Some(ecl), Some(ver), Some(mask))
+    let a = @lib.QRBuilder::new(input).ecl(ecl).version(ver).mask(mask).build()
+    let b = @lib.QRCode::build(input, None, Some(ecl), Some(ver), Some(mask))
     match (a, b) {
       (Ok(qa), Ok(qb)) =>
         if qa.data() != qb.data() {
@@ -214,14 +228,18 @@ test "t4a3_builder_equals_build" {
 test "t4a4_immutable_no_alias" {
   let rng = Lcg::new(4242)
   let input = bstr("immutability")
-  match QRBuilder::new(input).ecl(ECL::M).version(Version::V05).build() {
+  match
+    @lib.QRBuilder::new(input)
+    .ecl(@lib.ECL::M)
+    .version(@lib.Version::V05)
+    .build() {
     Ok(qr) => {
       let before = qr.data()
       let mut trial = 0
       while trial < 100 {
         let r = rng.below(qr.size())
         let c = rng.below(qr.size())
-        let _ = qr.set(r, c, Module::data(true))
+        let _ = qr.set(r, c, @lib.Module::data(true))
         trial += 1
       }
       let after = qr.data()

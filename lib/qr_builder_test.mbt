@@ -11,18 +11,18 @@
 test "qr_builder_chain_equals_build_fixed" {
   let input = bstr("hi")
   // 指定 mode/ecl/version/mask：走固定 mask 路径
-  let via_builder = QRBuilder::new(input)
-    .mode(Mode::Byte)
-    .ecl(ECL::L)
-    .version(Version::V05)
-    .mask(Mask::Fields)
+  let via_builder = @lib.QRBuilder::new(input)
+    .mode(@lib.Mode::Byte)
+    .ecl(@lib.ECL::L)
+    .version(@lib.Version::V05)
+    .mask(@lib.Mask::Fields)
     .build()
-  let via_func = QRCode::build(
+  let via_func = @lib.QRCode::build(
     input,
-    Some(Mode::Byte),
-    Some(ECL::L),
-    Some(Version::V05),
-    Some(Mask::Fields),
+    Some(@lib.Mode::Byte),
+    Some(@lib.ECL::L),
+    Some(@lib.Version::V05),
+    Some(@lib.Mask::Fields),
   )
   match (via_builder, via_func) {
     (Ok(a), Ok(b)) => {
@@ -38,16 +38,16 @@ test "qr_builder_chain_equals_build_fixed" {
 test "qr_builder_chain_equals_build_auto" {
   let input = bstr("Hello World!")
   // 固定 mode/ecl/version、mask=None → 自动择优
-  let via_builder = QRBuilder::new(input)
-    .mode(Mode::Byte)
-    .ecl(ECL::M)
-    .version(Version::V02)
+  let via_builder = @lib.QRBuilder::new(input)
+    .mode(@lib.Mode::Byte)
+    .ecl(@lib.ECL::M)
+    .version(@lib.Version::V02)
     .build()
-  let via_func = QRCode::build(
+  let via_func = @lib.QRCode::build(
     input,
-    Some(Mode::Byte),
-    Some(ECL::M),
-    Some(Version::V02),
+    Some(@lib.Mode::Byte),
+    Some(@lib.ECL::M),
+    Some(@lib.Version::V02),
     None,
   )
   match (via_builder, via_func) {
@@ -65,8 +65,8 @@ test "qr_builder_chain_equals_build_auto" {
 /// 且 mode 自动回退（纯数字→Numeric）、ecl 默认 Q、version 最小、mask 自动择优。
 test "qr_builder_default_auto_path" {
   let input = bstr("12345") // 纯数字 → Numeric 模式
-  let via_builder = QRBuilder::new(input).build()
-  let via_func = QRCode::build(input, None, None, None, None)
+  let via_builder = @lib.QRBuilder::new(input).build()
+  let via_func = @lib.QRCode::build(input, None, None, None, None)
   match (via_builder, via_func) {
     (Ok(a), Ok(b)) => {
       assert_eq(a.data(), b.data())
@@ -75,9 +75,9 @@ test "qr_builder_default_auto_path" {
       assert_eq(a.mask(), b.mask())
       assert_eq(a.mode(), b.mode())
       // 语义核对：ecl 默认 Q；mode 自动回退 Numeric
-      assert_eq(a.ecl(), Some(ECL::Q))
-      assert_eq(a.mode(), Some(Mode::Numeric))
-      assert_eq(a.version(), Some(Version::V01))
+      assert_eq(a.ecl(), Some(@lib.ECL::Q))
+      assert_eq(a.mode(), Some(@lib.Mode::Numeric))
+      assert_eq(a.version(), Some(@lib.Version::V01))
     }
     _ => fail("expected both Ok")
   }
@@ -87,8 +87,8 @@ test "qr_builder_default_auto_path" {
 /// QRBuilder::from_string 便捷入口等价于 QRBuilder::new(字节数组)。
 test "qr_builder_from_string_equals_bytes" {
   let s = "https://example.com/"
-  let via_str = QRBuilder::from_string(s).build()
-  let via_bytes = QRBuilder::new(bstr(s)).build()
+  let via_str = @lib.QRBuilder::from_string(s).build()
+  let via_bytes = @lib.QRBuilder::new(bstr(s)).build()
   match (via_str, via_bytes) {
     (Ok(a), Ok(b)) => assert_eq(a.data(), b.data())
     _ => fail("expected both Ok")
@@ -99,7 +99,7 @@ test "qr_builder_from_string_equals_bytes" {
 /// QRBuilder 错误面：数据超 V40 容量 → Err(EncodedData)。
 test "qr_builder_data_too_big" {
   let input = Array::make(2000, b'x')
-  let r = QRBuilder::new(input).mode(Mode::Byte).build()
+  let r = @lib.QRBuilder::new(input).mode(@lib.Mode::Byte).build()
   match r {
     Ok(_) => fail("expected Err(EncodedData)")
     Err(e) => if e != EncodedData { fail("expected EncodedData, got other") }
@@ -110,7 +110,7 @@ test "qr_builder_data_too_big" {
 /// QRBuilder 错误面：指定版本小于最小适配 → Err(SpecifiedVersion)。
 test "qr_builder_version_too_small" {
   let input = bstr("1234567890123456789012345678") // Numeric-Q 需 V02
-  let r = QRBuilder::new(input).version(Version::V01).build()
+  let r = @lib.QRBuilder::new(input).version(@lib.Version::V01).build()
   match r {
     Ok(_) => fail("expected Err(SpecifiedVersion)")
     Err(e) =>
@@ -135,7 +135,7 @@ test "t2d_mask_selection_considers_columns" {
   for ch in "https://fast-qr.com/".to_array() {
     inp.push(ch.to_int().to_byte())
   }
-  match QRBuilder::new(inp).ecl(ECL::H).build() {
+  match @lib.QRBuilder::new(inp).ecl(@lib.ECL::H).build() {
     Ok(qr) =>
       match qr.mask {
         Some(m) =>

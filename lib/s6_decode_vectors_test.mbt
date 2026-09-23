@@ -182,12 +182,12 @@ fn decode_fnv1a64(s : String) -> String {
 
 ///|
 /// 版本短名（`V1`..`V40`）→ 公共 `Version` 枚举（`V01`..`V40`）。
-fn decode_version(name : String) -> Version {
+fn decode_version(name : String) -> @lib.Version {
   match name {
-    "V1" => Version::V01
-    "V5" => Version::V05
-    "V10" => Version::V10
-    _ => Version::V40
+    "V1" => @lib.Version::V01
+    "V5" => @lib.Version::V05
+    "V10" => @lib.Version::V10
+    _ => @lib.Version::V40
   }
 }
 
@@ -195,17 +195,17 @@ fn decode_version(name : String) -> Version {
 /// 按向量参数**重新构建** QR 码，只用 pub API 逐格取明暗拼出矩阵串。
 fn decode_rebuild(v : DecodeVector) -> String {
   let mode = match v.mode {
-    "Numeric" => Mode::Numeric
-    "Alphanumeric" => Mode::Alphanumeric
-    _ => Mode::Byte
+    "Numeric" => @lib.Mode::Numeric
+    "Alphanumeric" => @lib.Mode::Alphanumeric
+    _ => @lib.Mode::Byte
   }
   let ecl = match v.ecl {
-    "L" => ECL::L
-    "M" => ECL::M
-    "Q" => ECL::Q
-    _ => ECL::H
+    "L" => @lib.ECL::L
+    "M" => @lib.ECL::M
+    "Q" => @lib.ECL::Q
+    _ => @lib.ECL::H
   }
-  let b = QRBuilder::from_string(v.content).mode(mode).ecl(ecl)
+  let b = @lib.QRBuilder::from_string(v.content).mode(mode).ecl(ecl)
   // kind 决定是否强制版本：`grid` 强制定长版本，`auto` 走自动最小适配（bug 靶点）。
   // 注：`version` 字符串已固化了实际选中版本，仅供失败信息定位用。
   // grid 语料强制其固化版本；auto 语料走自动最小适配（`select_capacity` 的 bug 靶点）。
