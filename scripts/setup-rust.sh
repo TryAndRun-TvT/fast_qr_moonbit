@@ -11,7 +11,7 @@
 # 注意：
 #   - 仅供开发环境做 MoonBit↔Rust 对比用，不接入 push CI（本仓库核心 CI 走 MoonBit，
 #     见 .cnb.yml / AGENTS.md「收尾检查」）。
-#   - native 后端 / 参考库原生构建仍需系统 C 编译器，见 docs/moonbit-工具链与构建-setup-分析.md。
+#   - native 后端 / 参考库原生构建仍需系统 C 编译器，见 docs/01-规格/moonbit-工具链与构建-setup-分析.md。
 #
 # 用法: bash scripts/setup-rust.sh
 set -euo pipefail

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # publish.sh —— mooncakes 发布脚本（**默认干跑**，显式 `--publish` 才真发）
 #
-# 目的：把 docs/mooncakes-发布方案.md §6-C 的发布动作从「记在文档里的一串命令」变成
+# 目的：把 docs/03-过程/mooncakes-发布方案.md §6-C 的发布动作从「记在文档里的一串命令」变成
 #   **一条可复跑、带前置门禁、默认不可逆动作需显式确认**的脚本。
 #   （`.cnb.yml` 不含任何发布动作：凭据属本地私有，AGENTS.md §一 禁止入库/进 CI。）
 #
@@ -70,7 +70,7 @@ echo "--- ② 发布前门禁 publish-check ---"
 if bash scripts/publish-check.sh; then
   echo "  ✅ 门禁通过"
 else
-  echo "  ❌ 门禁未通过：发布中止（发布不可逆，见 docs/mooncakes-发布方案.md §5.4）" >&2
+  echo "  ❌ 门禁未通过：发布中止（发布不可逆，见 docs/03-过程/mooncakes-发布方案.md §5.4）" >&2
   exit 1
 fi
 
@@ -132,7 +132,7 @@ set -e
 if (( pub_code == 0 )); then
   echo
   echo ">> 发布成功 ✅ —— https://mooncakes.io/docs/${name_val}"
-  echo "   后续：C4 核验页面渲染；C5 干净环境 moon add ${name_val} 验证（docs/mooncakes-发布方案.md §6-C）。"
+  echo "   后续：C4 核验页面渲染；C5 干净环境 moon add ${name_val} 验证（docs/03-过程/mooncakes-发布方案.md §6-C）。"
 else
   echo "!! 发布命令返回非 0（exit $pub_code）：请阅读上方输出定位原因" >&2
   echo "   常见：版本已存在（SemVer 不可重发）/ 网络 / 权限。" >&2
