@@ -70,9 +70,9 @@ fn point_name(ver : @lib.Version) -> String {
 /// 由用户传入的版本选择串解析为版本；无法识别回退 `None`。
 fn parse_point(s : String) -> @lib.Version? {
   match s {
-    "V03" => Some(@lib.Version::V03)
-    "V10" => Some(@lib.Version::V10)
-    "V40" => Some(@lib.Version::V40)
+    "V03" => Some(V03)
+    "V10" => Some(V10)
+    "V40" => Some(V40)
     _ => None
   }
 }
@@ -102,7 +102,7 @@ fn bench_point_checksum(ver : @lib.Version, n : Int) -> Int {
   let mut i = 0
   while i < n {
     let res = @lib.QRBuilder::from_string(bench_input())
-      .ecl(@lib.ECL::H)
+      .ecl(H)
       .version(ver)
       .build()
     match res {
@@ -149,7 +149,7 @@ fn bench_point_checksum(ver : @lib.Version, n : Int) -> Int {
 /// 输出全部经 println 落地，build 结果被消费，无死代码消除风险。
 fn dump_matrix(ver : @lib.Version) -> Unit {
   let res = @lib.QRBuilder::from_string(bench_input())
-    .ecl(@lib.ECL::H)
+    .ecl(H)
     .version(ver)
     .build()
   match res {
@@ -190,11 +190,7 @@ fn run_one(ver : @lib.Version, n : Int) -> Int {
 ///|
 /// 三版本各自跑默认迭代档（host 无版本选择时的一键全跑 / CI 冒烟）。
 fn run_all_default() -> Int {
-  let versions : Array[@lib.Version] = [
-    @lib.Version::V03,
-    @lib.Version::V10,
-    @lib.Version::V40,
-  ]
+  let versions : Array[@lib.Version] = [V03, V10, V40]
   let mut total = 0
   for ver in versions {
     total = total + run_one(ver, default_iters(ver))
@@ -225,23 +221,9 @@ struct T3dCase {
 /// 语料表（20 组，见 S10 T3-d 验收口径）。
 fn t3d_cases() -> Array[T3dCase] {
   let out : Array[T3dCase] = []
-  let modes : Array[@lib.Mode] = [
-    @lib.Mode::Numeric,
-    @lib.Mode::Alphanumeric,
-    @lib.Mode::Byte,
-  ]
-  let ecls : Array[@lib.ECL] = [
-    @lib.ECL::L,
-    @lib.ECL::M,
-    @lib.ECL::Q,
-    @lib.ECL::H,
-  ]
-  let vers : Array[@lib.Version] = [
-    @lib.Version::V01,
-    @lib.Version::V05,
-    @lib.Version::V10,
-    @lib.Version::V40,
-  ]
+  let modes : Array[@lib.Mode] = [Numeric, Alphanumeric, Byte]
+  let ecls : Array[@lib.ECL] = [L, M, Q, H]
+  let vers : Array[@lib.Version] = [V01, V05, V10, V40]
   for mode in modes {
     for ecl in ecls {
       for ver in vers {
@@ -268,13 +250,7 @@ fn t3d_cases() -> Array[T3dCase] {
           Alphanumeric => t3d_repeat('A', n)
           Byte => t3d_repeat('z', n)
         }
-        out.push(T3dCase::{
-          mode,
-          ecl,
-          version: Some(ver),
-          content,
-          kind: "grid",
-        })
+        out.push({ mode, ecl, version: Some(ver), content, kind: "grid", })
       }
     }
   }
@@ -283,15 +259,15 @@ fn t3d_cases() -> Array[T3dCase] {
   // 而 Byte 编码实际需 42 字节 → 后 16 字节被丢弃，矩阵**不可解码**（jsQR 返回 NULL）。
   // 覆盖三模式 × {H,Q}（H 容量最小、最易暴露），共 6 组。
   let autos : Array[(@lib.Mode, @lib.ECL, String)] = [
-    (@lib.Mode::Numeric, @lib.ECL::H, t3d_repeat('9', 40)),
-    (@lib.Mode::Numeric, @lib.ECL::Q, t3d_repeat('9', 40)),
-    (@lib.Mode::Alphanumeric, @lib.ECL::H, t3d_repeat('A', 40)),
-    (@lib.Mode::Alphanumeric, @lib.ECL::Q, t3d_repeat('A', 40)),
-    (@lib.Mode::Byte, @lib.ECL::H, t3d_repeat('z', 40)),
-    (@lib.Mode::Byte, @lib.ECL::Q, t3d_repeat('z', 40)),
+    (Numeric, H, t3d_repeat('9', 40)),
+    (Numeric, Q, t3d_repeat('9', 40)),
+    (Alphanumeric, H, t3d_repeat('A', 40)),
+    (Alphanumeric, Q, t3d_repeat('A', 40)),
+    (Byte, H, t3d_repeat('z', 40)),
+    (Byte, Q, t3d_repeat('z', 40)),
   ]
   for (mode, e, content) in autos {
-    out.push(T3dCase::{ mode, ecl: e, version: None, content, kind: "auto", })
+    out.push({ mode, ecl: e, version: None, content, kind: "auto", })
   }
   out
 }

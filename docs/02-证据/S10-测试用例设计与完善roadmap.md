@@ -35,7 +35,7 @@
 > **T3-d**（`cmd/bench --dump-case`，54 组语料：三模式 × 4 ECL × 4 版本 + 6 组自动版本靶点）、
 > **T3-c**（`lib/s6_decode_vectors_test.mbt`，11 条固化向量 + `snapshot_gen_decode_vectors.mjs`）、
 > **T5-b**（`coverage.sh --floor` 不下降门禁 + `S10b` 的 `coverage-floor` 标记）、
-> **T6-c**（`docs-link-check.sh` 死链检查，473 条相对链接；原进 push CI，现本地/按需执行）。
+> **T6-c**（`docs-link-check.sh` 死链检查；原进 push CI，现本地/按需执行）。
 > 变异对照由 v4 的 **19/19 提升至 21/21**（新增 M22/M23 两条，直指本轮修复的语义 bug）。
 > ⚠️ **本轮最大产出是 bug 修复而非测试**：`select_capacity` 的**模式语义**缺陷
 > （显式 `mode` 未参与容量判定 → 静默错数据、矩阵不可解码），详见 [S10c](S10c-select-capacity模式语义缺陷-定位与修复.md) 与附录 H。
@@ -518,7 +518,7 @@ T4-a 待 S9 性能优化收敛后再做（避免测试与实现同时大改）�
 17. [x] 规模护栏（T7-b）+ checksum 断言化（T7-c）+ 失败信息标准化（T7-a，`m1`/`s6` 快照）
 17b. [x] 测试规模护栏（T7-b，`scripts/test-scale.sh`；原挂 push CI，**2026-09-14 push 流水线移除后改为本地/按需执行**）
 18. [x] `AGENTS.md` 测试小节（三载体 + 七铁律 + 例行检查）（T6-a）
-18b. [x] 文档互链死链检查（T6-c，`scripts/docs-link-check.sh`，473 条相对链接；原进 push CI，**现本地/按需执行**）
+18b. [x] 文档互链死链检查（T6-c，`scripts/docs-link-check.sh`；原进 push CI，**现本地/按需执行**）
 
 ## 附录 D：T3 解码回读「已实测」结论（2026-09-13，本环境实跑）
 
@@ -749,7 +749,7 @@ T5-b（覆盖率下限「不下降」锁定）、T6-c（本文与 README 互链�
 | T3-d | `cmd/bench/main.mbt` `--dump-case list\|<n>\|all` | **54 组**语料（三模式 × 4 ECL × {V01,V05,V10,V40} = 48 + **6 组自动版本靶点**）；矩阵协议与 `--dump` 完全一致，另加 `QR_CASE` 元数据行 | 54/54 jsQR 读回原文；旧实现下 4 组 NULL |
 | T3-c | `lib/s6_decode_vectors_test.mbt` + `scripts/snapshot_gen_decode_vectors.mjs` | **11 条**固化向量（5 组 grid 四角 + **全部 6 组 auto 靶点**）；FNV-1a 64 指纹（core 无 sha256，黑盒可复算） | 140 用例全绿；旧实现下本用例变红 |
 | T5-b | `scripts/coverage.sh --floor` + `docs/S10b-…` 顶部 `coverage-floor` 标记 | **「不下降」门禁**（`lib/**` 未覆盖行 ≤ 登记上限）；不设绝对百分比阈值（避免造无信息量用例） | 实跑：26 ≤ 26 ✅；人为调低上限 → 退出码 1 ❌ |
-| T6-c | `scripts/docs-link-check.sh`（原进 push CI，现本地/按需执行） | 受版本控制 Markdown 的**相对链接**存在性检查；跳过外链/锚点；**忽略代码块** | 53 文件 / **473 条**相对链接，零死链；植入假死链 → 退出码 1 |
+| T6-c | `scripts/docs-link-check.sh`（原进 push CI，现本地/按需执行） | 受版本控制 Markdown 的**相对链接**存在性检查；跳过外链/锚点；**忽略代码块** | 零死链（文件数/条数以实跑为准）；植入假死链 → 退出码 1 |
 | — | `.cnb.yml` | push 阶段新增 `docs-link-check` 与 `test-scale` 两个零依赖 stage（已随 2026-09-14 push 流水线移除） | Schema 校验通过 |
 | — | `scripts/test-audit.sh` | `decode` 增跑 T3-d 全语料；新增 M22/M23 | 21/21 全检出（编号有缺号，条数=脚本行数） |
 

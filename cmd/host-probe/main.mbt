@@ -29,9 +29,9 @@ const HOST_INPUT : String = "https://example.com/"
 /// 版本选择号 → 强制版本；越界回退 V03。
 fn host_version(sel : Int) -> @lib.Version {
   match sel {
-    1 => @lib.Version::V10
-    2 => @lib.Version::V40
-    _ => @lib.Version::V03
+    1 => V10
+    2 => V40
+    _ => V03
   }
 }
 
@@ -40,8 +40,7 @@ fn host_version(sel : Int) -> @lib.Version {
 /// `size + get(0,0) + get(sz-1,sz-1) + get(sz/2,sz/2) + mask + mode + ecl + version`。
 /// 与 cmd/bench 同式即可让 JS 宿主与 CLI 两个口径在同一参数下互相验证。
 fn host_checksum(content : String, ver : @lib.Version) -> Int {
-  match
-    @lib.QRBuilder::from_string(content).ecl(@lib.ECL::H).version(ver).build() {
+  match @lib.QRBuilder::from_string(content).ecl(H).version(ver).build() {
     Ok(q) => {
       let sz = q.size()
       let mut cs = sz

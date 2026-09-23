@@ -143,7 +143,7 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 
 ```bash
 bash scripts/test.sh          # moon test（黑盒 + 白盒）
-bash scripts/test-scale.sh    # 单测试文件 ≤800 行护栏（进 push CI）
+bash scripts/test-scale.sh    # 单测试文件 ≤800 行护栏（进 gates）
 bash scripts/docs-link-check.sh       # 文档互链死链检查（进 gates）
 bash scripts/docs-ref-check.sh        # 章节引用门禁：S<N>x §M 须在被引篇目存在该节（S12b §15.2）
 bash scripts/docs-index.sh --verify   # 索引 §8 清单与实跑一致（生成物，勿手改；S12b §15.1）
@@ -155,9 +155,17 @@ bash scripts/gen-goldens.sh --verify  # 黄金值未漂移（需 fast_qr 检出�
 bash scripts/diff-gate.sh     # 与参考 wasm 逐位 sha256（无制品时显式 skipped）
 bash scripts/coverage.sh              # 覆盖率报告（T5-a，仅报告）
 bash scripts/coverage.sh --floor      # 覆盖率不下降门禁（T5-b）
+bash scripts/toolchain-probe.sh       # 工具链版本 + **全部**告警（含默认关闭）+ 依赖图（只读/非阻断；适配评估 P1）
 ```
 
 > 新增/修改一个模块的实现后，建议重跑 `test-audit.sh mutation`，确认该模块仍有有效测试。
+>
+> **工具链漂移（适配评估 §6-P4）**：每次 `moon upgrade`、或改动 `scripts/setup-moonbit.sh` 后，必跑
+> `bash scripts/toolchain-probe.sh`——工具链升级会让**默认开启**的新告警直接砸红门禁，
+> 而**默认关闭**的告警（如 `0073`/`0074`）平时看不见，只能靠 `--warn-list +a` 提前发现。
+> 本仓**未钉版**（官方 CLI 只提供 `latest`/`nightly` 通道，具体版本 404），
+> 故 `setup-moonbit.sh` 采用「装 `latest` + 版本断言」把漂移显式化；判定与处置见
+> [工具链版本与特性适配评估](docs/01-规格/moonbit-工具链版本与特性适配评估.md)。
 
 ### 4. 变异检测 / 黄金值的操作纪律（v4 补充，均为实跑踩坑）
 

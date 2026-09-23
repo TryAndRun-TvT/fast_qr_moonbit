@@ -10,8 +10,7 @@
 #   原因是其耗时与资源占用对当前迭代节奏收益不成比例（每次推送都重复全量构建+测试）。
 #   门禁**不因移除而失效**：全部阶段命令本就抽离在 `scripts/` 下，一条命令跑全量：
 #
-#     bash scripts/gates.sh            # fmt-check → check → test → docs-link-check →
-#                                      # test-scale → build-and-run → diff-gate → publish-check
+#     bash scripts/gates.sh            # 跑全部阶段（阶段清单以脚本输出为准，勿在此写死）
 #     STAGES="check test" bash scripts/gates.sh    # 只跑指定阶段
 #     SKIP_SLOW=1        bash scripts/gates.sh    # 跳过 build-and-run
 #

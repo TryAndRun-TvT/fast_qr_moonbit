@@ -5,3 +5,9 @@ pkgtype(kind: "executable")
 import {
   "TryAndRun-TvT/fast_qr_moonbit/lib",
 }
+
+// 启用 `unnecessary_annotation`(0073)：本包枚举/结构体字面量在预期类型已知时**不写类型路径**。
+// 范围限 `cmd/**`（试点，S6-P2），不涉 lib 公共面；见
+// docs/01-规格/moonbit-工具链版本与特性适配评估.md §4.2。
+
+warnings = "+73"

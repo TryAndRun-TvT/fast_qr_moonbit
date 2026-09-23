@@ -17,16 +17,12 @@
 ///|
 /// 三基准点各 build 一次的校验总量（消费每次 Result，防死代码消除；口径同 cmd/bench 单点采样）。
 fn probe_checksum() -> Int {
-  let versions : Array[@lib.Version] = [
-    @lib.Version::V03,
-    @lib.Version::V10,
-    @lib.Version::V40,
-  ]
+  let versions : Array[@lib.Version] = [V03, V10, V40]
   let mut checksum = 0
   for ver in versions {
     match
       @lib.QRBuilder::from_string("https://example.com/")
-      .ecl(@lib.ECL::H)
+      .ecl(H)
       .version(ver)
       .build() {
       Ok(q) => {

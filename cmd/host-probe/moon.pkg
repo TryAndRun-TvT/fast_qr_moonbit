@@ -28,6 +28,10 @@ import {
   "TryAndRun-TvT/fast_qr_moonbit/lib",
 }
 
+// 启用 `unnecessary_annotation`(0073)：见 docs/01-规格/moonbit-工具链版本与特性适配评估.md §4.2。
+
+warnings = "+73"
+
 options(
   link: {
     "wasm-gc": {

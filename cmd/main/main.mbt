@@ -26,7 +26,7 @@ fn main {
   let svg = @lib.SvgBuilder::default()
     .module_color("#0000ff")
     .background_color("#ffffff")
-    .shape(@lib.Shape::RoundedSquare)
+    .shape(RoundedSquare)
     .to_str(qr)
   println(svg[:200].to_owned() + "...")
 }

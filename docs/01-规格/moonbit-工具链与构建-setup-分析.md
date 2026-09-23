@@ -1,6 +1,6 @@
 # MoonBit 工具链与构建 Setup 详细分析
 
-> **状态**：现行　｜　日期：2026-09-14　｜　索引：[docs/README.md](../README.md) §6
+> **状态**：现行　｜　日期：2026-09-23　｜　索引：[docs/README.md](../README.md) §6
 
 > 本文档基于官方文档
 > 《MoonBit 构建系统教程》(https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/tutorial.html)、
@@ -99,7 +99,7 @@ supported_targets = "native"
 | 项 | 说明 |
 |----|------|
 | `MOON_HOME` | 覆盖安装根目录（默认 `~/.moon`） |
-| `MOONBIT_INSTALL_VERSION` | 指定安装版本（默认 `latest`） |
+| `MOONBIT_INSTALL_VERSION` | 指定安装版本（默认 `latest`）；⚠️ 实测**只有 `latest`/`nightly` 可用**，具体版本号会 404（见 §四.4） |
 | `MOONBIT_INSTALL_DEV` | 非空则安装 dev 版 |
 | `~/.moon/bin/moon` | 主 CLI，需保证在 `PATH` |
 | `moon help` / `moon upgrade` | 查看用法 / 升级工具链（`moon upgrade --force` 强制、`--dev` 装 dev） |
@@ -107,11 +107,13 @@ supported_targets = "native"
 ### 3. CI / 无交互 setup 建议
 
 - 上述 unix.sh 在无 TTY（CI）环境下 `Color`/`-t` 分支自动关闭，可非交互执行。
-- 推荐固定版本安装（避免 `latest` 漂移导致 CI 不可复现）：
+- ~~推荐固定版本安装（避免 `latest` 漂移导致 CI 不可复现）~~ ⚠️ **2026-09-23 订正：官方服务不支持按具体版本下载**
+  （实测 `binaries/<版本>/moonbit-linux-x86_64.tar.gz` 对 `0.1.20260920`/`0.10.14`/`v0.10.14` **一律 404**，
+  仅 `latest` / `nightly` 返回 200）——故**不能**用 `MOONBIT_INSTALL_VERSION` 钉死版本。
+  改由 `scripts/setup-moonbit.sh` 的「装 `latest` + **版本断言**」把漂移显式化（见 §四.4）：
 
 ```bash
-# 固定版本安装（moonbit 后端二进制下载）——示例
-export MOONBIT_INSTALL_VERSION=<具体版本>
+# 安装通道（只有 latest / nightly 可用；dev 通道设 MOONBIT_INSTALL_DEV=1）
 curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
 export PATH="$HOME/.moon/bin:$PATH"
 
@@ -180,16 +182,18 @@ moon build            # 构建当前包（可 --target、--release）
   符号链接布局；`moon.mod` 的 `readme` 指向 `README.md`，见 README「项目结构」）。
 - 布局检查与整改过程见 [moonbit-实现布局与文件职责.md](moonbit-实现布局与文件职责.md)。
 
-### 2. `.cnb.yml` CI 流水线集成
+### 2. `.cnb.yml` 集成（**现仅有 `vscode`**）
 
-在 `$` 分支下配置了两类事件：
+在 `$` 分支下**当前只配置一类事件**：
 
-- **`vscode`（云原生开发）**：初始化时安装 MoonBit 工具链，开发者可直接使用 `moon` 命令。
-- **`push`（代码推送 CI）**：工具链 setup → `moon fmt --check` → `moon check --deny-warn`
-  → `moon test` → `build-and-run`（wasm-gc）回归。
+- **`vscode`（云原生开发）**：初始化时安装 MoonBit 工具链（`bash scripts/setup-moonbit.sh`），开发者可直接使用 `moon` 命令。
+- ~~**`push`（代码推送 CI）**~~：原为 工具链 setup → `moon fmt --check` → `moon check --deny-warn`
+  → `moon test` → `build-and-run`（wasm-gc）回归；**已于 2026-09-14 整体移除**
+  （每次推送重复全量构建+测试，收益不成比例）。阶段命令本身**未删**，改为**本地一键**
+  `bash scripts/gates.sh`（详见 AGENTS.md §三、README「构建与运行」）。
 
 各阶段命令已**抽离到 `scripts/` 目录下的独立脚本**（`.cnb.yml` 仅以 `bash scripts/<name>.sh` 调用），
-便于维护与复用、避免各阶段重复内嵌长命令：
+便于维护与复用、避免各阶段重复内嵌长命令（下表为核心阶段，完整 11 阶段以 `scripts/gates.sh` 为准）：
 
 | 阶段 | 脚本 | 作用 |
 |------|------|------|
@@ -209,6 +213,18 @@ CI 无 TTY 环境下 setup 脚本自动去色，可非交互执行。
 - `.gitignore` 忽略 MoonBit 构建产物：`/_build/`、`/*.wasm`、`/*.js`、`*.mbti`，
   以及工具产生的 `.Trash-*/`（避免被 `git add -A` 误提交）。
 - `LICENSE` 采用 Apache-2.0（与 `moon.mod` 中 license 字段一致）。
+
+### 4. 版本可复现性（2026-09-23）
+
+- **官方 CLI 只服务 `latest` / `nightly` 通道**：按具体版本号下载会 **404**
+  （实测 `0.1.20260920` / `0.10.14` / `v0.10.14` 全 404，仅 `latest`/`nightly` 200）
+  ⇒ **无法**钉死具体版本。
+- 故 `scripts/setup-moonbit.sh` 采用「装 `latest` + **装后断言**实际版本 == `MOON_EXPECTED_VERSION`」：
+  不符时**默认告警**（同 `docs-date-check.sh` 的「提示不阻断」风格），`MOON_STRICT_VERSION=1` 时**非零退出**。
+- 漂移探针：`bash scripts/toolchain-probe.sh`（版本对照 + `moon check --warn-list +a` 直方图 + 依赖图；只读/非阻断）。
+- 纪律（适配评估 §6-P4）：每次 `moon upgrade`、或改动 `setup-moonbit.sh` 后**必跑**探针（登记见 AGENTS.md §三.3）。
+- 完整判定、潜伏告警与优化记录见
+  [moonbit-工具链版本与特性适配评估.md](moonbit-工具链版本与特性适配评估.md)。
 
 ## 五、官方链接
 
