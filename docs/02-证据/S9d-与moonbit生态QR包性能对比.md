@@ -6,6 +6,10 @@
 
 > 本文件由原 S9d-与moonbit生态QR包性能对比-方案 / S9d-与moonbit生态QR包性能对比-实现记录 / S9d-与moonbit生态QR包性能对比-详细分析 / S9d-moonbitqrcode快速原因与产物对比-分析 / S9d-moonbitqrcode固定mask0缺陷与主流对比 于 2026-09-11 合并而成（文档整合，见 roadmap M3 收口后整理）。
 > 内容除标题降级与本头部外未改写；各部分头部的承接/修订注记原样保留。
+>
+> **后续（2026-09-24）**：生态对比已**复测并脚本化** → [S9u](S9u-生态对比复测-moonqr-moonCLI直调.md)
+> （本仓库 vs moonqr 当前比值 **2.7–4.3×**；`bash scripts/bench-moonqr.sh` 一条命令复跑）。
+> **本文以下数字为 2026-09-06 首跑快照**，绝对 ms 跨会话不可比（S9q 纪律）。
 
 ## 实现方案
 

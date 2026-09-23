@@ -89,10 +89,8 @@
 moon add TryAndRun-TvT/fast_qr_moonbit
 ```
 
-> **发布状态**：**已发布（首个版本）**；本页为**仓库当前文档**，
-> 可能领先于线上归档，精确版本以 [mooncakes 页面](https://mooncakes.io/docs/TryAndRun-TvT/fast_qr_moonbit) 为准。
-> 发布流程与发布前门禁见[文档索引](#文档索引) → 发布相关篇目；
-> 发布动作已脚本化：`bash scripts/publish.sh`（默认干跑，`--publish` 真发）。
+> **发布状态**：**已发布（首个版本）**；本页为**仓库当前文档**，可能领先于线上归档，
+> 精确版本以 [mooncakes 页面](https://mooncakes.io/docs/TryAndRun-TvT/fast_qr_moonbit) 为准。
 
 在 `moon.pkg` 中声明依赖并起别名（本库包路径为 `.../lib`，别名默认即目录名 `lib`）：
 
@@ -156,25 +154,17 @@ moon run   cmd/main               # 运行 CLI 演示（终端字符画 + SVG）
 moon test                         # 运行单元/快照/文档测试
 ```
 
-提交前本地收尾检查（对齐门禁）：
+提交前**必须**跑一次本地一键门禁（**没有 push CI**，2026-09-14 移除）：
 
 ```bash
-export PATH="$HOME/.moon/bin:$PATH"
-moon fmt && moon info && moon check --deny-warn && moon test
-moon build lib --target wasm-gc --release
-moon build cmd/main --target wasm-gc --release
-moon test --target wasm-gc
+bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SKIP_SLOW=1
 ```
 
-> **没有 push CI**（2026-09-14 移除，每次推送重复全量构建收益不成比例）。
-> 门禁改为**本地一键**：`bash scripts/gates.sh`（`fmt-check → check → test → docs-link-check →
-> docs-ref-check → docs-index → docs-consistency → test-scale → build-and-run → diff-gate → publish-check`；
-> 支持 `STAGES="check test"` / `SKIP_SLOW=1`）。
-> 提交前跑一遍是**必须**动作。脚本分组与逐个用途见
+> 门禁阶段清单、脚本分组与逐个用途见
+> [AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/AGENTS.md) §三 ·
 > [S9r §4 脚本分组](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接)。
-
-`-Oz` 体积最优档的命令、`moon-wasm-opt` 参数与「为何要 `--disable-custom-descriptors`」，
-见 [S9r §1](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#1-产物体积release-bash-scriptsbench-sizesh)。
+> `-Oz` 体积最优档的命令、`moon-wasm-opt` 参数与「为何要 `--disable-custom-descriptors`」，见
+> [S9r §1](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#1-产物体积release-bash-scriptsbench-sizesh)。
 
 ---
 
@@ -186,8 +176,8 @@ moon test --target wasm-gc
 - **性能 vs fast_qr-wasm32**：单次 build 慢 **≈1.0–2.2×**（点数越小差距越大），
   **逐位对齐 sha256 零差异**；差距集中在 8 轮掩码择优主循环。
   复跑 `bash scripts/bench-host.sh`　→ 口径 [S9p](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9p-宿主调用面性能口径-JS向wasm传参.md) · 离散 [S9q](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9q-性能口径统计差异与取平均评估.md)
-- **性能 vs 生态 `moonqr`**：全程快 **2.5–4.1×**（**历史口径**，未随最近一轮重测）。
-  复跑 `bash scripts/bench-layer2.sh`　→ [S9d](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9d-与moonbit生态QR包性能对比.md)
+- **性能 vs 生态 `moonqr`**：全程快 **2.7–4.3×**（同 run 比值；同输入 / ECL H / 强制版本 / 自动择优）。
+  复跑 `bash scripts/bench-moonqr.sh`（moon CLI 直调，钉版 `moonqr@0.2.0`）　→ [S9u](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9u-生态对比复测-moonqr-moonCLI直调.md)
 - **体积 vs fast_qr**：库对库对称锚点 **≈0.65×**（本仓库更小）；差距大头是**运行时地板**，非 QR 实现。
   复跑 `bash scripts/bench-size.sh`　→ [S9i](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9i-纯库调用体积探针与库实际体积.md)
 - **优化状态**：已落地 P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b + **矩阵介质去 `Array` 间接（`FixedArray[Int]`，V40 宿主 ≈−15%、体积 ≈−6%）**，V40H 受控 A/B **−26%**（输出逐位不变）；
@@ -233,24 +223,13 @@ moon test --target wasm-gc
 > 新增文档须同步更新该文件与本表，否则 `bash scripts/docs-link-check.sh` 与
 > `scripts/docs-consistency.sh` ③ 会红（死链零容忍 + 索引覆盖）。
 
-### 链接约定（本仓库文档纪律）
+### 链接约定（摘要）
 
 发布归档（mooncakes）**只收录随包分发面**（`README.md` / `LICENSE` / `lib/**` / `cmd/main` 等），
-`.moonignore` 显式排除 `/docs/` 与 `/AGENTS.md`。因此 README 里指向它们的**相对链接**
-在 mooncakes 落地页会被重写为 `assets.mooncakes.io/source/.../docs/...` 而 **404**。
-本页采用如下约定（由 `bash scripts/publish-check.sh` 的 ⑤ 断言兜底）：
-
-| 链接目标 | 形态 | 例 |
-|----------|------|-----|
-| `README.md` / `LICENSE` / `cmd/main/**`（**在归档内**） | 相对链接 | [`./cmd/main/main.mbt`](cmd/main/main.mbt) |
-| `docs/**` / `AGENTS.md`（**不在归档内**） | **仓库绝对链接**（`https://cnb.cool/.../-/blob/main/...`） | 见上表「我想… → 去哪」 |
-| 本页内锚点 | 相对锚点 | [快速开始](#快速开始) |
-| 图片资产 `docs/assets/**`（**不在归档内**） | **仓库绝对直链**（`/-/git/raw/main/...`，实测 `image/svg+xml`） | 本页头部示例二维码 |
-
-> **硬约束（门禁 ⑤ 断言）**：本页**不含**任何 `./docs/**` 或 `./AGENTS.md` 相对链接——
-> 否则归档读者必 404。在仓库内需要相对导航时，请到
-> [`docs/README.md`](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README.md)
-> （该文件在仓库内使用相对链接，属**仓库内导航面**；它不在归档内，故不受归档约束）。
+`.moonignore` 排除 `/docs/` 与 `/AGENTS.md`。故本页规则是：**归档内目标用相对链接；`docs/**` 与 `AGENTS.md`
+一律用仓库绝对链接**（`https://cnb.cool/.../-/blob/main/...`）；图片资产用 `/-/git/raw/main/...` 绝对直链。
+本页**不含**任何 `./docs/**` 相对链接（否则归档读者必 404）。完整纪律与 `publish-check.sh` ⑤ 断言见
+[AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/AGENTS.md) §四.4。
 
 ---
 
@@ -285,9 +264,8 @@ moon test --target wasm-gc
 └── LICENSE                     # Apache-2.0
 ```
 
-> **布局纪律**：模块根只放元数据；库代码一律 `lib/`，实现细节 `lib/internal/`，**不要建 `src/`**。
-> 唯一例外是根 `moon.pkg`（空包，README 文档测试宿主）。
-> 测试放所属包内，`*_test.mbt`（黑盒）与 `*_wbtest.mbt`（白盒）**不可混用**。
+> **布局纪律**：模块根只放元数据；库代码一律 `lib/`，实现细节 `lib/internal/`（**不要建 `src/`**）；
+> 唯一例外是根空 `moon.pkg`（README 文档测试宿主）；测试放所属包内，`*_test.mbt`（黑盒）与 `*_wbtest.mbt`（白盒）**不可混用**。
 > 文件级职责见 [moonbit-实现布局与文件职责.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/01-规格/moonbit-实现布局与文件职责.md)。
 
 ---
@@ -296,7 +274,7 @@ moon test --target wasm-gc
 
 - **硬性约定（贡献前必读）**：[AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/AGENTS.md)——密钥/Token 永不入库、
   不提交本地配置与构建产物、MoonBit 布局、文档死链零容忍、README 只保留结论+出处。
-- **门禁**：`bash scripts/gates.sh`（一键全量）。**没有 push CI**，本地跑是唯一自动闸门。
+- **门禁**：`bash scripts/gates.sh`（一键全量；**没有 push CI**，本地跑是唯一自动闸门）。
 - **发布**：`bash scripts/publish.sh`（默认干跑）。凭据属本地私有，**发布不进 CI**。
 - **问题与建议**：提交至仓库 [Issue](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/issues)。
 - **Git 钩子（可选）**：`git config core.hooksPath .githooks`（属个人本地配置，仓库不代设）。

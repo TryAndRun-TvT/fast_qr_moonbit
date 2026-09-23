@@ -82,13 +82,13 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 > （跨会话不可比）。
 
 复跑入口：`bash scripts/bench-host.sh`（宿主调用面）· `bench-host-var.sh`（统计稳定性）·
-`bench-layer2.sh`（层② vs fast_qr）· `bench.sh`（层① 后端）· `bench-size.sh`（体积）。
+`bench-layer2.sh`（层② vs fast_qr）· `bench-moonqr.sh`（生态 vs moonqr）· `bench.sh`（层① 后端）· `bench-size.sh`（体积）。
 统一口径：输入 `https://example.com/`=20B、ECL H、强制 V03/V10/V40、mask 自动择优。
 
 | 对比 | 结果 | 出处 |
 |------|------|------|
 | ① vs Rust fast_qr-wasm32（**默认后端 `wasm-gc`**） | 单次 build 慢 ≈**1.0–2.2×**（2026-09-23 介质换代后；原 ≈1.3–2.5×），逐位对齐 sha256 零差异；差距集中在 8 轮掩码择优主循环 | 明细见下表 · [S9p](S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9j](S9j-层②统一Node对比-wasm-gc与fast_qr.md) |
-| ② vs moonbit 生态 `moonqr`（同宿主、完整实现可比子集） | 本仓库全程快 **2.5–4.1×**（V03H 0.318 vs 0.805、V40H 9.46 vs 38.29 ms/单次，历史口径） | [S9d](S9d-与moonbit生态QR包性能对比.md) |
+| ② vs moonbit 生态 `moonqr`（同宿主、同输入/ECL/强制版本/自动择优） | 本仓库全程快 **2.7–4.3×**（同 run 比值；2026-09-24 复测，钉版 `moonqr@0.2.0`） | [S9u](S9u-生态对比复测-moonqr-moonCLI直调.md)（旧值见 [S9d](S9d-与moonbit生态QR包性能对比.md)） |
 | ③ 产物体积 vs fast_qr | `wasm-gc` 各口径均更小（对称锚点 **0.65×**，2026-09-23 介质换代后；原 0.69×） | [§1.1](#11-与-fast_qr-的体积对比库对库主口径) · [S9i](S9i-纯库调用体积探针与库实际体积.md) |
 
 > ① 的数据随 P0/P2/P2b 优化已刷新（2026-09-12 重测）；② 为优化前（2026-09-06）历史口径，
@@ -183,7 +183,7 @@ README 只留一行「`bash scripts/<name>.sh` + 指向 `scripts/` 目录」。
 | **全量门禁** | **`gates.sh`**（`fmt-check` → `check` → `test` → `docs-link-check` → `test-scale` → `build-and-run` → `diff-gate` → `publish-check`） | **本地** |
 | **发布** | **`publish.sh`**（默认干跑；`--publish` 才真发，需确认） | **本地（不进 CI）** |
 | 门禁链单项 | `fmt-check.sh` → `check.sh` → `test.sh` → `build-and-run.sh` | 本地（亦由 `gates.sh` 串起） |
-| 性能基准 | **`bench-host.sh` + `host-bench.mjs`（宿主调用面：JS 反复带参调 wasm，主口径）**、`bench-host-var.sh` + `bench-host-var.mjs`（统计稳定性）、`bench.sh`（层①）、`bench-layer2.sh` + `gc-compare.mjs`（层② vs fast_qr） | ❌ |
+| 性能基准 | **`bench-host.sh` + `host-bench.mjs`（宿主调用面：JS 反复带参调 wasm，主口径）**、`bench-host-var.sh` + `bench-host-var.mjs`（统计稳定性）、`bench.sh`（层①）、`bench-layer2.sh` + `gc-compare.mjs`（层② vs fast_qr）、`bench-moonqr.sh`（生态对比 vs moonqr，moon CLI 直调，见 [S9u](S9u-生态对比复测-moonqr-moonCLI直调.md)） | ❌ |
 | 体积基准 | `bench-size.sh` + `wasm-size.mjs`（同规则口径 + 纯库探针 + 语义护栏） | ❌ |
 | 外部检出 | `build-fast-qr-wasm.sh`（fast_qr 侧产物，检出副本不入库） | ❌ |
 | 测试审计 | `test-audit.sh`（变异检测 + 解码回读）+ `apply-mutation.py` + `qr-decode-check.mjs`（`--points` 三点 / `--corpus` T3-d 54 组） | ❌ |
