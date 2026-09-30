@@ -311,7 +311,7 @@ lib/qr_build.mbt:109                                  1   ← 唯一公共 API �
 | 1 | 账户名归属 | 维护者 | ✅ **已决策**：账户 = `TryAndRun-TvT`（决策依据即「`tryandrun` 名下 0 模块、索引 2473 模块无 `tryandrun`」）；改名已落地，见 [模块名迁移与发布链路核验.md](模块名迁移与发布链路核验.md) |
 | 2 | `repository` 指向 CNB vs GitHub | 维护者 | 实测 4 个同类 QR 包 `repository` **全部** github.com（含 `bobzhang/qrc`/`moonqr`/`moonbitqrcode`/`qrcode.mbt`）；不影响 `moon add` 可达性 |
 | 3 | 是否把 0074 纳入 CI 门禁 | 维护者 | 见 §4.4，倾向 B（补全 13 处） |
-| 4 | `readme` 迁移到 `README.mbt.md` | 维护者 | [`docs/03-过程/mooncakes-发布方案.md`](mooncakes-发布方案.md) §4.2 已评估，建议 0.1.1 跟进 |
+| 4 | `readme` 迁移到 `README.mbt.md` | 维护者 | ✅ **已落地**：仓库现为「`README.md` 实体正文 + `README.mbt.md` 符号链接」，并新增根空 `moon.pkg` 作文档测试宿主（2026-09-14，见 [moonbit-实现布局与文件职责 §八](../01-规格/moonbit-实现布局与文件职责.md)） |
 
 **一个实测否定项（避免日后踩坑）**：`moon.mod` 写 `source = "lib"` 会**破坏构建**
 （实测报 `Cannot find import '.../lib/internal/data_encoding'`）。
@@ -326,10 +326,11 @@ lib/qr_build.mbt:109                                  1   ← 唯一公共 API �
 export PATH="$HOME/.moon/bin:$PATH"
 
 # ── #3 归档面 ─────────────────────────────────────────────
-moon package --list | grep -vE '^(Running|Check|Finished|Package to)' | wc -l   # -> 32
+moon package --list | grep -vE '^(Running|Check|Finished|Package to)' | wc -l   # -> 34（含 README.mbt.md 符号链接与根 moon.pkg）
+VER="$(grep -m1 '^version' moon.mod | sed -E 's/.*\"([^\"]+)\".*/\1/')"       # 版本以 moon.mod 为准，勿写死
 moon package && python3 -c "
-import zipfile; z=zipfile.ZipFile('_build/publish/TryAndRun-TvT-fast_qr_moonbit-0.1.0.zip')
-print(len(z.namelist()), 'items')"                                              # -> 32
+import zipfile, glob; z=zipfile.ZipFile(sorted(glob.glob('_build/publish/*-$VER.zip'))[-1])
+print(len(z.namelist()), 'items')"                                              # -> 34
 # 去掉 .moonignore 后同法 -> 155
 
 # ── #4 发布前门禁 ─────────────────────────────────────────

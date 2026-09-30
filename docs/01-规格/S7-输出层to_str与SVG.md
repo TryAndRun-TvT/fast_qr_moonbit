@@ -4,6 +4,12 @@
 
 > 本文件由原 S7-输出层to_str与SVG-实现方案 / S7-输出层to_str与SVG-实现记录 / S7-输出层to_str与SVG-实现评估与优化-记录 于 2026-09-11 合并而成（文档整合，见 roadmap M3 收口后整理）。
 > 内容除标题降级与本头部外未改写；各部分头部的承接/修订注记原样保留。
+>
+> ⚠️ **2026-09-25 后端口径修订（只修口径，不改历史记录）**：本文正文出现的「三后端
+> `wasm-gc`/`wasm`/`js`」「双后端」与 `for t in wasm-gc wasm js` 等**回归命令均为历史记载**。
+> 仓库现只有**一个后端 `wasm-gc`**（`moon.mod`：`supported_targets = "+wasm-gc"`；
+> `js` 与 `wasm`(WASI) 均已按项目决策移除）——**现行回归命令以 [AGENTS.md §二.4](../../AGENTS.md)
+> 与 `bash scripts/gates.sh` 为准**，照抄本文旧命令会因后端不存在而失败。
 
 ## 实现方案
 
@@ -224,7 +230,7 @@ S7 两块交付，属 **M2 之后的「输出面补齐」（roadmap §4.2 S7，�
 #### 5.4 门禁（沿用 AGENTS §二.4）
 ```bash
 moon fmt && moon info && moon check --deny-warn && moon test   # 预期 94 → 更多（随快照条数）
-for t in wasm-gc wasm; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done
+for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done   # 现行仅 wasm-gc
 ```
 - `.mbti` 护栏：`Shape`/`SvgBuilder`/`to_str`/`print` 新增公共 API 属预期；internal 层零改动则 internal
   各 `.mbti` 不变。

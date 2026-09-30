@@ -164,7 +164,7 @@ fn[T] unsafe_reinterpret_from_fixed_array(arr : FixedArray[T]) -> ReadOnlyArray[
 > 「`ReadOnlyArray`（**不可写**的 identity 别名）」与「`FixedArray`（可变、**少一层间接**）」**混谈**，
 > 读起来像「介质无关」，**低估**了矩阵介质收益。当时矩阵是 `Array[Int]`（两层 `{buf,len}`），
 > 换 `FixedArray[Int]`（一层）**确实降读成本**——实测 **V40 宿主 −15% / 体积 −6%**
-> （[S9s §10](S9s-数组介质与字节加速-真实A-B实测.md)）。本节其余结论（`ReadOnlyArray` 本身不是性能杠杆、
+> （[S9s §9](S9s-数组介质与字节加速-真实A-B实测.md)）。本节其余结论（`ReadOnlyArray` 本身不是性能杠杆、
 > 救不了 `wrap` 的逐格装箱税）**不变**。
 
 1. **score（V40 68%）**：评分前矩阵已被 `apply_mask` **就地翻转**（S9b 已否决「免写」换拷贝）；

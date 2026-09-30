@@ -334,7 +334,7 @@ moon run cmd/main --target wasm-gc   # 正常输出（当时另有 wasm/js；现
 | 单一 `README.md` → **恢复官方布局**（2026-09-14） | 见下「八、README 文档测试落地」：恢复 `README.mbt.md` + 符号链接，并新增根空 `moon.pkg` 作宿主，使示例受 `moon test` 保护 |
 | 符号链接方向 **回正**（2026-09-14 v4） | 见下「八、README 文档测试落地」末段：`README.md` 改回**实体正文**、`README.mbt.md` 改为指向它的符号链接；`moon.pkg` 宿主不变 |
 
-优化后验证：`fmt --check` / `check --deny-warn` / `test` / 三后端 `build+run+test` 全绿。
+优化后验证：`fmt --check` / `check --deny-warn` / `test` 全绿；后端回归当时为三后端，**现仅 `wasm-gc`**（`js`/`wasm`(WASI) 已移除，见 [AGENTS.md §二.3](../../AGENTS.md)）。
 
 ### 六、遗留待办
 

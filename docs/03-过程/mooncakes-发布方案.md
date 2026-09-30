@@ -13,7 +13,7 @@
 > - 官方《模块配置》<https://docs.moonbitlang.com/zh-cn/latest/toolchain/moon/module.html>
 > - 本仓库实测（工具链 `moon 0.1.20260904`；结论均标注「实测」）
 >
-> 日期：2026-09-14　｜　状态：**待评审 → 待执行**
+> 日期：2026-09-14　｜　状态：**已发布（首个版本 `0.1.0`；线上版本见 mooncakes 版本页，本文不写死）**
 >
 > **最新进展（2026-09-14）**：A3/B2 已落地；**A1 账户归属已决策并落地** —— mooncakes 账户为
 > `TryAndRun-TvT`，模块名 `tryandrun/fast_qr_moonbit` → `TryAndRun-TvT/fast_qr_moonbit`，
@@ -321,9 +321,19 @@ moon publish --dry-run     # ✅ 202 Accepted（exit 255 属已知 CLI 行为，
 
 ## 5. 版本与发布节奏
 
-### 5.1 首个版本：`0.1.0`
+### 5.1 首个版本：`0.1.0`（**已发布**）
 
-- 当前 `moon.mod` 已是 `0.1.0`，**无需改动**。
+> 📌 **2026-09-25 更新**：本节成文（2026-09-14）时 `moon.mod` 为 `0.1.0` 且尚未发布；
+> **现已发布**（首个版本 `0.1.0`，线上当前版本见
+> [mooncakes 版本页](https://mooncakes.io/docs/TryAndRun-TvT/fast_qr_moonbit)）。
+> **版本号是 `moon.mod` 的 `version` 字段（唯一真值源）**，本文**不写死**具体线上版本——
+> 写死必随下次发布漂移（S12 §6.2 D4）。查询：
+>
+> ```bash
+> grep -m1 '^version' moon.mod                              # 仓库当前版本
+> moon view TryAndRun-TvT/fast_qr_moonbit --versions        # 线上已发布版本
+> ```
+
 - 官方口径：`0.x.y` 属预发布语义，`0.1.0` 作为首个公开版本**语义恰当**
   （功能对齐 M0–M3 已收口，但外部 API 未承诺稳定）。
 

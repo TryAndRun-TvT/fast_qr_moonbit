@@ -244,7 +244,7 @@ moon fmt && moon info && moon check && moon test
 
 | 动作 | 依据 | 说明 |
 |------|------|------|
-| 新增 `README.md -> README.mbt.md` 符号链接（后已撤销，见 §3.3） | 官方布局含此链接 | 让 GitHub/GitLab 正常渲染首页；git 以 `mode 120000` 跟踪 |
+| 新增 `README.md -> README.mbt.md` 符号链接（**经历「撤销 → 方向回正」，最终保留 `README.mbt.md -> README.md`**，见 §3.3） | 官方布局含此链接 | 让 GitHub/GitLab 正常渲染首页；git 以 `mode 120000` 跟踪 |
 | `preferred_target` 改为 `wasm-gc` | 实测：release 产物 440 B vs wasm 的 2598 B（-83%）；微基准 45 ms vs 60 ms（快 33%）；宿主仅需 1 个 `spectest.print_char` 回调 | 让 `moon check/build/run/test` 与 IDE 默认走最优后端；`wasm`(WASI) 后端后已移除，不再产出兼容产物 |
 | `agents.md` → `AGENTS.md` | 官方 `moon new` 输出 `AGENTS.md` | `git mv` 保留历史；曾建 `agents.md -> AGENTS.md` 兼容链接（后已撤销，见 §3.3） |
 | 新增 `.githooks/pre-commit` + `README.md` | 官方布局含此目录 | 执行 `moon fmt --check` + `moon check`（比官方仅 `moon check` 更严）；未装 `moon` 时自动跳过；启用由开发者自设 `core.hooksPath`，仓库不代设 |
@@ -288,8 +288,9 @@ moon fmt && moon info && moon check && moon test
    `import { "TryAndRun-TvT/fast_qr_moonbit/lib" @lib }` —— 与首次实际调用同一批改动，勿提前加。
 7. **若需拆子包**：在 `lib/` 内按功能建目录（如 `lib/internal/reedsolomon/`），加 `moon.pkg`，
    目录名即包名；**不要建 `src/`**。
-8. **收尾**：`moon fmt && moon info && moon check && moon test`；
-   三后端回归：`for t in wasm-gc wasm js; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done`。
+8. **收尾**：`moon fmt && moon info && moon check --deny-warn && moon test`；
+   后端回归（**现行仅 `wasm-gc`**；`js`/`wasm`(WASI) 已移除，见 [AGENTS.md §二.3](../../AGENTS.md)）：
+   `for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done`。
 
 ---
 
