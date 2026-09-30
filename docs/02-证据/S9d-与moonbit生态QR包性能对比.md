@@ -326,8 +326,8 @@ moon build cmp --target wasm --release   # 或 .mooncakes 内直接 build 三方
 
 ```bash
 export PATH="$HOME/.moon/bin:$PATH"
-moon fmt && moon check --deny-warn && moon test        # 109 全绿
-for t in wasm-gc wasm; do moon build cmd/bench --target $t --release; done
+moon fmt && moon check --deny-warn && moon test        # 全绿（当时 109；用例数见 S10b 登记处）
+for t in wasm-gc; do moon build cmd/bench --target $t --release; done   # 现行仅 wasm-gc（原文含已移除的 wasm(WASI)）
 ```
 - 本记录纯跑测 + 文档，lib/scripts 未动；`cmd/bench` 默认输出与既有记录一致（82000/32400/9200）。
 - 死链零容忍：新增文档须同步 README「文档」索引 + roadmap（见 §7）。
