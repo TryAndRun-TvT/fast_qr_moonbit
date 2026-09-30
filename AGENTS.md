@@ -145,7 +145,7 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 bash scripts/test.sh          # moon test（黑盒 + 白盒）
 bash scripts/test-scale.sh    # 单测试文件 ≤800 行护栏（进 gates）
 bash scripts/docs-link-check.sh       # 文档互链死链检查（进 gates）
-bash scripts/docs-ref-check.sh        # 章节引用门禁：S<N>x §M 须在被引篇目存在该节（S12b §15.2）
+bash scripts/docs-ref-check.sh        # 章节引用门禁：S<N>x §M 与「[标签](X.md) §M」两种写法都要存在该节（S12b §15.2/§19.3）
 bash scripts/docs-index.sh --verify   # 索引 §8 清单与实跑一致（生成物，勿手改；S12b §15.1）
 bash scripts/docs-consistency.sh      # 文档一致性（状态/计数/版本/索引/规模；S12 §6.2 D4）
 bash scripts/docs-date-check.sh       # 状态头日期漂移**提示**（仅警告，永不阻断；S12b §15.3）
@@ -278,7 +278,7 @@ bash scripts/toolchain-probe.sh       # 工具链版本 + **全部**告警（含
     ③ 索引正向（含**摘要区按名链接**）/ ③b 索引反查 / **③d 索引链接内容（标签非空、锚点非占位）** /
     ③c 无子目录 `README.md` / ④ 规模）
     + ⑤ 日期漂移**提示**（非阻断）；
-  - `bash scripts/docs-ref-check.sh`：**章节引用门禁**——`S<N>x §M` 须在被引篇目存在该节
+  - `bash scripts/docs-ref-check.sh`：**章节引用门禁**——`S<N>x §M`（代号式）与 `[标签](X.md) §M`（路径式）须在被引篇目存在该节
     （反引号内为「引述」不算活引用）；
   - `bash scripts/docs-index.sh --verify`：索引 §8 与实跑一致。
     **§8 由 `--write` 生成，禁止手改行数/篇数**（S12 §6.2 D4 数字单点化）。
