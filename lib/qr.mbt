@@ -9,7 +9,7 @@
 /// 架构决策（D1）：`QRCode.data` 使用公共 `Module`（lib 层呈现类型），不泄漏 internal 类型。
 /// 架构决策（D11，S8）：公共层文件级职责归位——本文件仅保留「结果容器/错误/访问器」，不涉及
 ///       编排（build_fixed/build/select_capacity）与 QRBuilder，见
-///       docs/S8-内部结构归位与分层.md §3.2。
+///       docs/01-规格/S8-内部结构归位与分层.md §3.2。
 
 ///|
 /// 最大模块数：177 × 177 = 31329。既是矩阵存储的固定容量，也是「最大边长 177」的
@@ -52,7 +52,8 @@ pub fn QRCode::default(size : Int) -> QRCode {
 /// 用 `build()` 得到结果后直接 `set(...)` 亦可（`QRCode` 本就由 `build()` 公开返回）。
 ///
 /// 语义对齐参考 fast_qr `QRCode::default(size)`，但把「版本」作为显式入参、
-/// 避免 `default(size)` 的「边长 + 元数据全 None」双重歧义（见 docs/S11 §3.1）。
+/// 避免 `default(size)` 的「边长 + 元数据全 None」双重歧义（见
+/// docs/02-证据/S11-无效代码与冗余文档清理评估.md §3.1）。
 /// 历史上曾另设 `for_version` 别名，S11 v4 判定为「零生产引用的纯别名」而删除；
 /// 需要「按版本取空矩阵」时**只走本函数**（单一入口）。
 pub fn QRCode::empty(v : Version) -> QRCode {

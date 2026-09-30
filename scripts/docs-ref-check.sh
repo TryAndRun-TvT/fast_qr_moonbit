@@ -10,6 +10,11 @@
 #   B. 路径式：文中形如 `[标签](路径.md) §M[.K...]` 的引用（链接紧跟 §），同样须存在该标题。
 #      —— 补 B 的理由（2026-09-25 实证）：`wasm-编译与运行-结果分析.md §5.2` 这类**路径式**引用
 #      在 A 下不可见（A 只认 `S<N>x` 代号），该篇被裁剪后留下 **18 处悬空 §** 而整链仍绿。
+#   C. `已失效` 篇同样纳入扫描面（2026-09-30 加固，Issue #63）：
+#      上述「18 处悬空 §」在 B 落地后**仍未清零**——因为被引篇目 `wasm-编译与运行-结果分析.md`
+#      的状态是 `已失效`，而本脚本原按 `历史/现行` 判定「是否删篇」，把 `已失效` 当「已删」跳过。
+#      这是**判据用错信号**：`已失效` 指「所述前提不成立、不得引用为口径」，**不等于文件不存在**；
+#      文件仍在仓库内（可导航、可被 § 引用），故其章节引用与 `历史` 篇一视同仁地判定。
 #   编号来源 = 被引篇目内形如 `## M` / `### M.K` 的标题前缀（两/三级标题并存都认）。
 #
 # 识别范围（保守，宁漏勿误）：
@@ -28,8 +33,11 @@ python3 - <<'PYEOF'
 import os, re, subprocess, sys
 
 SCAN_EXTRA = ["README.md", "AGENTS.md"]
+# 判据 C：用 `git ls-files docs`（**整目录递归**）而非 `docs/*.md`——后者漏掉 `docs/*/*.md`
+# 与 `docs/*/*/*.md`（D2 分类后全部文档都在子目录里），会让「被引篇目」集合凭空少一层。
 files = [f.decode() for f in subprocess.run(
-    ["git", "ls-files", "-z", "docs/*.md"], capture_output=True).stdout.split(b"\0") if f]
+    ["git", "ls-files", "-z", "docs"], capture_output=True).stdout.split(b"\0")
+    if f and f.decode().endswith(".md")]
 for extra in SCAN_EXTRA:
     if os.path.isfile(extra):
         files.append(extra)
@@ -84,9 +92,30 @@ for f in files:
 # ── B. 路径式引用：`[标签](X.md) §M` ──────────────────────────────────────────
 # 只在「链接紧跟 §」的形态下判定（`§` 未必属于该链接，故用 **同一行 + 链接后紧邻** 收窄）。
 LINK_SEC_RE = re.compile(r"\]\(([^)#]+\.md)\)\s*[§#]\s*(\d+(?:\.\d+)*)(?![\d])")
+
+# 仓库内 `docs/` 子目录名（由 `git ls-files docs` 派生的实际目录集合）。
+DOCS_SUBDIRS = sorted({
+    f.split("/")[1] for f in files if f.startswith("docs/") and f.count("/") >= 2
+})
+
 def resolve(src, target):
-    p = os.path.normpath(os.path.join(os.path.dirname(src), target))
-    return p if os.path.isfile(p) else None
+    """把引用目标解析为仓库内真实路径。
+
+    先按**相对引用方**解析（docs 内部互链的规范形态）；失败再试两种「仓库根相对」写法——
+    (a) `docs/01-规格/X.md` 全路径；(b) `docs/X.md` 漏写子目录（D2 迁移后的高频笔误，
+    如 `docs/S8-内部结构归位与分层.md` 实为 `docs/01-规格/S8-…md`）。
+    这样「写错目录层级」也能被本门禁抓到，而不是被当成「目标不存在」静默跳过。
+    """
+    cands = [os.path.normpath(os.path.join(os.path.dirname(src), target))]
+    cands.append(os.path.normpath(target))                      # (a) 仓库根相对
+    if target.startswith("docs/") and target.count("/") == 1:    # (b) docs/X.md 补子目录
+        base = target[len("docs/"):]
+        for sub in DOCS_SUBDIRS:
+            cands.append(os.path.normpath("docs/%s/%s" % (sub, base)))
+    for p in cands:
+        if os.path.isfile(p):
+            return p
+    return None
 
 for f in files:
     for lineno, line in enumerate(open(f, encoding="utf-8"), 1):
