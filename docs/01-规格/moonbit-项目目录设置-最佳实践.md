@@ -288,8 +288,9 @@ moon fmt && moon info && moon check && moon test
    `import { "TryAndRun-TvT/fast_qr_moonbit/lib" @lib }` —— 与首次实际调用同一批改动，勿提前加。
 7. **若需拆子包**：在 `lib/` 内按功能建目录（如 `lib/internal/reedsolomon/`），加 `moon.pkg`，
    目录名即包名；**不要建 `src/`**。
-8. **收尾**：`moon fmt && moon info && moon check && moon test`；
-   三后端回归：`for t in wasm-gc wasm js; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done`。
+8. **收尾**：`moon fmt && moon info && moon check --deny-warn && moon test`；
+   后端回归（**现行仅 `wasm-gc`**；`js`/`wasm`(WASI) 已移除，见 [AGENTS.md §二.3](../../AGENTS.md)）：
+   `for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main --target $t --release; moon test --target $t; done`。
 
 ---
 

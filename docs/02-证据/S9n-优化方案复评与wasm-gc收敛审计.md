@@ -44,7 +44,8 @@
    **5.97→4.42ms（−26%）**、V10 **−24%**、V03 **−4%**，输出**逐位不变**（`TOTAL_CHECKSUM`/快照全同）；
    111 测试全绿。**ReadOnlyArray（T-R1/T-R2/T-R4）亦已落地**（§6.5–6.6，类型对齐为主；
    受控探针复验 `division` ≈1.30–1.34×、整 build ≈0.9%）；
-   P1 受阻于公共契约、P2b(N2)/P3/T-R5 仍待做。
+   P1 受阻于公共契约；**P3 已于 2026-09-24 落地（`FixedArray[Int]`，提交 `ea7d7ae`，见 §6.3）**；
+   仍待做：P2b(N2 合并)、T-R5（RS 工作区换容器）。
 
 ---
 
@@ -167,8 +168,10 @@ Caused by:
 > 该 1.26× 与 S9m「≈0.5%（仅 RS）」两个旧口径**都没覆盖矩阵介质**；根因与治理见
 > [S9t](S9t-介质换代延迟复盘与既有文档勘误.md)。
 
-> **落地状态（2026-09-12）**：**P0 / P2 / P2b(N4) / P4 的 T-R1·T-R2·T-R4 已实施**（§6.1–§6.6）；
-> **P1 受阻于公共契约**（`data().length()==QR_MAX_MODULES` 被测试断言，实为 P1a=P1b）；P2b(N2)/P3/T-R5 待做。
+> **落地状态**（2026-09-12 首记，2026-09-24 更新）：**P0 / P2 / P2b(N4) / P4 的 T-R1·T-R2·T-R4 已实施**（§6.1–§6.6）；
+> **P3 介质换代已落地**（2026-09-24，`FixedArray[Int]`，提交 `ea7d7ae`，见 §6.3/§6.4 与 [S9s §9](S9s-数组介质与字节加速-真实A-B实测.md)）；
+> **P1 受阻于公共契约**（`data().length()==QR_MAX_MODULES` 被测试断言，实为 P1a=P1b）；
+> 仍待做：**P2b(N2 合并)**、**T-R5**（RS 工作区 `Array[Byte]` → `FixedArray[Byte]`）。
 
 ---
 
@@ -176,7 +179,7 @@ Caused by:
 
 每项独立提交，统一门禁：
 
-1. `moon fmt --check` / `moon check --deny-warn` / `moon test --target wasm-gc` 全绿（P0/P2 落地后为 **111**）；
+1. `moon fmt --check` / `moon check --deny-warn` / `moon test --target wasm-gc` 全绿（**用例数以登记处为准**，见 [S10b](S10b-测试覆盖率报告.md) 顶部 `<!-- test-count: N -->`；本节落地时为 111）；
 2. 快照逐位 diff 零差异（择优 mask 不变）+ `cmd/bench` `TOTAL_CHECKSUM` 不变；
 3. 层② `bash scripts/bench-layer2.sh` 同尺子复跑（`wasm-gc` vs fast_qr-wasm32，Node 进程内）；
 4. **组合实测**：P0/P2/P3 任两项以上同批落地时，先做**合并探针**再回填收益（H5），禁止算术相加；
@@ -191,7 +194,7 @@ Caused by:
 
 ```bash
 export PATH="$HOME/.moon/bin:$PATH"
-moon fmt --check && moon check --deny-warn && moon test --target wasm-gc   # 111 全绿
+moon fmt --check && moon check --deny-warn && moon test --target wasm-gc   # 全绿（用例数见 S10b 登记处）
 moon check --warn-list "+prefer_readonly_array"                            # 恰好 4 处命中
 moon build lib --target native --release                                   # 预期被 supported_targets 拒绝
 ```
@@ -246,7 +249,7 @@ moon build lib --target native --release                                   # 预
 2. ~~P3 三向微基准~~ → **已做（2026-09-23，见 [S9s](S9s-数组介质与字节加速-真实A-B实测.md)）**：
    实测收益来自**去 `Array` 的 `{buf,len}` 间接（`FixedArray`）而非字节窄化**——矩阵扫描 ≈1.19×、
    RS 工作区 **≈1.50×（真实代码 A/B）**，字节窄化本身≈1.16×≈无提速；**矩阵介质已真落两版实测**
-   （S9s §10，实验分支）：V40 宿主 **−15%**、体积 **−5~6%**、语义零差异，`FixedArray[Int]` 与
+   （S9s §9，实验分支）：V40 宿主 **−15%**、体积 **−5~6%**、语义零差异，`FixedArray[Int]` 与
    `FixedArray[Byte]` 速度持平（选型按内存/改动面）；**已落地 `main`：选 `FixedArray[Int]`（提交 `ea7d7ae`）**，
    D3 与 8 个白盒测试同步，公共 API/`.mbti` 不变；
 3. P1 公共 `QRCode.data` 容器语义评审（决定是否允许 `length=size²`）；
