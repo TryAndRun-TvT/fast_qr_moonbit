@@ -131,7 +131,7 @@ test "readme_quick_start" {
 > [README优化-冗余清理与最佳实践.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/04-元/README优化-冗余清理与最佳实践.md) §6.3。
 
 **下一步**：可用类型一览、逐格矩阵读写与从零自建示例，见
-[公共 API 与矩阵读写明细](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#3-公共类型一览readme-旧正文承接)；
+[公共 API 与矩阵读写明细](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README.md#1-公共-api一览权威对照)；
 完整公共契约以 `moon info` 的 `.mbti` 与 `lib/*.mbt` 为准。
 
 ---
@@ -171,7 +171,7 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 ## 性能与体积
 
 > 数字仅作选型与迭代基线，**不代表对 fast_qr 的追赶承诺**。本页只给量级；
-> **表格、参数、统计离散与护栏**见 [S9r · 明细](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#2-性能三口径核心结论表)。
+> **表格、参数、统计离散与护栏**见 [S9p 主口径](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9q 统计纪律](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9q-性能口径统计差异与取平均评估.md)。
 
 - **性能 vs fast_qr-wasm32**：单次 build 慢 **≈1.0–2.2×**（点数越小差距越大），
   **逐位对齐 sha256 零差异**；差距集中在 8 轮掩码择优主循环。
@@ -206,8 +206,8 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 
 | 我想… | 去哪 |
 |-------|------|
-| **用这个库** | 本页[快速开始](#快速开始) → [公共 API 与矩阵读写](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#3-公共类型一览readme-旧正文承接) |
-| **看性能/体积明细** | [S9r 明细承接](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md) · [S9p](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9i](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9i-纯库调用体积探针与库实际体积.md) · [S9s 介质/字节加速](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9s-数组介质与字节加速-真实A-B实测.md) · [S9t 介质换代复盘/勘误](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9t-介质换代延迟复盘与既有文档勘误.md) · [S9u 生态对比复测](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9u-生态对比复测-moonqr-moonCLI直调.md) |
+| **用这个库** | 本页[快速开始](#快速开始) → [公共 API 与矩阵读写](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/README.md#1-公共-api一览权威对照) |
+| **看性能/体积明细** | [S9r 去重记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md) · [S9p](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9i](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9i-纯库调用体积探针与库实际体积.md) · [S9s 介质/字节加速](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9s-数组介质与字节加速-真实A-B实测.md) · [S9t 介质换代复盘/勘误](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9t-介质换代延迟复盘与既有文档勘误.md) · [S9u 生态对比复测](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9u-生态对比复测-moonqr-moonCLI直调.md) |
 | **看测试与证据链** | [S10 roadmap](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10-测试用例设计与完善roadmap.md) · [S10b 覆盖率](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10b-测试覆盖率报告.md) · [S10c 修复记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10c-select-capacity模式语义缺陷-定位与修复.md) · [S10d 落地记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10d-测试落地记录-v3-v5.md) |
 | **发布到 mooncakes** | [mooncakes-发布方案.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/03-过程/mooncakes-发布方案.md) · [发布阻塞项落地](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/03-过程/mooncakes-发布阻塞项3-4-落地方案.md) · [模块名迁移核验](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/03-过程/模块名迁移与发布链路核验.md) |
 | **改代码 / 提 PR** | [AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/AGENTS.md)（**硬性约定**）· [实现布局与文件职责](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/01-规格/moonbit-实现布局与文件职责.md) · [目录设置最佳实践](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/01-规格/moonbit-项目目录设置-最佳实践.md) · [工具链版本与特性适配评估](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/01-规格/moonbit-工具链版本与特性适配评估.md) |

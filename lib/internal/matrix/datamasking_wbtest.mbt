@@ -45,8 +45,8 @@ test "apply_mask 只翻转 Data 类、不动功能图案明暗" {
   // 放一个 finder 亮 + 一个 format 亮，确保它们不被翻转
   m[0] = pack(0, module_type_finder) // (0,0) finder 亮
   m[1] = pack(0, module_type_format) // (1,0) format 亮
-  let masked = apply_mask(m, size, 1) // mask1: y%2==0 ⇒ 奇数行不翻
-  // 原 (0,0) 与 (1,0) 都是 y=0 ⇒ mask1 真 ⇒ 若 Data 会被翻；但它们非 Data，必须保持亮
+  let masked = apply_mask(m, size, 1) // mask1: y%2==0
+  // (0,0) 与 (1,0) 均落在 y=0（mask1 判定为真）⇒ 若它们是 Data 会被翻；非 Data 则必须保持亮
   if value_of(masked[0]) != 0 || module_type_of(masked[0]) != module_type_finder {
     fail("apply_mask 不应翻转 finder 模块")
   }
@@ -57,7 +57,7 @@ test "apply_mask 只翻转 Data 类、不动功能图案明暗" {
   if value_of(masked[1 * size + 0]) != 1 {
     fail("y=1 Data 在 mask1 下不应翻转")
   }
-  // Data 暗格 (x=0,y=0 之下找 y=0 的 Data)：但 (0,0)/(1,0) 被占；看 (5,0) Data 暗，mask1 真 ⇒ 翻为亮
+  // 同行的 (5,0) 仍是 Data、mask1 判定为真 ⇒ 必须被翻为亮
   if value_of(masked[0 * size + 5]) != 0 {
     fail("y=0 Data 在 mask1 下应翻为亮")
   }
