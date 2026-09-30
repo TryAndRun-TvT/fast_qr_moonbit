@@ -274,7 +274,7 @@ Error: failed when checking project
 因此骨架阶段（库尚无公共 API）**不能**提前声明依赖，
 改为在文件中以注释记录待启用内容。
 
-> 此项修正了 `docs/03-过程/wasm-编译与运行-结果分析.md` §6.3 原先「必须补 import」的表述。
+> 此项修正了 `docs/03-过程/wasm-编译与运行-结果分析.md` 原先「必须补 import」的表述（该篇 §1.2 保留实测证据）。
 
 ---
 
@@ -297,7 +297,7 @@ Error: failed when checking project
 | 清理 | `.gitignore` | 移除与本仓库无关的 `/chathub-server/` 残留项；`*.mbti` 已在上次加入 |
 | 重写 | `agents.md` | 从 Cloudflare/wrangler 专属内容适配为 MoonBit 项目约定；去除对不存在文件的引用 |
 | 更新 | `README.mbt.md` | 新增「代码放置约定」章节；补全项目结构；修正后端表述（native 不可用） |
-| 修正 | `docs/03-过程/wasm-编译与运行-结果分析.md` | §6.2 / §6.3 补充实证结论；§7.2 待办表加状态列并标记已完成项 |
+| 修正 | `docs/03-过程/wasm-编译与运行-结果分析.md`（已失效篇，仅 §1 保留） | 补黑盒/白盒注释实证结论、`unused_package` 实测证据 |
 | 更新 | `docs/01-规格/moonbit-工具链与构建-setup-分析.md` | 注意事项同步为「agents.md 已适配」 |
 | 新增 | `docs/01-规格/moonbit-实现布局与文件职责.md` | 本文档 |
 | 新增 | `README.md` -> `README.mbt.md` 符号链接 | 官方布局含此链接；git 以 `mode 120000` 跟踪 |
@@ -418,10 +418,10 @@ v3 把 `README.md` 做成指向 `README.mbt.md` 的符号链接（模仿 `moon n
 
 | 原 README 章节 | 处置 | 承接地 |
 |----------------|------|--------|
-| 「编译为 Wasm」体积表 + `-Oz` 命令 + fast_qr 体积对照 | 下沉 | [S9r §1](../02-证据/S9r-README性能体积长口径与公共API明细.md) |
-| 「性能与体积」三口径表 + 明细表 + Roadmap | 下沉 | [S9r §2](../02-证据/S9r-README性能体积长口径与公共API明细.md) |
-| 「公共类型一览」+「矩阵读写与自建」示例 | 下沉 | [S9r §3](../02-证据/S9r-README性能体积长口径与公共API明细.md) |
-| 「开发与 CI」脚本逐项表 | 下沉 | [S9r §4](../02-证据/S9r-README性能体积长口径与公共API明细.md) |
+| 「编译为 Wasm」体积表 + `-Oz` 命令 + fast_qr 体积对照 | 下沉 | [S9i](../02-证据/S9i-纯库调用体积探针与库实际体积.md)（**体积主口径**） |
+| 「性能与体积」三口径表 + 明细表 + Roadmap | 下沉 | [S9p](../02-证据/S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9q](../02-证据/S9q-性能口径统计差异与取平均评估.md) · [S9n](../02-证据/S9n-优化方案复评与wasm-gc收敛审计.md) |
+| 「公共类型一览」+「矩阵读写与自建」示例 | 下沉 | [docs/README.md §1](../README.md) · [S6](S6-端到端对齐与公共API.md) |
+| 「开发与 CI」脚本逐项表 | 下沉 | `scripts/` 目录自身 + [AGENTS.md §二.4](../../AGENTS.md) |
 | 文档索引长表（`⤷` 系列入口 + 全量篇目） | 下沉 | [README-导航与索引.md](../README.md)（含 §8 全量清单） |
 
 README 保留：头部（截图/徽章/状态/元数据表）、功能特性、能力与局限、快速开始（`mbt check` 唯一示例）、

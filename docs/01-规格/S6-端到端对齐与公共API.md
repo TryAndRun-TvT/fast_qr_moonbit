@@ -243,18 +243,6 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 
 ---
 
-### 8. 参考
-- [moonbit-重写-roadmap-详细分析.md](../03-过程/moonbit-重写-roadmap-详细分析.md) — roadmap S6、B8、M2、§4.1 60 快照集
-- [跨语言重写评估.md](../移植参考/专有概念/跨语言重写评估.md) §5.1/5.2 — 验收门槛 1（60 快照 100%）/ 2（API
-  同构，`lib.rs:75-108` 导出清单）
-- [fast-qr-接口.md](../移植参考/fast-qr-接口.md) §1.1 — QRBuilder `new/mode/ecl/version/mask/build` 签名与缺省
-- [S5-实现记录](S5-掩码评分与择优.md) §4 遗留 — S6 交接（60 快照 + QRBuilder/wasm 导出面）
-- [S5-掩码评分与择优.md](S5-掩码评分与择优.md) §4 O2 — S6 端到端覆盖补 Numeric/Alnum + V40
-- [S3-数据编码.md](S3-数据编码.md) — 三模式 encode 已在 S3 落地（S6 前置就绪）
-- 参考源码 fast_qr v0.14.0：`src/qr.rs:200`（QRBuilder）、`src/lib.rs:75-80`（导出面）、`src/encode.rs`
-
----
-
 ## 实现记录
 
 > 承接 本文件「实现方案」部分 落地两块交付：
@@ -347,14 +335,6 @@ wasm-gc / wasm 双后端 release 构建 + `moon test --target` 通过；`git sta
 - **S9 性能微优化**（8 轮 clone 开销 / 评分逐格分配）。
 - **wasm 导出面**：roadmap/S5 记录提过，本仓库无 wasm-bindgen 对应物、`moon.mod` 仅双后端；无宿主 JS
   绑定需求，维持「lib 公共 API 编译到 wasm 可被宿主调用」即可（本阶段未单列）。
-
----
-
-### 5. 参考
-- 本文件「实现方案」部分、
-  [moonbit-重写-roadmap-详细分析.md](../03-过程/moonbit-重写-roadmap-详细分析.md) §4.2/§4.4（S6/B8、M2）
-- [fast-qr-接口.md](../移植参考/fast-qr-接口.md) §1.1（QRBuilder 同名构造器 + 缺省语义）
-- 参考源码 fast_qr v0.14.0 `src/qr.rs:200`（QRBuilder）；数据由 `scripts/snapshot_gen_s6.rs` 一次生成
 
 ---
 
@@ -510,10 +490,16 @@ S6 前为 85，新增 9）；wasm-gc / wasm 双后端 release 全绿。
 ---
 
 ### 6. 参考
+- [moonbit-重写-roadmap-详细分析.md](../03-过程/moonbit-重写-roadmap-详细分析.md) — roadmap S6、B8、M2、§4.1 60 快照集
+- [跨语言重写评估.md](../移植参考/专有概念/跨语言重写评估.md) §5.1/5.2 — 验收门槛 1（60 快照 100%）/ 2（API
+同构，`lib.rs:75-108` 导出清单）
+- [fast-qr-接口.md](../移植参考/fast-qr-接口.md) §1.1 — QRBuilder `new/mode/ecl/version/mask/build` 签名与缺省
+- [S5-实现记录](S5-掩码评分与择优.md) §4 遗留 — S6 交接（60 快照 + QRBuilder/wasm 导出面）
+- [S3-数据编码.md](S3-数据编码.md) — 三模式 encode 已在 S3 落地（S6 前置就绪）
+- 参考源码 fast_qr v0.14.0：`src/qr.rs:200`（QRBuilder）、`src/lib.rs:75-80`（导出面）、`src/encode.rs`
+- 本文件「实现方案」部分、
 - 本文件「实现方案」部分 §2.2/§3.2/§5.2/§7
 - 本文件「实现记录」部分 §0/§3.1/§5
-- [S5-掩码评分与择优.md](S5-掩码评分与择优.md)（评审模板与 S6 交接 O2）
 - fast_qr v0.14.0：`src/module.rs:42`（`Module(pub u8)`）、`src/qr.rs:200`（QRBuilder）、`src/lib.rs:75-80`
 - `scripts/snapshot_gen_s6.rs`（介质与全 None case 支持）
 
----

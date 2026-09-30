@@ -162,9 +162,9 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 
 > 门禁阶段清单、脚本分组与逐个用途见
 > [AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/AGENTS.md) §三 ·
-> [S9r §4 脚本分组](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接)。
+> `ls scripts/`（脚本按角色分组见目录内注释与 `scripts/gates.sh` 头部）。
 > `-Oz` 体积最优档的命令、`moon-wasm-opt` 参数与「为何要 `--disable-custom-descriptors`」，见
-> [S9r §1](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#1-产物体积release-bash-scriptsbench-sizesh)。
+> [S9i](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9i-纯库调用体积探针与库实际体积.md)（**体积主口径**）。
 
 ---
 
@@ -191,7 +191,7 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
   黄金值钉版重建 + 与参考 wasm 逐位 sha256 差分。
 - **门禁**：`bash scripts/gates.sh`（全量）· 单项 `scripts/test.sh`、`scripts/coverage.sh --floor`。
 - **维护入口**：[S10 测试 roadmap](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10-测试用例设计与完善roadmap.md)（覆盖矩阵 + 七条铁律）·
-  [S10b 覆盖率报告](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10b-测试覆盖率报告.md) · [S10c 真 bug 修复记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10c-select-capacity模式语义缺陷-定位与修复.md)。
+  [S10b 覆盖率报告](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10b-测试覆盖率报告.md) · [S10c 真 bug 修复记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10c-select-capacity模式语义缺陷-定位与修复.md) · [S10d 落地记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10d-测试落地记录-v3-v5.md)。
 
 > **用例数与文件数不写进 README**——它们随实现漂移，写死必然自相矛盾。需要数字时以 `moon test` 实跑为准。
 
@@ -208,10 +208,10 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 |-------|------|
 | **用这个库** | 本页[快速开始](#快速开始) → [公共 API 与矩阵读写](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#3-公共类型一览readme-旧正文承接) |
 | **看性能/体积明细** | [S9r 明细承接](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md) · [S9p](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9p-宿主调用面性能口径-JS向wasm传参.md) · [S9i](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9i-纯库调用体积探针与库实际体积.md) · [S9s 介质/字节加速](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9s-数组介质与字节加速-真实A-B实测.md) · [S9t 介质换代复盘/勘误](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9t-介质换代延迟复盘与既有文档勘误.md) · [S9u 生态对比复测](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9u-生态对比复测-moonqr-moonCLI直调.md) |
-| **看测试与证据链** | [S10 roadmap](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10-测试用例设计与完善roadmap.md) · [S10b 覆盖率](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10b-测试覆盖率报告.md) · [S10c 修复记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10c-select-capacity模式语义缺陷-定位与修复.md) |
+| **看测试与证据链** | [S10 roadmap](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10-测试用例设计与完善roadmap.md) · [S10b 覆盖率](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10b-测试覆盖率报告.md) · [S10c 修复记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10c-select-capacity模式语义缺陷-定位与修复.md) · [S10d 落地记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S10d-测试落地记录-v3-v5.md) |
 | **发布到 mooncakes** | [mooncakes-发布方案.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/03-过程/mooncakes-发布方案.md) · [发布阻塞项落地](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/03-过程/mooncakes-发布阻塞项3-4-落地方案.md) · [模块名迁移核验](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/03-过程/模块名迁移与发布链路核验.md) |
 | **改代码 / 提 PR** | [AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/AGENTS.md)（**硬性约定**）· [实现布局与文件职责](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/01-规格/moonbit-实现布局与文件职责.md) · [目录设置最佳实践](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/01-规格/moonbit-项目目录设置-最佳实践.md) · [工具链版本与特性适配评估](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/01-规格/moonbit-工具链版本与特性适配评估.md) |
-| **审计脚本与口径** | [性能测试脚本-公开评审说明.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/性能测试脚本-公开评审说明.md) · [S9r §4 脚本分组](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S9r-README性能体积长口径与公共API明细.md#4-脚本分组readme-旧正文承接) |
+| **审计脚本与口径** | [性能测试脚本-公开评审说明.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/性能测试脚本-公开评审说明.md) · `scripts/` 目录 |
 | **README 为何这样写** | [README优化-冗余清理与最佳实践.md](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/04-元/README优化-冗余清理与最佳实践.md) · [示例码资产与生成](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/04-元/README示例二维码-SVG资源与生成.md) |
 | **清理/收敛评估** | [S11 评估入口](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S11-无效代码与冗余文档清理评估.md) · [S11b 落地记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S11b-清理落地记录-v3-v5.md) · [S11c 第6轮体检](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/02-证据/S11c-第6轮体检-工具链漂移与门禁假绿修复.md) |
 | **改 / 新增文档** | [S12 文档体系规范](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/04-元/S12-文档体系SDD诊断与优化方案.md)（准入 CheckList · 状态字段 · 防漂移门禁）· [S12b 落地记录](https://cnb.cool/tryandrun/moonbit_dev/fast_qr_moonbit/-/blob/main/docs/04-元/S12b-落地记录-门禁落地与D2目录分类.md)（门禁自身审计 · D2 目录分类） |
@@ -257,7 +257,7 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 │   ├── 03-过程/ 04-元/          #   D2 分类：历史基线+发布过程 / 文档与 README 元规范
 │   ├── 移植参考/                #   fast_qr 外部语料（自成一域，由域首页统辖）
 │   └── assets/                 #   文档资源（qr-example.svg = README 示例码）
-├── scripts/                    # 构建/门禁/基准脚本（分组见 S9r §4）
+├── scripts/                    # 构建/门禁/基准脚本（按角色分组）
 ├── .githooks/ .cnb.yml         # 可选 Git 钩子 / 云原生构建配置
 ├── AGENTS.md                   # AI 协作代理指南（贡献前必读）
 ├── README.mbt.md -> README.md  # 文档测试入口（符号链接；正文在 README.md）

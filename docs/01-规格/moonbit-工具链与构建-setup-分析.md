@@ -206,7 +206,7 @@ moon build            # 构建当前包（可 --target、--release）
 | `build-and-run` | `scripts/build-and-run.sh` | 后端回归：遍历 `wasm-gc` 做 `--release` 构建、运行、测试（`wasm`(WASI)、`js` 已移除） |
 
 > **不要加 `native` 阶段**：需系统 C 编译器，本镜像未安装，加入必然失败
-> （见 [wasm-编译与运行-结果分析.md](../03-过程/wasm-编译与运行-结果分析.md) §6.1）。
+> （见 [wasm-编译与运行-结果分析.md](../03-过程/wasm-编译与运行-结果分析.md) §1.1）。
 
 CI 无 TTY 环境下 setup 脚本自动去色，可非交互执行。
 
