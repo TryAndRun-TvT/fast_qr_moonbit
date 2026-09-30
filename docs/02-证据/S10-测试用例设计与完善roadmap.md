@@ -16,39 +16,10 @@
 > ④ 把 T3 从「设想」升级为**已实测落地的可开工口径**（附录 D 给出实跑证据与前置依赖）；
 > ⑤ 补「测试自身有效性」原则（负向/变异/唯一性）与阶段依赖关系（§6.0）。
 >
-> **v3 落地修订**（相对 v2）：按 §6 优先级**实落**以下阶段，全部经 `moon test` 与变异检测复核：
-> **T0-a/b**（生成器钉版 + 元数据）、**T0-c**（Python `qrcode` 独立真值 V1/V3/V7 转译）、
-> **T1-c**（`division` 黄金余数 8 组）、**T1-d**（`structure` 交织 5 组）、
-> **T1-f**（常量表全表值指纹，**修掉 M11/M12 两条漏检**）、**T2-e**（Format 32 组 + 双副本物理布局）、
-> **T4-a**（属性测试四则）、**T7-b/c**（规模护栏 + 语义指纹断言）、**T6-a**（AGENTS.md 测试小节）。
-> 新增统一入口 `scripts/gen-goldens.sh`（重建/`--verify`）与 `scripts/test-scale.sh`。
-> 变异对照由 v2 的 8/10 提升至 **17/17 全检出**（附录 E 已刷新）。
-> **v4 落地修订**（相对 v3）：按 §6 优先级**实落** v3 的「仍待办」主体，全部经 `moon test`、
-> `gen-goldens.sh --verify` 与变异检测复核：
-> **T1-a**（多项式 4 例抽查 + **独立推导**全被引用度）、**T1-e**（`division`↔`structure` 交叉独立证据）、
-> **T2-a/b**（逐行/逐列 N1 明细 + 矩阵级四分量）、**T2-c**（V02 放置逐格坐标，359 格显式段表）、
-> **T2-d**（择优 mask 号回归 + 并列取低位规则）、**T4-c**（差分门禁，CI 可选且显式 skipped）、
-> **T5-a**（覆盖率报告 `docs/S10b-…`）、**T7-a**（存量快照 fail 信息标准化）。
-> 变异对照由 v3 的 **17/17 提升至 19/19**（新增 M18–M21 四条，其中 **M20/M21 首跑即漏检**，
-> 已由 T2-b2/T2-b3 与 T2-d2 修复——**这正是本轮审计的最大价值**）。
-> **v5 落地修订**（相对 v4）：按 v4 §G.5「仍待办」**实落**，并在落地过程中**发现并修复一条真 bug**：
-> **T3-d**（`cmd/bench --dump-case`，54 组语料：三模式 × 4 ECL × 4 版本 + 6 组自动版本靶点）、
-> **T3-c**（`lib/s6_decode_vectors_test.mbt`，11 条固化向量 + `snapshot_gen_decode_vectors.mjs`）、
-> **T5-b**（`coverage.sh --floor` 不下降门禁 + `S10b` 的 `coverage-floor` 标记）、
-> **T6-c**（`docs-link-check.sh` 死链检查；原进 push CI，现本地/按需执行）。
-> 变异对照由 v4 的 **19/19 提升至 21/21**（新增 M22/M23 两条，直指本轮修复的语义 bug）。
-> ⚠️ **本轮最大产出是 bug 修复而非测试**：`select_capacity` 的**模式语义**缺陷
-> （显式 `mode` 未参与容量判定 → 静默错数据、矩阵不可解码），详见 [S10c](S10c-select-capacity模式语义缺陷-定位与修复.md) 与附录 H。
->
-> **v6 刷新**（2026-09-14，配合 [S11](S11-无效代码与冗余文档清理评估.md) 清理）：
-> ① **订正变异条数口径**——附录 E/H 原写「23/23」系**误把最大编号当条数**（M3/M10 缺号），
->    实为 **21 条**（v4 为 19）；权威口径 `bash scripts/test-audit.sh mutation | grep -c 已检出`。
-> ② **补测（P1-2）**：`ECL::to_char` 全 4 臂、`QRCode::empty` 契约（v4 删 `for_version` 别名后为唯一空矩阵入口）、
->    `build_fixed` 两路负向早退（`SpecifiedVersion`/`EncodedData`）、N3 quiet-zone 双侧图案
->    （覆盖 `test_line_pattern`）+ N1 非 Data 结算边界；`moon test` 140 → 146（时点数）。
-> ③ **消双份实现**：`score.mbt` 的 `line_score`（仅白盒 helper 用的副本）改委托生产路径
->    `line_scan_buf`，白盒断言从此测的就是生产算法。
-> ④ 覆盖率 `lib/**` 未覆盖 **26 → 15**（`S10b` 的 `coverage-floor` 同步下调）。
+> **逐轮落地（v3–v5）详见承接篇 [S10d · 测试落地记录](S10d-测试落地记录-v3-v5.md)**：
+> v3 落 T0/T1/T2/T4/T6/T7 主体、v4 落为 T1–T7 补强、v5 落 T3-c/T3-d/T5-b/T6-c 并在过程中
+> **发现并修复一条真 bug**（`select_capacity` 模式语义，见 [S10c](S10c-select-capacity模式语义缺陷-定位与修复.md)）。
+> 本篇只保留**规范与 roadmap**（读者要照做的事）；逐轮交付清单、变异编号刷新、环境踩坑移入 S10d。
 
 ---
 
@@ -610,170 +581,17 @@ v4 为 19/19；v3 为 17/17；v4 新增 M18–M21 四条对照，其中 M20/M21 
 > 执行方式：`bash scripts/test-audit.sh mutation`（自动备份要求 `lib/` 干净、逐条还原并校验）。
 > 全过程 ≤15 分钟，**不需要任何额外工具链**。
 
-## 附录 F：v3 落地记录（2026-09-13，实跑）
+---
 
-> 本节记录 v3 相对 v2 roadmap 的**实际交付**（全部经 `moon test` + `wasm-gc` 回归 + 变异检测复核）。
-> 落地基线：`moon test` **121 用例全绿**（v2 时为 111）；变异对照 **17/17 全检出**（v2 时 8/10）。
+## 附录 F–H：v3–v5 落地记录（**已拆出**）
 
-### F.1 交付清单
-
-| 项 | 落地物 | 关键实现 | 验证 |
-|----|--------|---------|------|
-| T0-a | `scripts/gen-goldens.sh`（`--verify` / `--regen-tables` / `--emit-rs` / `--emit-default`）＋ `snapshot_gen_s6.rs` 头补钉版注释 | 钉版参考 `53e8c99`；`--verify` 零差异 | 实跑通过 |
-| T0-b | `m1/s6_snapshot_test.mbt` 头部「生成器 + 参考 commit + 日期 + 复跑路径」元数据 | 注释元数据（非断言） | 审计可溯源 |
-| T0-c | `lib/internal/matrix/s10c_independent_truth_wbtest.mbt` ＋ `snapshot_gen_default.py` | 转译 `default.rs` 的 V1/V3/V7（源自 **Python `qrcode`**）→ `create_matrix`+置明暗后逐格比对 | 3 矩阵 294 项数值零差异 |
-| T1-c | `lib/internal/reedsolomon/reedsolomon_division_wbtest.mbt` ＋ `snapshot_gen_rs_vectors.rs` | **8 组值级黄金余数**（V05-Q×4 / struct×2 / small / 自定义 by） | 逐字节一致 |
-| T1-d | `reedsolomon_structure_a/b_wbtest.mbt` | **5 组交织**（V05-Q/V10-Q/V07-H/V16-M/V03-Q），LCG 确定性输入 | 逐字节一致 |
-| T1-f | `constants_wbtest.mbt` 全表值指纹 ＋ `snapshot_gen_tables.py` | `capacity`(3×4×40)/`data_codewords`/`format`/`ecc_to_groups`/`percent_score` **全表逐项**断言 | 1429 项数值零差异；捕获 M11/M12 |
-| T2-e | `matrix_pattern_wbtest.mbt` | Format **32 组 (ECL,mask) × 双副本物理布局**逐位 + 副本一致性 | 捕获 M13 布局偏移 |
-| T4-a | `lib/t4a_property_test.mbt` | ①尺寸/finder/dark 不变量 ②8 mask 互异 ③链式==build ④不可变无别名（确定性 LCG，无 `rand` 依赖） | 121 用例全绿 |
-| T7-b | `scripts/test-scale.sh` | 单测试文件 ≤800 行护栏（拆分前 `reedsolomon_wbtest.mbt` 1384 行） | 实跑，超限即失败 |
-| T7-c | `scripts/build-and-run.sh` | `QR_MIN_CHECKSUM`/`TOTAL_CHECKSUM` 由「仅打印」升级为**断言** | 漂移即 CI 失败 |
-| T6-a | `AGENTS.md` §三「测试约定」 | 三载体分工 + **七条铁律** + 例行检查命令 | 文案入库 |
-
-### F.2 变异检测刷新（v2 8/10 → v3 17/17）
-
-见附录 E 表：原两条漏检 **M11（容量表中间项）/ M12（Format 非抽查点）** 已由 **T1-f** 修复；
-新增 **M13（Format 双副本布局）/ M14（`division` 值错）/ M15（`structure` 偏移）/ M16（类型号）/ M17（`percent_score` 中间项）**
-五条对照，全部被检出。复跑入口 `bash scripts/test-audit.sh mutation`。
-
-### F.3 生成器钉版与复现口径
-
-- **统一入口**：`bash scripts/gen-goldens.sh --verify`（零差异退出 0）。
-  - `--regen-tables` → 常量表全表指纹（T1-f）
-  - `--emit-rs` → `division`/`structure` 黄金向量（T1-c/T1-d，在参考检出内实算）
-  - `--emit-default` → 独立数字真值（T0-c）
-- **参考定位**：`FAST_QR_DIR` 或默认缓存目录；脚本校验参考 commit == `53e8c99`（钉版铁律）。
-- `--verify` 采用**数值序列语义比对**（`moon fmt` 重排换行不误报）。
-
-### F.4 环境备注（本环境实跑踩坑）
-
-- `snapshot_gen_rs_vectors.rs` 需在参考检出内编译运行；**Rust 侧 dev-dependencies 需要系统 C 编译器**
-  （本环境补装 `build-essential` 后通过）——与 AGENTS.md §二.3「native 需 C 编译器」同因。
-- `moon fmt` 会把 `{ state: seed }` 规范为 `{ state: seed, }`；脚本化改文件时须按格式化后文本匹配锚点。
-- **变异检测会就地改动 `lib/`**：`test-audit.sh` 要求工作区干净，且**改动未提交时会被 `git checkout` 一并还原**——
-  故执行前务必先提交（本环境已踩过：未提交的 T1-f 首版曾被还原）。
-
-### F.5 仍待办（v3 未覆盖）
-
-T1-a（多项式 4 例抽查）、T1-e（`division`↔`structure` 交叉）、T2-a/b（打分逐行/逐列明细）、
-T2-c（放置逐格坐标）、T2-d（择优 mask 号回归）、T3-c/d（解码向量固化 + `cmd` 多内容探针）、
-T4-c（差分门禁升 CI）、T5（覆盖率报告与分模块下限）、T7-a（存量快照 fail 信息标准化）。
-
-## 附录 G：v4 落地记录（2026-09-13，实跑）
-
-> 本节记录 v4 相对 v3 roadmap 的**实际交付**（全部经 `moon test` + `wasm-gc` 回归
-> + `gen-goldens.sh --verify` + 变异检测复核）。
-> 落地基线：`moon test` **135 用例全绿**（v3 为 121）；变异对照 **19/19 全检出**（v3 为 17/17）。
-
-### G.1 交付清单
-
-| 项 | 落地物 | 关键实现 | 验证 |
-|----|--------|---------|------|
-| T1-a（G1） | `lib/internal/constants/constants_poly_wbtest.mbt` | ① 4 例抽查（V01-L/V07-M/V40-L/V14-Q，比 `(degree, head, mid, last)` 四元组）；② **独立推导**：按 QR 规范定义 `g_d(x)=Π(x-α^i)` 在 GF(256)（`0x11D`）上**从零重算**，覆盖 `generator_index` 实际引用的 **13 个度**；③ GF(256) 本原多项式自证 | 值级逐系数一致；M18 变红 |
-| T1-e | `reedsolomon_cross_wbtest.mbt` | 把 `structure` 输出**按规范逆交织**还原各块，断言 ① 逆交织数据区 == 原输入、② 每块纠错区 == `division(该块)`（5 组语料） | 5 组交叉一致 |
-| T2-a/b（G5） | `lib/internal/matrix/score_detail_wbtest.mbt` ＋ `scripts/snapshot_gen_score.rs` | 参考自带的**类型化夹具** `XIAOJIBA_MOD`（29×29）→ 29 行逐行 N1 + 29 列逐列 N1 + 矩阵级 squares/pattern/dark/line/col 分量 | 与参考 `line_by_line_xiaojiba`/`col_by_col_xiaojiba` 期望数组逐项一致 |
-| T2-c（G6） | `lib/internal/matrix/placement_coords_wbtest.mbt` ＋ `scripts/snapshot_gen_placement.rs` | V02 放置路径 **359 格**逐格坐标，由参考侧实算导出后重排为**可读的 14 段**（列/模式/行列表）；断言「段表推得位流 vs 矩阵实际明暗」+ Data 集合覆盖完备性 | 359 格全等；M19 变红 |
-| T2-d | `lib/qr_builder_test.mbt` ＋ `score_wbtest.mbt` | ① `https://fast-qr.com/` + ECL H → 断言 mask = **Diamonds(6)**（参考 issue #77 方法迁移）；② 择优**并列取最低位**规则（用实跑搜出的真并列夹具，mask 5/6 同分） | 行为锁定；M21 变红 |
-| T2-b2/b3 | `score_wbtest.mbt` | N1 三处结算点（变色/非 Data/行末）+ **恰好 5 连**边界（参考 `adjacent_line` 四线转写） | M20 变红 |
-| T4-c（G11） | `scripts/diff-gate.sh` ＋ `.cnb.yml` push 阶段（2026-09-14 已移除，现本地执行） | 把 `gc-compare.mjs` 的「逐位 sha256」升级为**可选门禁**：有参考 wasm 制品 → 三点零差异；无制品 → **显式打印 skipped 并通过** | 实跑：三基准点 sha256 零差异；无制品时 skipped |
-| T5-a | `scripts/coverage.sh` ＋ `docs/02-证据/S10b-测试覆盖率报告.md` | 封装 `moon coverage analyze`，单列 `lib/**` 合计；**不设阈值** | 未覆盖 87 → 68（lib 44 → 25） |
-| T5-b（部分） | `fast_qr_moonbit_wbtest.mbt` | 关闭缺口 G8：`Version`(40)/`ECL`(4)/`Mode`(3)/`Mask`(8) **全量**回环 + 越界回退；`Shape` 名字↔枚举双向回环 + 大小写不敏感 + 未知名回退 | 覆盖提升见 S10b |
-| T7-a | `m1_snapshot_test.mbt` / `s6_snapshot_test.mbt` | 快照循环的 fail 信息补「模块.函数 + 参数指纹（version/ecl/mask/mode）+ 格坐标 (row,col)」 | 失败信息可定位 |
-
-### G.2 变异检测刷新（v3 17/17 → v4 19/19）
-
-新增四条对照：
-
-| # | 植入缺陷 | 首跑结果 | 处置 |
-|:-:|---------|:-------:|------|
-| M18 | 生成多项式度 18 的系数改值 | ✅ 10 条失败 | **T1-a 直接生效**（此前「度自洽」不约束系数值） |
-| M19 | 放置之字形首列起点偏移（`size-1` → `size-2`） | ✅ 13 条失败 | **T2-c 直接生效** |
-| **M20** | N1 行运行结算阈值 `5` → `6` | ❌ **零检出** | 补 **T2-b2/T2-b3**（恰好 5 连 + 变色结算）→ 转 ✅ |
-| **M21** | 择优并列 `s < best` → `s <= best` | ❌ **零检出** | 补 **T2-d2**（实跑搜出的真并列夹具）→ 转 ✅ |
-
-**M20/M21 的教训（比数字更重要）**：
-- **M20**：`line_scan_buf` 有三处结算点（变色 / 非 Data / 行末），既有夹具只覆盖了后两处——
-  「**恰好 5 连且**紧接着变色」这条路径无输入触发。→ **分支存在 ≠ 分支被测**。
-- **M21**：并列规则是**语义契约**（文档写着「并列取先到的低位 mask」），却从无用例锁定；
-  且天然的并列输入**罕见**（需实跑搜索才发现 V05-L 某码字 mask 5/6 同分）。
-  → **契约型行为（并列/回退/优先级）必须用「实跑搜出的输入」显式锁定**，不能指望随机夹具撞上。
-
-### G.3 新增脚本（**不进 push CI**，同 `bench*.sh` 角色）
-
-| 脚本 | 用途 | 状态 |
-|------|------|------|
-| `scripts/snapshot_gen_score.rs` | 参考侧打分明细发射器（T2-a/T2-b） | 已建（自包含夹具，免参考测试模块可见性问题） |
-| `scripts/snapshot_gen_placement.rs` | 参考侧放置坐标发射器（T2-c） | 已建（严格镜像 `placement.rs` 遍历） |
-| `scripts/snapshot_verify_score.py` | T2-a/T2-b `--verify` 校验 | 已建 |
-| `scripts/snapshot_verify_placement.py` | T2-c `--verify` 校验 | 已建 |
-| `scripts/diff-gate.sh` | T4-c 差分门禁（含显式 skipped） | 已建（原进 push CI，现随 `gates.sh` 本地执行） |
-| `scripts/coverage.sh` | T5-a 覆盖率报告 | 已建 |
-
-`gen-goldens.sh` 新增子命令：`--emit-score` / `--emit-placement` / `--emit-all-rs`；
-`--verify` 扩展为**四项校验**（常量表 1429 + 独立真值 294 + 打分明细 29+29+5 + 放置 359 格）。
-
-### G.4 环境备注（本环境实跑踩坑，v4 新增）
-
-- **`set -e` + `moon test` 的静默退出**：变异检测脚本里 `out="$(moon test ...)"` 在**测试失败**时
-  返回非 0，`set -e` 会直接杀掉脚本——表现为「表头打印后一行都没有」。修法：`|| true` 兜住。
-  这是 v3 就存在的**潜在**问题，v4 首次在「新增变异项」时被触发。
-- **`[ -z "$id" ] && continue` 在 `set -e` 下的陷阱**：当 `$id` 非空时该表达式返回 1，
-  作为 `&&` 链的末命令会触发 `set -e`。修法：改写成 `if [ -z "$id" ]; then continue; fi`。
-- **变异检测可能把改动**写入 `lib/`**并留在 HEAD**：本环境曾因「在 lib 被变异的状态下 commit」，
-  把 M1 的反向改写提交进了仓库，导致后续锚点全部失效。→ **执行前 `git status -- lib/` 必须为空，
-  执行后再次校验**（脚本已有，但人工 commit 时要再看一眼）。
-- `snapshot_gen_rs_vectors.rs` / `snapshot_gen_score.rs` / `snapshot_gen_placement.rs` 需在参考检出内编译，
-  **Rust dev-deps 需要系统 C 编译器**（本环境 `apt-get install -y build-essential`）。
-  `snapshot_gen_score.rs` 已改为**自包含夹具**（内联 841 字节），不再依赖参考测试模块的可见性。
-
-### G.5 仍待办（v4 未覆盖）——**v5 已全部落地，见附录 H**
-
-T3-c（解码向量固化 `s6_decode_vectors_test.mbt`）、T3-d（`cmd` 多内容探针：三模式 × 4 ECL × 4 版本）、
-T5-b（覆盖率下限「不下降」锁定）、T6-c（本文与 README 互链的死链检查）。
+> 附录 F/G/H（v3/v4/v5 逐轮落地记录）已按 AGENTS.md §四「单文档 ≤800 行」拆出，
+> 承接篇见 **[S10d · 测试落地记录（v3–v5）](S10d-测试落地记录-v3-v5.md)**。
+> 拆篇缘由：本篇 2026-09-25 达 **779 行**，距硬限仅 21 行（S12 §6.2 D5 已预告「下次增量必先拆」）。
+> **规范与 roadmap 留在本篇**（它才是「读者要照做的事」）；**逐轮实做记录移入 S10d**。
 
 ---
 
-## 附录 H：v5 落地记录（2026-09-13，实跑）
+## 附录 I：仍待办（v5 后）
 
-> 本节记录 v5 相对 v4 的**实际交付**。与前几版不同，**v5 的主要产出是一条真 bug 的修复**
-> （非测试增量）：探针 `T3-d` 首跑即暴露 `select_capacity` 的模式语义缺陷，
-> 修复后与参考在 **83,160 组参数**上零差异（S10c §5）。
-> 落地基线：`moon test` **135 → 140 用例全绿**；变异对照 **19/19 → 21/21 全检出**。
-
-### H.1 交付清单
-
-| 项 | 落地物 | 关键实现 | 验证 |
-|----|--------|---------|------|
-| **bug fix** | `lib/qr_build.mbt` + `lib/internal/constants/capacity.mbt`（新增 `fits_at_version`） | ①`v=None` 按**声明模式**求最小版本；②`v=Some` 先判全谱系上界，再用**位流口径 + 指定版本 CCI 档位**复算 | 83,160 组参数与参考零差异；旧实现下 4 组语料解码 NULL |
-| T3-d | `cmd/bench/main.mbt` `--dump-case list\|<n>\|all` | **54 组**语料（三模式 × 4 ECL × {V01,V05,V10,V40} = 48 + **6 组自动版本靶点**）；矩阵协议与 `--dump` 完全一致，另加 `QR_CASE` 元数据行 | 54/54 jsQR 读回原文；旧实现下 4 组 NULL |
-| T3-c | `lib/s6_decode_vectors_test.mbt` + `scripts/snapshot_gen_decode_vectors.mjs` | **11 条**固化向量（5 组 grid 四角 + **全部 6 组 auto 靶点**）；FNV-1a 64 指纹（core 无 sha256，黑盒可复算） | 140 用例全绿；旧实现下本用例变红 |
-| T5-b | `scripts/coverage.sh --floor` + `docs/S10b-…` 顶部 `coverage-floor` 标记 | **「不下降」门禁**（`lib/**` 未覆盖行 ≤ 登记上限）；不设绝对百分比阈值（避免造无信息量用例） | 实跑：26 ≤ 26 ✅；人为调低上限 → 退出码 1 ❌ |
-| T6-c | `scripts/docs-link-check.sh`（原进 push CI，现本地/按需执行） | 受版本控制 Markdown 的**相对链接**存在性检查；跳过外链/锚点；**忽略代码块** | 零死链（文件数/条数以实跑为准）；植入假死链 → 退出码 1 |
-| — | `.cnb.yml` | push 阶段新增 `docs-link-check` 与 `test-scale` 两个零依赖 stage（已随 2026-09-14 push 流水线移除） | Schema 校验通过 |
-| — | `scripts/test-audit.sh` | `decode` 增跑 T3-d 全语料；新增 M22/M23 | 21/21 全检出（编号有缺号，条数=脚本行数） |
-
-### H.2 变异检测刷新（v4 19/19 → v5 21/21）
-
-| # | 植入缺陷 | 失败数 | 对应修复 |
-|:-:|---|:---:|---|
-| M22 | `select_capacity` 丢弃显式模式（`version_for(0,…)`） | **7** | §10.3 修法① |
-| M23 | 显式版本丢弃模式校验（`fits_at_version(0,…)`） | **1** | §10.3 修法② |
-
-### H.3 环境备注（v5 新增踩坑）
-
-- **工作区可能在多次工具调用之间被重置**：本轮曾出现「改完 `lib/` 后下一次命令工作区已被
-  还原」，导致修复丢失。→ **教训：每次有意义的改动后立即 `git commit`**，不要攒到最后。
-  这与附录 F.4 的「变异检测会还原 `lib/`」是**两个不同陷阱**——前者是审计脚本的
-  预期行为，后者是**环境态**，必须靠「小步提交」而不是「小心」来防。
-- 加 `--dump-case` 到 `cmd/bench` 后，`moon coverage analyze` 的 `cmd/bench` 未覆盖行
-  从 35 涨到 72：这些分支由 `test-audit.sh decode`（不进 push CI）覆盖，
-  **不属库分发面**，故 `coverage-floor` 只按 `lib/**` 计（26 行）。
-- 生成器里 `UInt64::to_hex` / `String::to_bytes` 都不可用（前者不存在、后者已 deprecated）：
-  自持 `decode_hex16`（逐 nibble），字节迭代改用 `for c in s` 取 `c.to_int() & 0xFF`。
-
-### H.4 仍待办
-
-v4 §G.5 的四项已全部落地。剩余**非阻塞**项：
-- T4-b 的变异清单可继续扩样（例如 `cci_bits` 的 Byte 分支、`missing_bits` 表值）；
-- `coverage-floor` 可随补测逐步**下调**（当前 26，S10b §2.1 已写明处置约定）。
+见 [S10d §H.4](S10d-测试落地记录-v3-v5.md#h4-仍待办) 与下文 §6/§7 的 roadmap 收口项。

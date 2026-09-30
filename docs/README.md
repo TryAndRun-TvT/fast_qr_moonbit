@@ -118,7 +118,8 @@ README 只列**类型名**；签名、语义与用法以 `lib/*.mbt` 与 `.mbti`
 | **测试 roadmap / 覆盖差距矩阵 / 七条铁律** | [S10](02-证据/S10-测试用例设计与完善roadmap.md)（**测试维护入口**） | `bash scripts/test.sh` |
 | **覆盖率报告 + 不下降门禁** | [S10b](02-证据/S10b-测试覆盖率报告.md) | `bash scripts/coverage.sh` · `--floor` |
 | **真 bug 修复记录**（`select_capacity` 模式语义） | [S10c](02-证据/S10c-select-capacity模式语义缺陷-定位与修复.md) | — |
-| **变异检测 / 第三方解码回读** | S10 附录 + [S11b](02-证据/S11b-清理落地记录-v3-v5.md) | `bash scripts/test-audit.sh mutation` · `decode` |
+| **逐轮落地记录（v3–v5）** | [S10d](02-证据/S10d-测试落地记录-v3-v5.md) | — |
+| **变异检测 / 第三方解码回读** | S10 附录 E + [S10d](02-证据/S10d-测试落地记录-v3-v5.md) + [S11b](02-证据/S11b-清理落地记录-v3-v5.md) | `bash scripts/test-audit.sh mutation` · `decode` |
 | **门禁自身可信度**（假红/假绿/断链的实锤与修复） | [S11c](02-证据/S11c-第6轮体检-工具链漂移与门禁假绿修复.md) | `bash scripts/gates.sh`（11 阶段） |
 | **黄金值来源与重建** | S10 §5 铁律 1 | `bash scripts/gen-goldens.sh --verify` |
 | **与参考 wasm 逐位差分** | [S9i](02-证据/S9i-纯库调用体积探针与库实际体积.md) | `bash scripts/diff-gate.sh` |
@@ -282,9 +283,10 @@ bash scripts/publish.sh --publish  # 真实发布（不可逆，需确认；凭�
 | [01-规格/moonbit-工具链版本与特性适配评估.md](./01-规格/moonbit-工具链版本与特性适配评估.md) | 现行 | 231 |
 | [01-规格/moonbit-项目目录设置-最佳实践.md](./01-规格/moonbit-项目目录设置-最佳实践.md) | 现行 | 303 |
 | [01-规格/rust-环境配置脚本与fast_qr对比-setup.md](./01-规格/rust-环境配置脚本与fast_qr对比-setup.md) | 现行 | 131 |
-| [02-证据/S10-测试用例设计与完善roadmap.md](./02-证据/S10-测试用例设计与完善roadmap.md) | 现行 | 779 |
+| [02-证据/S10-测试用例设计与完善roadmap.md](./02-证据/S10-测试用例设计与完善roadmap.md) | 现行 | 597 |
 | [02-证据/S10b-测试覆盖率报告.md](./02-证据/S10b-测试覆盖率报告.md) | 现行 | 115 |
 | [02-证据/S10c-select-capacity模式语义缺陷-定位与修复.md](./02-证据/S10c-select-capacity模式语义缺陷-定位与修复.md) | 历史 | 97 |
+| [02-证据/S10d-测试落地记录-v3-v5.md](./02-证据/S10d-测试落地记录-v3-v5.md) | 历史 | 190 |
 | [02-证据/S11-无效代码与冗余文档清理评估.md](./02-证据/S11-无效代码与冗余文档清理评估.md) | 现行 | 571 |
 | [02-证据/S11b-清理落地记录-v3-v5.md](./02-证据/S11b-清理落地记录-v3-v5.md) | 历史 | 354 |
 | [02-证据/S11c-第6轮体检-工具链漂移与门禁假绿修复.md](./02-证据/S11c-第6轮体检-工具链漂移与门禁假绿修复.md) | 现行 | 280 |
@@ -334,7 +336,7 @@ bash scripts/publish.sh --publish  # 真实发布（不可逆，需确认；凭�
 | [移植参考/模块/wasm-绑定.md](./移植参考/模块/wasm-绑定.md) | 现行 | 56 |
 | [移植参考/模块/核心编码管线.md](./移植参考/模块/核心编码管线.md) | 现行 | 71 |
 <!-- /docs-index-table -->
-<!-- docs-index-count: 64 -->
+<!-- docs-index-count: 65 -->
 
 </details>
 
