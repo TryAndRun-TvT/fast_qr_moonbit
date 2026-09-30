@@ -139,9 +139,11 @@ Caused by:
   RS 单项占比更低 → **结论更保守，不改变方向**。
 - **未覆盖项**：未测 `Bytes`（H4）；`structure` 未直接计时（仅 `division` 代理）；`T-R3`（公共
   `QRCode.data` 只读化）性能 ≈0 且 API 风险中，**建议不做**。
-- **lint 复核**：`moon check --warn-list "+prefer_readonly_array"` 命中 **恰好 4 处**——生产 `offsets`
+- **lint 复核**（**2026-09-12 快照**）：`moon check --warn-list "+prefer_readonly_array"` 命中 **恰好 4 处**——生产 `offsets`
   (`matrix.mbt:59`)、`pad` (`bitbuffer.mbt:129`)；测试 `mods`、`bits`。与 S9m §5 一致，
   模块级表（`log_table`/`antilog_table`）确实**不被覆盖**。
+  → **2026-09-24 更新**：这 4 处**已随 T-R1/T-R2/T-R4 与介质换代全部只读化**，现命中 **0**
+  （复跑 `moon check --warn-list +prefer_readonly_array`，见 [S9t §3.1](S9t-介质换代延迟复盘与既有文档勘误.md)）。
 
 ---
 
@@ -195,7 +197,7 @@ Caused by:
 ```bash
 export PATH="$HOME/.moon/bin:$PATH"
 moon fmt --check && moon check --deny-warn && moon test --target wasm-gc   # 全绿（用例数见 S10b 登记处）
-moon check --warn-list "+prefer_readonly_array"                            # 恰好 4 处命中
+moon check --warn-list "+prefer_readonly_array"                            # 现为 0 命中（2026-09-12 曾 4 处）
 moon build lib --target native --release                                   # 预期被 supported_targets 拒绝
 ```
 

@@ -91,8 +91,8 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 | ② vs moonbit 生态 `moonqr`（同宿主、同输入/ECL/强制版本/自动择优） | 本仓库全程快 **2.7–4.3×**（同 run 比值；2026-09-24 复测，钉版 `moonqr@0.2.0`） | [S9u](S9u-生态对比复测-moonqr-moonCLI直调.md)（旧值见 [S9d](S9d-与moonbit生态QR包性能对比.md)） |
 | ③ 产物体积 vs fast_qr | `wasm-gc` 各口径均更小（对称锚点 **0.65×**，2026-09-23 介质换代后；原 0.69×） | [§1.1](#11-与-fast_qr-的体积对比库对库主口径) · [S9i](S9i-纯库调用体积探针与库实际体积.md) |
 
-> ① 的数据随 P0/P2/P2b 优化已刷新（2026-09-12 重测）；② 为优化前（2026-09-06）历史口径，
-> 未随本轮重测，量级参考即可。
+> ① 的数据随 P0/P2/P2b 优化已刷新（2026-09-12 重测）；② 已于 **2026-09-24 用 `bash scripts/bench-moonqr.sh`
+> 复测并脚本化**（见 [S9u](S9u-生态对比复测-moonqr-moonCLI直调.md)，当前比值 2.7–4.3×）。
 
 ### 2.1 vs fast_qr-wasm32：性能明细（宿主调用面主口径）
 
@@ -121,7 +121,7 @@ moon-wasm-opt _build/wasm-gc/release/build/cmd/main/main.wasm \
 - **已落地**（[S9n §6](S9n-优化方案复评与wasm-gc收敛审计.md)）：P0 掩码特化 + P2 评分去闭包/列缓冲 + P2b N4 并入行趟，
   V40H 受控 A/B **−26%**（V10H −24%、V03H −4%），`TOTAL_CHECKSUM` 三项与基线完全相同（输出逐位不变）；
   ReadOnlyArray 只读化 + `prefer_readonly_array` lint 亦已落地（**≈0.9%**，定性「类型对齐为主、非性能杠杆」）。
-- **待做与上限**：容器 P1 受阻于 `QRCode.data` 固定容量公共契约（须 API 评审）；P2b(N2)/P3/T-R5 待做。
+- **待做与上限**：容器 P1 受阻于 `QRCode.data` 固定容量公共契约（须 API 评审）；**P3 介质换代已于 2026-09-24 落地**（`FixedArray[Int]`，提交 `ea7d7ae`）；仍待做 P2b(N2)/T-R5。
   理论上限≈ fast_qr 同执行模型（本环境 V40 ≈3.55 ms），现实可收窄到 V40 **≈3.6–4.2 ms**；
   V03 受每次 build 固定成本约束，**仍慢约 1.1–1.4×、大概率不追平**。
   已否决项（T1/O1-a 就地翻转）见 [S9b](S9b-性能优化.md)，统一优先级清单见 [S9n §3](S9n-优化方案复评与wasm-gc收敛审计.md)。
