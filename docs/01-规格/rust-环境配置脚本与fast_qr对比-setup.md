@@ -34,7 +34,7 @@
 
 ### 1. 阅读本仓库代码与文档
 
-- `.cnb.yml`：`push`/`vscode` 阶段命令已抽离到 `scripts/`（setup-moonbit / fmt-check / check / test / build-and-run）。
+- `.cnb.yml`：命令已抽离到 `scripts/`（setup-moonbit 等）；**原 `push` 流水线已于 2026-09-14 整体移除**，现只保留 `vscode` 阶段，门禁改为一条 `bash scripts/gates.sh` 本地执行（见 [AGENTS.md §二.4](../../AGENTS.md)）。
 - `AGENTS.md`：核心约束 —— 本仓库是 MoonBit 项目，CI 不收 native（需系统 C 编译器）阶段；
   密钥/私人配置不入库；构建产物 gitignore。
 - `docs/01-规格/moonbit-工具链与构建-setup-分析.md`：MoonBit 工具链安装、后端矩阵与 CI 集成说明。
@@ -74,7 +74,7 @@ git clone https://cnb.cool/tryandrun/rust_dev/rs-site-tools
 
 ### 4. 是否接入 `.cnb.yml` CI
 
-**不接入 `push` / `vscode` 必选阶段**，理由：
+**不接入任何 CI 阶段**（`push` 流水线已移除；`vscode` 阶段只装 MoonBit 工具链），理由：
 - 本仓库核心 CI 是 MoonBit（`moon fmt/check/test/build`），Rust 只是**可选对比依赖**；
   每次都装 Rust 会显著拖慢云开发环境与 CI。
 - `AGENTS.md` 明确禁止把 native（需 C 编译器）阶段写入 CI 必选流程 —— Rust 原生参考构建同理。

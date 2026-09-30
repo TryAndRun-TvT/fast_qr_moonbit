@@ -178,8 +178,10 @@ moon build            # 构建当前包（可 --target、--release）
   与 README/职责文档重复、且随实现漂移」被删（删前删后 `.mbti` 逐字节一致），见
   [S11b](../02-证据/S11b-清理落地记录-v3-v5.md) §12。上方初始结构树为**初始化当时**的快照。
 - 已补 `docs/`、`AGENTS.md`（由小写 `agents.md` 重命名对齐官方命名，无兼容符号链接）、`.githooks/`。
-- README 入口已改为单一真实 `README.md`（撤销官方 `README.mbt.md` + `README.md`
-  符号链接布局；`moon.mod` 的 `readme` 指向 `README.md`，见 README「项目结构」）。
+- README 布局**几经反复，最终回到官方布局**（2026-09-14）：`README.md` 是**实体正文**，
+  `README.mbt.md` 是指向它的**符号链接**（文档测试只认文件名恰为 `README.mbt.md` 的 markdown），
+  并新增根空 `moon.pkg` 作文档测试宿主 —— 使 README 的 `mbt check` 示例受 `moon test` 保护。
+  演进与理由见 [moonbit-实现布局与文件职责 §八](moonbit-实现布局与文件职责.md)。
 - 布局检查与整改过程见 [moonbit-实现布局与文件职责.md](moonbit-实现布局与文件职责.md)。
 
 ### 2. `.cnb.yml` 集成（**现仅有 `vscode`**）
@@ -287,8 +289,8 @@ https://cnb.cool/tryandrun/web_dev/chat_hub/chathub-server
 ```
 
 > 现状请以 [README.md](../../README.md)「项目结构」为准 —— 其后又新增了
-> MoonBit 源码、`cmd/main/`、`.githooks/`、`scripts/` 等，README 入口改为单一真实 `README.md`
-> （原官方 `README.mbt.md` + `README.md` 符号链接布局已撤销）。
+> MoonBit 源码、`cmd/main/`、`.githooks/`、`scripts/` 等。README 布局最终**恢复官方形态**：
+> `README.md`（实体）+ `README.mbt.md`（符号链接）+ 根空 `moon.pkg`（文档测试宿主，2026-09-14）。
 > `.cnb.yml` 各阶段命令已于 ISSUE #9 抽离到 `scripts/` 下的独立脚本，
 > `.cnb.yml` 仅以 `bash scripts/<name>.sh` 调用（详见
 > [moonbit-工具链与构建-setup-分析.md](moonbit-工具链与构建-setup-分析.md) §四.2）。

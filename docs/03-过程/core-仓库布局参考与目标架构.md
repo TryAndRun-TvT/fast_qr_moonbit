@@ -34,8 +34,11 @@ LICENSE / NOTICE / CHANGELOG.md / CONTRIBUTING.md
 bench/ test/        # 跨包基准与通用测试基座
 ```
 
-> `moon.mod` 的 `readme = "README.md"` 直接指向真实文件（本仓库现亦采用单一真实
-> `README.md`，不沿用官方 `README.mbt.md` + 符号链接布局，见 README「项目结构」）。
+> `moon.mod` 的 `readme = "README.md"` 直接指向真实文件。
+> **注（2026-09-25 订正）**：本仓库曾一度采用「单一真实 `README.md`」，但**最终回到官方布局**
+> ——`README.md`（实体正文）+ `README.mbt.md`（符号链接）+ 根空 `moon.pkg`（文档测试宿主），
+> 使 README 的 `mbt check` 示例受 `moon test` 门禁保护。见
+> [moonbit-实现布局与文件职责 §八](../01-规格/moonbit-实现布局与文件职责.md)。
 
 ### 1.2 包组织（核心模式）
 
