@@ -271,19 +271,6 @@ for t in wasm-gc; do moon build lib --target $t --release; moon build cmd/main -
 
 ---
 
-### 8. 参考
-- [moonbit-重写-roadmap-详细分析.md](../03-过程/moonbit-重写-roadmap-详细分析.md) §4.2/§4.3/§4.4 — roadmap S7 / B11 / 输出面
-- [跨语言重写评估.md](../移植参考/专有概念/跨语言重写评估.md) §4-5 — PNG（image.rs）裁剪为位图绘制建议、
-  输出层纯字符串直译
-- [fast-qr-接口.md](../移植参考/fast-qr-接口.md) §1.2/§1.4 — QRCode `to_str`/`print`、`SvgBuilder`/`Shape` API
-- [fast-qr-架构.md](../移植参考/fast-qr-架构.md) §转换输出子系统 — convert 只读矩阵、feature 关系
-- [convert-输出转换.md](../移植参考/模块/convert-输出转换.md) — SvgBuilder 结构/形状/透明度语义
-- [S6-端到端对齐与公共API.md](S6-端到端对齐与公共API.md) §1.2 — S7 划出（to_str/SVG 非 S6）
-- [S1-数据结构.md](S1-数据结构.md) — helpers.to_str 输出归属 S7（B11）
-- 参考源码 fast_qr v0.14.0：`src/helpers.rs`、`src/qr.rs:174-185`、`src/convert/{mod,svg}.rs`、`src/tests/svg.rs`
-
----
-
 ## 实现记录
 
 > 承接 本文件「实现方案」部分（PR #36）与
@@ -379,15 +366,6 @@ wasm-gc / wasm 双后端 release 构建 + `moon test --target` 通过；`git sta
 - **S8（internal 拆包）**：roadmap §4.2 下一步（文件过多/分层信号时做）。
 - **S9（性能）**：移植三基准点 V03H/V10H/V40H（`https://example.com/` 输入）透明对比。
 - **SVG `image`/`shape_color` 嵌图子集**、**PNG（image.rs）**、**wasm 宿主导出面**：S7 明确不做 / 按需二期。
-
----
-
-### 5. 参考
-- 本文件「实现方案」部分、
-  本文件「评估与优化」部分、
-  [moonbit-重写-roadmap-详细分析.md](../03-过程/moonbit-重写-roadmap-详细分析.md) §4.2/§4.4
-- [fast-qr-接口.md](../移植参考/fast-qr-接口.md) §1.2/§1.4、[convert-输出转换.md](../移植参考/模块/convert-输出转换.md)
-- 参考源码 fast_qr v0.14.0（`53e8c99`）：`src/helpers.rs`、`src/qr.rs:174-185`、`src/convert/{mod,svg}.rs`
 
 ---
 
@@ -488,8 +466,16 @@ S7 两块交付（终端 `to_str`/`print` + SVG `SvgBuilder`）定位为「输�
 ---
 
 ### 5. 参考
+- [moonbit-重写-roadmap-详细分析.md](../03-过程/moonbit-重写-roadmap-详细分析.md) §4.2/§4.3/§4.4 — roadmap S7 / B11 / 输出面
+- [跨语言重写评估.md](../移植参考/专有概念/跨语言重写评估.md) §4-5 — PNG（image.rs）裁剪为位图绘制建议、
+输出层纯字符串直译
+- [fast-qr-接口.md](../移植参考/fast-qr-接口.md) §1.2/§1.4 — QRCode `to_str`/`print`、`SvgBuilder`/`Shape` API
+- [fast-qr-架构.md](../移植参考/fast-qr-架构.md) §转换输出子系统 — convert 只读矩阵、feature 关系
+- [convert-输出转换.md](../移植参考/模块/convert-输出转换.md) — SvgBuilder 结构/形状/透明度语义
+- [S6-端到端对齐与公共API.md](S6-端到端对齐与公共API.md) §1.2 — S7 划出（to_str/SVG 非 S6）
+- [S1-数据结构.md](S1-数据结构.md) — helpers.to_str 输出归属 S7（B11）
+- 参考源码 fast_qr v0.14.0：`src/helpers.rs`、`src/qr.rs:174-185`、`src/convert/{mod,svg}.rs`、`src/tests/svg.rs`
+- 本文件「实现方案」部分、
+本文件「评估与优化」部分、
 - 本文件「实现方案」部分 — 被复核的 S7 详细方案（PR #36）
-- 参考源码 fast_qr v0.14.0（`53e8c99`）：`src/helpers.rs`、`src/qr.rs:174-185`、`src/convert/{mod,svg}.rs`、`src/tests/svg.rs`
-- [moonbit-重写-roadmap-详细分析.md](../03-过程/moonbit-重写-roadmap-详细分析.md) §4.2/§4.4 — S7 / 输出面 / M2-M3
 
----
