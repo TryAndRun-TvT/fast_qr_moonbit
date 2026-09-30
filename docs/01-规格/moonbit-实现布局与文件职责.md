@@ -274,7 +274,7 @@ Error: failed when checking project
 因此骨架阶段（库尚无公共 API）**不能**提前声明依赖，
 改为在文件中以注释记录待启用内容。
 
-> 此项修正了 `docs/03-过程/wasm-编译与运行-结果分析.md` §6.3 原先「必须补 import」的表述。
+> 此项修正了 `docs/03-过程/wasm-编译与运行-结果分析.md` 原先「必须补 import」的表述（该篇 §1.2 保留实测证据）。
 
 ---
 
@@ -297,7 +297,7 @@ Error: failed when checking project
 | 清理 | `.gitignore` | 移除与本仓库无关的 `/chathub-server/` 残留项；`*.mbti` 已在上次加入 |
 | 重写 | `agents.md` | 从 Cloudflare/wrangler 专属内容适配为 MoonBit 项目约定；去除对不存在文件的引用 |
 | 更新 | `README.mbt.md` | 新增「代码放置约定」章节；补全项目结构；修正后端表述（native 不可用） |
-| 修正 | `docs/03-过程/wasm-编译与运行-结果分析.md` | §6.2 / §6.3 补充实证结论；§7.2 待办表加状态列并标记已完成项 |
+| 修正 | `docs/03-过程/wasm-编译与运行-结果分析.md`（已失效篇，仅 §1 保留） | 补黑盒/白盒注释实证结论、`unused_package` 实测证据 |
 | 更新 | `docs/01-规格/moonbit-工具链与构建-setup-分析.md` | 注意事项同步为「agents.md 已适配」 |
 | 新增 | `docs/01-规格/moonbit-实现布局与文件职责.md` | 本文档 |
 | 新增 | `README.md` -> `README.mbt.md` 符号链接 | 官方布局含此链接；git 以 `mode 120000` 跟踪 |

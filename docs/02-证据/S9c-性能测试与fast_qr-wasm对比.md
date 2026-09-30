@@ -316,7 +316,7 @@ nodejs 包，写 `原 wasm/WASI 对比驱动脚本`（MoonBit 侧经 `moonrun` �
   `src/lib.rs`（wasm 模块 cfg 门控）、`wasm-pack.sh`、`Cargo.lock`（wasm-bindgen 0.2.100）。
 - npm `fast_qr` 元数据（latest 0.13.0，≠ v0.14.0）；wasm-bindgen-cli 0.2.100 官方 GitHub release 预编译二进制。
 - [wasm-绑定.md](../移植参考/模块/wasm-绑定.md)（wasm 导出面/构建链）、[fast-qr-接口.md](../移植参考/fast-qr-接口.md)
-  §2/§4、[wasm-编译与运行-结果分析.md](../03-过程/wasm-编译与运行-结果分析.md) §5.2（宿主多次取最小口径）。
+  §2/§4、[wasm-编译与运行-结果分析.md](../03-过程/wasm-编译与运行-结果分析.md)（骨架期「多次取最小」口径，已失效）。
 - 本仓库实码：`cmd/bench/main.mbt`、`scripts/bench.sh`、`lib/module.mbt`（value/byte）、`lib/qr_build.mbt`
   （默认 ecl=Q）、`lib/qr.mbt`（QRCode 访问器）；实测产物导出面 `_build/{wasm-gc,wasm}/release/build/cmd/bench/bench.wasm`。
 - 环境：`scripts/setup-rust.sh`（rsproxy stable）、`scripts/setup-moonbit.sh`；node v22 `node:wasi` / `WebAssembly` 实测可用。

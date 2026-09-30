@@ -265,7 +265,7 @@ bash scripts/bench-size.sh --no-build   # 产物就绪时只量测（探针缺�
 - 上游：[S9f 实现方案](S9f-产物体积对比.md) · [S9f 实现记录](S9f-产物体积对比.md)（含修订注记）
 - 后续：[S9i 纯库调用体积探针与库实际体积](S9i-纯库调用体积探针与库实际体积.md)（补「库实际体积」口径并修正 ⑤ 锚点不对称）
 - 同尺子：[S9e 性能统一 Node 调用](S9e-性能测试统一Node调用.md)
-- 早期三后端体积对照（骨架阶段）：[wasm-编译与运行-结果分析](../03-过程/wasm-编译与运行-结果分析.md) §5.1
+- 早期三后端体积对照（骨架阶段，已失效）：[wasm-编译与运行-结果分析](../03-过程/wasm-编译与运行-结果分析.md)
 - 本仓库实码：`scripts/wasm-size.mjs`、`scripts/bench-size.sh`、`原 wasm/WASI Node 运行器`、`cmd/bench/main.mbt`（未改）
 - 环境：moon 0.1.20260904、Node v24.20.0、moon-wasm-opt（Binaryen 125）、
   fast_qr v0.14.0（`53e8c99`）+ wasm-bindgen 0.2.100（外部检出副本，探针不入库）

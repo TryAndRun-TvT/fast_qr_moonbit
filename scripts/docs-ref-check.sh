@@ -5,7 +5,11 @@
 #   这类漂移。实证（S12 §13.4）：`S12 §3.3` 曾引用 **`S11 §9.1` / `S11 §9.2`**，
 #   而 S11 的 §9 **没有子节**——整链门禁当时全绿，人工复核才发现。
 #
-# 判据：文中形如 `S<N>[a-z] §M[.K...]` 的引用，必须在被引篇目内**存在该编号的标题**。
+# 两条判据（同一把尺子的两种写法）：
+#   A. 代号式：文中形如 `S<N>[a-z] §M[.K...]` 的引用，必须在被引篇目内**存在该编号的标题**；
+#   B. 路径式：文中形如 `[标签](路径.md) §M[.K...]` 的引用（链接紧跟 §），同样须存在该标题。
+#      —— 补 B 的理由（2026-09-25 实证）：`wasm-编译与运行-结果分析.md §5.2` 这类**路径式**引用
+#      在 A 下不可见（A 只认 `S<N>x` 代号），该篇被裁剪后留下 **18 处悬空 §** 而整链仍绿。
 #   编号来源 = 被引篇目内形如 `## M` / `### M.K` 的标题前缀（两/三级标题并存都认）。
 #
 # 识别范围（保守，宁漏勿误）：
@@ -75,11 +79,29 @@ for f in files:
                 continue
             scanned += 1
             if not any(sec in heads_of(t) for t in targets):
-                bad.append((f, lineno, code, sec, targets))
+                bad.append((f, lineno, "`%s §%s`" % (code, sec), "/".join(targets)))
 
-for f, lineno, code, sec, targets in bad:
-    print("  ❌ %s:%d：引用 `%s §%s`，但 %s 内无该编号标题" % (
-        f, lineno, code, sec, "/".join(targets)))
+# ── B. 路径式引用：`[标签](X.md) §M` ──────────────────────────────────────────
+# 只在「链接紧跟 §」的形态下判定（`§` 未必属于该链接，故用 **同一行 + 链接后紧邻** 收窄）。
+LINK_SEC_RE = re.compile(r"\]\(([^)#]+\.md)\)\s*[§#]\s*(\d+(?:\.\d+)*)(?![\d])")
+def resolve(src, target):
+    p = os.path.normpath(os.path.join(os.path.dirname(src), target))
+    return p if os.path.isfile(p) else None
+
+for f in files:
+    for lineno, line in enumerate(open(f, encoding="utf-8"), 1):
+        for target, sec in LINK_SEC_RE.findall(strip_code_spans(line)):
+            tp = resolve(f, target)
+            if not tp:
+                continue          # 目标不存在由 docs-link-check 负责，此处不重复报
+            if tp == f:
+                continue          # 自指（同篇跨节）不判，避免同一篇内移动节次即红
+            scanned += 1
+            if sec not in heads_of(tp):
+                bad.append((f, lineno, "`%s §%s`" % (target, sec), tp))
+
+for f, lineno, what, where in bad:
+    print("  ❌ %s:%d：引用 %s，但 %s 内无该编号标题" % (f, lineno, what, where))
 print("  COUNT=%d" % len(bad))
 print("  实扫 %d 处可映射引用；%d 处泛指代号已跳过" % (scanned, skipped))
 sys.exit(1 if bad else 0)

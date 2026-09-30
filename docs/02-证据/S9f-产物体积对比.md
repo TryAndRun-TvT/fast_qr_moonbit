@@ -413,7 +413,7 @@ S9b 的性能优化落地后可同批复跑 `bench-layer2.sh` + `bench-size.sh`�
 - 方案：本文件「实现方案」部分；issue #50。
 - 性能侧：[S9e 实现记录](S9e-性能测试统一Node调用.md)（同尺子性能）、
   [S9c 实现记录](S9c-性能测试与fast_qr-wasm对比.md)（层②构建链路）。
-- 体积前史：[wasm-编译与运行-结果分析](../03-过程/wasm-编译与运行-结果分析.md) §4/§5（早期三后端产物体积对照）。
+- 体积前史：[wasm-编译与运行-结果分析](../03-过程/wasm-编译与运行-结果分析.md)（早期三后端产物体积对照，已失效）。
 - 本仓库实码：`scripts/wasm-size.mjs`、`scripts/bench-size.sh`、`原 wasm/WASI Node 运行器`、
   `scripts/build-fast-qr-wasm.sh`、`cmd/bench/main.mbt`（未改）。
 - 参考 fast_qr v0.14.0（`53e8c99`）：`Cargo.toml`（`opt-level='s'` + `lto` + `codegen-units=1` + `panic=abort`）、
